@@ -27,6 +27,7 @@ const dummyProjects = [
 ];
 
 const MaterialForm = () => {
+  const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [formData, setFormData] = useState({
@@ -160,10 +161,18 @@ const MaterialForm = () => {
     setProcurements(updatedProcurements);
   };
 
+  const filteredProcurements = procurements.filter((d) =>
+    Object.values(d).some(
+      (val) =>
+        val &&
+        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+
   return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Material Procurement</Typography>
-
+     
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
@@ -196,14 +205,20 @@ const MaterialForm = () => {
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
             <Typography variant="h6" gutterBottom>SUBMITTED MATERIALS PROCUREMENT RECORDS</Typography>
-
+            <input
+        type="text"
+        placeholder="Search Materials Procurements Here...."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="input"
+      />
             <TableContainer sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd' }}>
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Project ID</strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Procurement ID</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>PurchaseOrder ID</strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Purchase Order ID</strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Material Name</strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Quantity</strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Unit Price</strong></TableCell>
@@ -216,7 +231,7 @@ const MaterialForm = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {procurements.map((p, i) => (
+                  {filteredProcurements.map((p, i) => (
                     <TableRow key={i}>
                       <TableCell>{p.projectId}</TableCell>
                       <TableCell>{p.procurementId}</TableCell>

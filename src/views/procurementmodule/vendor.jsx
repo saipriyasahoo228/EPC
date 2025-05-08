@@ -30,9 +30,9 @@ const dummyProjects = [
 
 const VendorForm = () => {
     // Initialize state variables
+    const [searchQuery, setSearchQuery] = useState('');
     const [open, setOpen] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState('');
-    //const [formData, setFormData] = useState({});
     const [vendors, setVendors] = useState([]); // Initialize vendors state
 
     const [formData, setFormData] = useState({
@@ -114,6 +114,14 @@ const handleEdit = (index) => {
   };
   
 
+  const filteredVendors = vendors.filter((d) =>
+    Object.values(d).some(
+      (val) =>
+        val &&
+        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+
     
   
 
@@ -153,7 +161,13 @@ const handleEdit = (index) => {
   <Grid item xs={12}>
     <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
       <Typography variant="h6" gutterBottom>SUBMITTED VENDOR RECORDS</Typography>
-      
+      <input
+        type="text"
+        placeholder="Search Vendors"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="input"
+      />
       <TableContainer sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd' }}>
       <Table stickyHeader>
   <TableHead>
@@ -174,7 +188,7 @@ const handleEdit = (index) => {
     </TableRow>
   </TableHead>
   <TableBody>
-    {vendors.map((v, i) => (
+    {filteredVendors.map((v, i) => (
       <TableRow key={i}>
         <TableCell>{v.projectId}</TableCell>
         <TableCell>{v.vendorId}</TableCell>

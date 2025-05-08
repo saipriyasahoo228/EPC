@@ -776,6 +776,7 @@ import { Button, Badge } from '@mui/material';
 import AuditTrail from './tenderaudit';
 
 const TenderDetailsEntry = () => {
+  const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [tenders, setTenders] = useState([]);
@@ -976,6 +977,16 @@ const TenderDetailsEntry = () => {
   const startIndex = (currentPage - 1) * rowsPerPage;
   const currentTenders = tenders.slice(startIndex, startIndex + rowsPerPage);
   const totalPages = Math.ceil(tenders.length / rowsPerPage);
+
+
+  const filteredTenders = tenders.filter((d) =>
+    Object.values(d).some(
+      (val) =>
+        val &&
+        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+
 
   return (
     <div style={{ padding: '2rem', minHeight: '100vh' }}>
@@ -1290,6 +1301,13 @@ const TenderDetailsEntry = () => {
         </div>
 
         <div style={{ overflowX: 'auto' }}>
+        <input
+        type="text"
+        placeholder="Search Vendors"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="input"
+      />
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1200px' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8f9fa' }}>
@@ -1312,7 +1330,7 @@ const TenderDetailsEntry = () => {
               </tr>
             </thead>
             <tbody>
-              {currentTenders.map(t => (
+              {filteredTenders.map(t => (
                 <tr key={t.id} style={{ backgroundColor: '#fff' }}>
                   <td style={tableCellStyle}>{t.id}</td>
                   <td style={tableCellStyle}>{t.refNo}</td>

@@ -29,6 +29,7 @@ const dummyProjects = [
 ];
 
 const DesignForm = () => {
+  const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
@@ -52,6 +53,15 @@ const DesignForm = () => {
     setDesigns([...designs, newDesign]);
     setOpen(false);
   };
+
+  const filteredDesigns = designs.filter((d) =>
+    Object.values(d).some(
+      (val) =>
+        val &&
+        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+  
 
   return (
     <>
@@ -89,7 +99,14 @@ const DesignForm = () => {
   <Grid item xs={12}>
     <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
       <Typography variant="h6" gutterBottom>SUBMITTED DESIGNS</Typography>
-      
+      <input
+        type="text"
+        placeholder="Search Designs"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="input"
+      />
+
       <TableContainer sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd' }}>
         <Table stickyHeader>
           <TableHead>
@@ -113,7 +130,7 @@ const DesignForm = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {designs.map((d, i) => (
+            {filteredDesigns.map((d, i) => (
               <TableRow key={i}>
                 <TableCell>{d.projectId}</TableCell>
                 <TableCell>{d.designId}</TableCell>

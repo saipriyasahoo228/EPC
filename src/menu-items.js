@@ -151,7 +151,7 @@ const menuItems = {
               id: 'logistic',
               title: 'Logistic Management',
               type: 'item',
-              url: '/icons/font-awesome-5'
+              url: '/logistic'
             }
           ]
         }

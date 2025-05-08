@@ -39,21 +39,23 @@ const dummyProjects = [
 ];
 
 
-const PurchaseOrder = () => {
+const LogisticForm = () => {
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [formData, setFormData] = useState({
     projectId: '',
     purchaseOrderId:'',
-    vendorId:'',
-    procurementId: '',
-    orderDate: '',
-    deliveryDate: '',
-    totalOrderValue: '',
-    paymentTerms: '',
-    taxDetails: '',
-    orderStatus: '',
-    invoiceId: ''
+    logisticId:'',
+    transportId: '',
+    vehicleDetails:'',
+    driverName:'',
+    dispatchDate:'',
+    expectedArrivalDate:'',
+    actualArrivalDate:'',
+    deliveryLocation:'',
+    shippingStatus:'',
+    damageReport:'',
+   
     
   });
   
@@ -75,38 +77,7 @@ const PurchaseOrder = () => {
   }, [open, selectedProjectIndex]); // Runs whenever open or selectedProjectIndex changes
 
 
-  // Open form with new procurement ID
-  // const handleOpenForm = (projectId) => {
-  //   setSelectedProjectId(projectId);
-  //   // Update formData with both procurementId and projectId in one call
-  //   setFormData((prevFormData) => ({
-  //     ...prevFormData,  // retain existing formData
-  //     projectId,        // add/update projectId
-  //   }));
   
-  //   setOpen(true);
-  // };
-  
-  // Open form with new procurement ID
-  // const handleOpenForm = (projectId) => {
-  //   setSelectedProjectId(projectId);
-  //   const selectedProject = dummyProjects.find((project) => project.projectId === projectId);
-  
-  //   if (selectedProject) {
-  //     setFormData((prevFormData) => ({
-  //       ...prevFormData,
-  //       projectId: selectedProject.projectId,
-  //       procurementId: selectedProject.procurementId,
-  //       purchaseOrderId: selectedProject.purchaseOrderId,
-  //     }));
-  //   }
-  
-  //   console.log('Updated Form Data:', formData); // Debugging here
-  //   setOpen(true);
-  // };
-  
-
-  // const handleClose = () => setOpen(false);
 
   const handleOpenForm = () => {
     setOpen(true);
@@ -230,34 +201,38 @@ const PurchaseOrder = () => {
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Project ID</strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Procurement ID</strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>PurchaseOrder ID</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Vendor ID </strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Procurement ID </strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Order Date </strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Dalivery Date</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Total Order Value</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Total Cost</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Payment Terms</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Tax Details</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Order Status</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Invoice Id</strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Logistic ID </strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Transport Provider Id </strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Vehicle Details</strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Driver Name</strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Dispatch Date</strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Expected Arrival Date</strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Actual Arrival Date</strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Delivery Location</strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Shipping Status</strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Damage Report</strong></TableCell>
                     <TableCell sx={{ color: '#660000' }}><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {procurements.map((p, i) => (
                     <TableRow key={i}>
-                      <TableCell>{p.purchaseOrderId}</TableCell>
-                      <TableCell>{p.vendorId}</TableCell>
+                      <TableCell>{p.projectId}</TableCell>
                       <TableCell>{p.procurementId}</TableCell>
-                      <TableCell>{p.orderDate}</TableCell>
-                      <TableCell>{p.deliveryDate}</TableCell>
-                      <TableCell>{p.totalOrderValue}</TableCell>
-                      <TableCell>{p.totalCost}</TableCell>
-                      <TableCell>{p.paymentTerms}</TableCell>
-                      <TableCell>{p.taxDetails}</TableCell>
-                      <TableCell>{p.orderStatus}</TableCell>
-                      <TableCell>{p.invoiceId}</TableCell>
+                      <TableCell>{p.purchaseOrderId}</TableCell>
+                      <TableCell>{p.logisticId}</TableCell>
+                      <TableCell>{p.transportId}</TableCell>
+                      <TableCell>{p.vehicleDetails}</TableCell>
+                      <TableCell>{p.driverName}</TableCell>
+                      <TableCell>{p.dispatchDate}</TableCell>
+                      <TableCell>{p.expectedArrivalDate}</TableCell>
+                      <TableCell>{p.actualArrivalDate}</TableCell>
+                      <TableCell>{p.deliveryLocation}</TableCell>
+                      <TableCell>{p.shippingStatus}</TableCell>
+                      <TableCell>{p.damageReport}</TableCell>
                       
                       <TableCell>
                         <IconButton color="warning" onClick={() => handleEdit(i)}>
@@ -277,7 +252,7 @@ const PurchaseOrder = () => {
       </Grid>
 
       <Dialog open={open} onClose={handleClose} fullWidth>
-        <DialogTitle>Enter Purchase Order Details</DialogTitle>
+        <DialogTitle>Enter Logistic Details</DialogTitle>
         <DialogContent sx={{ position: 'relative' }}>
           <IconButton
             aria-label="close"
@@ -310,12 +285,12 @@ const PurchaseOrder = () => {
   </Grid>
 
   <Grid item xs={6}>
-    <label htmlFor="vendorId">Vendor ID</label>
+    <label htmlFor="logisticId">Logistic ID</label>
     <input
-      id="vendorId"
-      name="vendorId"
+      id="logisticId"
+      name="logisticId"
       className="input"
-      value={formData.vendorId || ''}
+      value={formData.logisticId || ''}
       disabled // This makes it non-editable
     />
   </Grid>
@@ -347,38 +322,38 @@ const PurchaseOrder = () => {
 
     {/* Material Information */}
     <Grid item xs={12}>
-      <h3 style={{ color: '#7267ef' }}>Material Information & Payment..</h3>
+      <h3 style={{ color: '#7267ef' }}>Transport Information..</h3>
       <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
       <Grid container spacing={2}>
         
         <Grid item xs={6}>
-          <label htmlFor="deliveryDate">Dalivery Date </label>
+          <label htmlFor="transportId">Transport provider Id</label>
           <input
-          type="date"
-            id="deliveryDate"
-            name="deliveryDate"
+          
+            id="transportId"
+            name="transportId"
             className="input"
-            value={formData.deliveryDate || ''}
+            value={formData.transportId || ''}
             onChange={handleChange}
           />
         </Grid>
         <Grid item xs={6}>
-          <label htmlFor="totalOrderValue">Total Order Value</label>
+          <label htmlFor="vehicleDetails">Vehicle Details</label>
           <input
-            id="totalOrderValue"
-            name="totalOrderValue"
+            id="vehicleDetails"
+            name="vehicleDetails"
             className="input"
-            value={formData.totalOrderValue || ''}
+            value={formData.vehicleDetails || ''}
             onChange={handleChange}
           />
         </Grid>
         <Grid item xs={6}>
-          <label htmlFor="paymentTerms">Payment Terms</label>
+          <label htmlFor="driverName">Driver Name</label>
           <input
-            id="paymentTerms"
-            name="paymentTerms"
+            id="driverName"
+            name="driverName"
             className="input"
-            value={formData.paymentTerms || ''}
+            value={formData.driverName || ''}
             onChange={handleChange}
           />
         </Grid>
@@ -387,45 +362,81 @@ const PurchaseOrder = () => {
 
     {/* Total Cost & Other Info */}
     <Grid item xs={12}>
-      <h3 style={{ color: '#7267ef' }}>Tax & Order Status..</h3>
+      <h3 style={{ color: '#7267ef' }}>Shipping Status..</h3>
       <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
       <Grid container spacing={2}>
       <Grid item xs={6}>
-  <label htmlFor="taxDetails">Tax Details</label>
+  <label htmlFor="dispatchDate">Dispatch Date</label>
   <input
-    id="taxDetails"
-    name="taxDetails"
+    id="dispatchDate"
+    name="dispatchDate"
     className="input"
-    value={formData.taxDetails || ''}
+    value={formData.dispatchDate || ''}
     onChange={handleChange}
    
   />
 </Grid>
 <Grid item xs={6}>
-  <label htmlFor="orderStatus">Order Status</label>
-  <select
-    id="orderStatus"
-    name="orderStatus"
+  <label htmlFor="expectedArrivalDate">Expected Arrival Date</label>
+  <input
+    type="date"
+    id="expectedArrivalDate"
+    name="expectedArrivalDate"
     className="input"
-    value={formData.orderStatus || ''}
+    value={formData.expectedArrivalDate || ''}
+    onChange={handleChange}
+   
+  />
+</Grid>
+<Grid item xs={6}>
+  <label htmlFor="actualArrivalDate">Actual Arrival Date</label>
+  <input
+    type="date"
+    id="actualArrivalDate"
+    name="actualArrivalDate"
+    className="input"
+    value={formData.actualArrivalDate || ''}
+    onChange={handleChange}
+   
+  />
+</Grid>
+<Grid item xs={6}>
+  <label htmlFor="deliveryLocation">Delivery Location</label>
+  <input
+    type="date"
+    id="deliveryLocation"
+    name="deliveryLocation"
+    className="input"
+    value={formData.deliveryLocation || ''}
+    onChange={handleChange}
+   
+  />
+</Grid>
+<Grid item xs={6}>
+  <label htmlFor="shippingStatus">Shipping Status</label>
+  <select
+    id="shippingStatus"
+    name="shippingStatus"
+    className="input"
+    value={formData.shippingStatus || ''}
     onChange={handleChange}
   >
     <option value="">Select Status</option> {/* Default option */}
-    <option value="Issued">Issued</option>
-    <option value="In Progress">In Progress</option>
-    <option value="Delivered">Delivered</option>
+    <option value="Issued">In Transit</option>
+    <option value="In Progress">Delivered </option>
+    <option value="Delivered">Delayed</option>
     <option value="Canceled">Canceled</option>
   </select>
 </Grid>
 
         <Grid item xs={6}>
-          <label htmlFor="requestDate">Invoice Id</label>
+          <label htmlFor="damageReport">Damage Report</label>
           <input
             
-            id="invoiceId"
-            name="invoiceId"
+            id="damageReport"
+            name="damageReport"
             className="input"
-            value={formData.invoiceId || ''}
+            value={formData.damageReport || ''}
             onChange={handleChange}
           />
         </Grid>
@@ -476,4 +487,4 @@ const PurchaseOrder = () => {
   );
 };
 
-export default PurchaseOrder;
+export default LogisticForm;

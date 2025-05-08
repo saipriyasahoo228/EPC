@@ -16,6 +16,7 @@ const FeasibilityForm = lazy(()=>import('../views/engineeringmodule/feasibility.
 const VendorForm = lazy(()=> import('../views/procurementmodule/vendor.jsx'));
 const MaterialForm = lazy(() => import('../views/procurementmodule/materials.jsx'));
 const PurchaseOrder = lazy(() => import('../views/procurementmodule/purchaseorder.jsx'));
+const LogisticForm = lazy(() => import('../views/procurementmodule/logistic.jsx'));
 // Typography = lazy(() => import('../views/ui-elements/basic/BasicTypography'));
 //const Color = lazy(() => import('../views/ui-elements/basic/BasicColor'));
 
@@ -74,8 +75,8 @@ const MainRoutes = {
           element: <PurchaseOrder />
         },
         {
-          path: '/sample-page',
-          element: <Sample />
+          path: '/logistic',
+          element: <LogisticForm />
         }
       ]
     },

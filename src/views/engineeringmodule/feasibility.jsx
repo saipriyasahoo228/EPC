@@ -29,6 +29,7 @@ const dummyProjects = [
 ];
 
 const FeasibilityForm = () => {
+  const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
@@ -73,10 +74,17 @@ const FeasibilityForm = () => {
     setFeasibilityStudies(updatedStudies);
   };
   
+  const filteredFeasibility =feasibilityStudies.filter((d) =>
+    Object.values(d).some(
+      (val) =>
+        val &&
+        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
 
   return (
     <>
-      <Typography variant="h5" gutterBottom sx={{ mt: 5 }} >Design Management</Typography>
+      <Typography variant="h5" gutterBottom sx={{ mt: 5 }} >Feasibility Study Management</Typography>
       
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
         <Grid item xs={12}>
@@ -110,7 +118,13 @@ const FeasibilityForm = () => {
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
             <Typography variant="h6" gutterBottom>SUBMITTED FEASIBILITY STUDIES</Typography>
-            
+            <input
+              type="text"
+              placeholder="Search Feasibility Studies"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input"
+            />
             <TableContainer sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd' }}>
               <Table stickyHeader>
                 <TableHead>
@@ -133,7 +147,7 @@ const FeasibilityForm = () => {
                 </TableHead>
 
                 <TableBody>
-                  {feasibilityStudies.map((study, index) => (
+                  {filteredFeasibility.map((study, index) => (
                     <TableRow key={index}>
                       <TableCell>{study.projectId}</TableCell>
                       <TableCell>{study.feasibilityStudyId}</TableCell>

@@ -39,6 +39,7 @@ const ProjectCreation = () => {
   const [projects, setProjects] = useState([]);
   const [auditTrails, setAuditTrails] = useState([]);
   const [auditDialogOpen, setAuditDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [formData, setFormData] = useState({
     jobAllocationDate: '',
@@ -55,6 +56,11 @@ const ProjectCreation = () => {
   const allocationStatusRef = useRef();
   const refundDateRef = useRef();
   const cancellationNoteRef = useRef();
+
+  const filteredTenders = tenders.filter((tender) =>
+    tender.tenderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tender.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // Function to log audit trail entries
   const logAuditTrail = (action, tenderId, details = {}) => {
@@ -183,8 +189,19 @@ const ProjectCreation = () => {
       </Box>
 
       <TableContainer component={Paper} sx={{ border: '1px solid #7267ef' }}>
+        
+        <Box mx={2} my={1}>
+      <input
+        type="text"
+        placeholder="Search Tenders"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="input"
+      />
+      </Box>
         <Table>
           <TableHead>
+          
             <TableRow>
               <TableCell sx={{ color: '#7267ef' }}>Status</TableCell>
               <TableCell sx={{ color: '#7267ef' }}>Tender ID</TableCell>
@@ -195,7 +212,7 @@ const ProjectCreation = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {tenders.map((tender) => (
+            {filteredTenders.map((tender) => (
               <TableRow key={tender.tenderId}>
                 <TableCell>{renderStatusIcon(tender.status)}</TableCell>
                 <TableCell>{tender.tenderId}</TableCell>
