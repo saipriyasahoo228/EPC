@@ -17,6 +17,8 @@ const VendorForm = lazy(()=> import('../views/procurementmodule/vendor.jsx'));
 const MaterialForm = lazy(() => import('../views/procurementmodule/materials.jsx'));
 const PurchaseOrder = lazy(() => import('../views/procurementmodule/purchaseorder.jsx'));
 const LogisticForm = lazy(() => import('../views/procurementmodule/logistic.jsx'));
+const ItemMaster = lazy(() => import('../views/inventrymanagment/itemmaster.jsx'));
+const StockMaster = lazy(() =>import('../views/inventrymanagment/stockmaster.jsx'));
 // Typography = lazy(() => import('../views/ui-elements/basic/BasicTypography'));
 //const Color = lazy(() => import('../views/ui-elements/basic/BasicColor'));
 
@@ -77,6 +79,14 @@ const MainRoutes = {
         {
           path: '/logistic',
           element: <LogisticForm />
+        },
+        {
+          path: '/itemmaster',
+          element:<ItemMaster/>
+        },
+         {
+          path: '/stockmanagement',
+          element:<StockMaster/>
         }
       ]
     },

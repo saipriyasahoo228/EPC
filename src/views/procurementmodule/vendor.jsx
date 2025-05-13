@@ -30,6 +30,7 @@ const dummyProjects = [
 
 const VendorForm = () => {
     // Initialize state variables
+    const [searchTerm, setSearchTerm] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [open, setOpen] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -131,7 +132,7 @@ const handleEdit = (index) => {
       
         <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
   <Grid item xs={12}>
-    <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+    {/* <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
       <Typography variant="h6" gutterBottom>PROJECT RECORDS</Typography>
       <Table>
         <TableHead>
@@ -154,7 +155,50 @@ const handleEdit = (index) => {
           ))}
         </TableBody>
       </Table>
-    </Paper>
+    </Paper> */}
+    <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+  <Typography variant="h6" gutterBottom>
+    PROJECT RECORDS
+  </Typography>
+
+  {/* Search Input */}
+  <Box sx={{ my: 2, mx: 1 }}>
+    <input
+      type="text"
+      placeholder="Search Project ID"
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      className="input"
+      style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }}
+    />
+  </Box>
+
+  <Table>
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Project ID</strong></TableCell>
+        <TableCell sx={{ display: 'flex', justifyContent: 'flex-end', color: '#660000' }}>
+          <strong>Action</strong>
+        </TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {dummyProjects
+        .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
+        .map((proj, i) => (
+          <TableRow key={i}>
+            <TableCell>{proj.id}</TableCell>
+            <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
+                <AddCircle sx={{ color: "#7267ef" }} />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+        ))}
+    </TableBody>
+  </Table>
+</Paper>
+
   </Grid>
 </Grid>
       <Grid container spacing={2}>

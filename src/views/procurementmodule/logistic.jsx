@@ -40,6 +40,8 @@ const dummyProjects = [
 
 
 const LogisticForm = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [formData, setFormData] = useState({
@@ -155,40 +157,72 @@ const LogisticForm = () => {
     setProcurements(updatedProcurements);
   };
 
+
+  const filteredProcurement =procurements.filter((d) =>
+    Object.values(d).some(
+      (val) =>
+        val &&
+        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+
+
   return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Material Procurement</Typography>
 
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
         <Grid item xs={12}>
+          
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-            <Typography variant="h6" gutterBottom>PURCHASE ORDERS</Typography>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ color: '#7267ef' }}><strong>Project ID</strong></TableCell>
-                  <TableCell sx={{ color: '#7267ef' }}><strong>Procurement ID</strong></TableCell>
-                  <TableCell sx={{ color: '#7267ef' }}><strong>Purchase Order ID</strong></TableCell>
-                  <TableCell sx={{ display: 'flex', justifyContent: 'flex-end', color: '#660000' }}><strong>Action</strong></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {dummyProjects.map((proj, i) => (
-                  <TableRow key={i}>
-                    <TableCell>{proj.projectId}</TableCell>
-                    <TableCell>{proj.procurementId}</TableCell>
-                    <TableCell>{proj.purchaseOrderId}</TableCell>
+  <Typography variant="h6" gutterBottom>PURCHASE ORDERS</Typography>
 
-                    <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                        <AddCircle sx={{ color: "#7267ef" }} />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Paper>
+  {/* Search Input */}
+  <Box sx={{ my: 2, mx: 1 }}>
+    <input
+      type="text"
+      placeholder="Search Purchase Orders"
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      className="input"
+      style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }}
+    />
+  </Box>
+
+  <Table>
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Project ID</strong></TableCell>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Procurement ID</strong></TableCell>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Purchase Order ID</strong></TableCell>
+        <TableCell sx={{ display: 'flex', justifyContent: 'flex-end', color: '#660000' }}>
+          <strong>Action</strong>
+        </TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {dummyProjects
+        .filter((proj) =>
+          `${proj.projectId} ${proj.procurementId} ${proj.purchaseOrderId}`
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())
+        )
+        .map((proj, i) => (
+          <TableRow key={i}>
+            <TableCell>{proj.projectId}</TableCell>
+            <TableCell>{proj.procurementId}</TableCell>
+            <TableCell>{proj.purchaseOrderId}</TableCell>
+            <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <IconButton onClick={() => handleOpenForm(proj.projectId)} color="primary">
+                <AddCircle sx={{ color: "#7267ef" }} />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+        ))}
+    </TableBody>
+  </Table>
+</Paper>
+
         </Grid>
       </Grid>
 
@@ -196,7 +230,13 @@ const LogisticForm = () => {
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
             <Typography variant="h6" gutterBottom>SUBMITTED MATERIALS PROCUREMENT RECORDS</Typography>
-
+            <input
+              type="text"
+              placeholder="Search Logistic Management Here.."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input"
+            />
             <TableContainer sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd' }}>
               <Table stickyHeader>
                 <TableHead>
@@ -218,7 +258,7 @@ const LogisticForm = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {procurements.map((p, i) => (
+                  {filteredProcurement.map((p, i) => (
                     <TableRow key={i}>
                       <TableCell>{p.projectId}</TableCell>
                       <TableCell>{p.procurementId}</TableCell>
