@@ -186,7 +186,7 @@ const menuItems = {
               id: 'stockreturn',
               title: 'Stock Returns & Adjustment',
               type: 'item',
-              url: '/icons/Feather'
+              url: '/stockreturns'
             },
             {
               id: 'valuation',

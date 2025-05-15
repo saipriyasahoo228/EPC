@@ -29,20 +29,20 @@ const dummyItems = [
   { id: "ITM-2025-003" },
 ];
 
-const StockMaster = () => {
+const StockReturn = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [formData, setFormData] = useState({});
-  const [stockmanagement, setStockManagement] = useState([]);
+  const [stockreturn, setStockReturn] = useState([]);
 
   const handleOpenForm = (itemId) => {
     const currentYear = new Date().getFullYear();
     setSelectedItemId(itemId);
     setFormData({
       itemId,
-      stockManagementId: `STK-${currentYear}-${stockmanagement.length + 1}`,
+      stockReturnId: `RET-${currentYear}-${stockreturn.length + 1}`,
     });
     setOpen(true);
   };
@@ -52,46 +52,30 @@ const StockMaster = () => {
     setOpen(false);
   };
 
-  // const handleChange = (e) => {
-  //   const { name, value } = e.target;
-  //   setFormData((prev) => ({ ...prev, [name]: value }));
-  // };
+  
   const handleChange = (e) => {
   const { name, value } = e.target;
-
-  // Parse numbers safely
-  const updatedFormData = {
-    ...formData,
+  setFormData((prev) => ({
+    ...prev,
     [name]: value,
-  };
-
-  const openingStock = parseFloat(
-    name === "openingStock" ? value : formData.openingStock
-  ) || 0;
-
-  const stockIssued = parseFloat(
-    name === "stockIssued" ? value : formData.stockIssued
-  ) || 0;
-
-  updatedFormData.stockBalance = (openingStock - stockIssued).toString();
-
-  setFormData(updatedFormData);
+  }));
 };
 
 
+
   const handleSubmit = () => {
-    const newStock = { ...formData, itemId: selectedItemId };
-    const exists = stockmanagement.find(
-      (item) => item.stockManagementId === newStock.stockManagementId
+    const newReturn = { ...formData, itemId: selectedItemId };
+    const exists = stockreturn.find(
+      (item) => item.stockReturnId === newReturn.stockReturnId
     );
 
     if (exists) {
-      const updated = stockmanagement.map((item) =>
-        item.stockManagementId === newStock.stockManagementId ? newStock : item
+      const updated = stockreturn.map((item) =>
+        item.stockReturnId === newReturn.stockReturnId ? newReturn : item
       );
-      setStockManagement(updated);
+      setStockReturn(updated);
     } else {
-      setStockManagement([...stockmanagement, newStock]);
+      setStockReturn([...stockreturn, newReturn]);
     }
 
     handleClose();
@@ -103,14 +87,14 @@ const StockMaster = () => {
     setOpen(true);
   };
 
-  const handleDelete = (stockManagementId) => {
-    const updatedItems = stockmanagement.filter(
-      (item) => item.stockManagementId !== stockManagementId
+  const handleDelete = (stockReturnId) => {
+    const updatedItems = stockreturn.filter(
+      (item) => item.stockReturnId !== stockReturnId
     );
-    setStockManagement(updatedItems);
+    setStockReturn(updatedItems);
   };
 
-  const filteredStockManagement = stockmanagement.filter((d) =>
+  const filteredStockReturn = stockreturn.filter((d) =>
     Object.values(d).some(
       (val) =>
         val &&
@@ -121,7 +105,7 @@ const StockMaster = () => {
   return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>
-        Stock Management
+        Stock Returns
       </Typography>
 
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
@@ -192,11 +176,11 @@ const StockMaster = () => {
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: "#fff", border: "1px solid #ccc" }}>
             <Typography variant="h6" gutterBottom>
-              SUBMITTED STOCKS
+              SUBMITTED STOCK RETURNS
             </Typography>
             <input
               type="text"
-              placeholder="Search Stock Management"
+              placeholder="Search Stock Returns"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input"
@@ -213,32 +197,34 @@ const StockMaster = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ color: "#7267ef" }}><strong>Item ID</strong></TableCell>
-                    <TableCell sx={{ color: "#7267ef" }}><strong>Stock ID</strong></TableCell>
-                    <TableCell sx={{ color: "#7267ef" }}><strong>Opening Stock</strong></TableCell>
-                    <TableCell sx={{ color: "#7267ef" }}><strong>Stock Issued</strong></TableCell>
-                    <TableCell sx={{ color: "#7267ef" }}><strong>Stock Issued By</strong></TableCell>
-                    <TableCell sx={{ color: "#7267ef" }}><strong>Stock Balance</strong></TableCell>
-                    <TableCell sx={{ color: "#7267ef" }}><strong>Stock Valuation</strong></TableCell>
-                    <TableCell sx={{ color: "#7267ef" }}><strong>Last Updated</strong></TableCell>
+                    <TableCell sx={{ color: "#7267ef" }}><strong>Stock Return ID</strong></TableCell>
+                    <TableCell sx={{ color: "#7267ef" }}><strong>Returned Quantity</strong></TableCell>
+                    <TableCell sx={{ color: "#7267ef" }}><strong>Return Reason</strong></TableCell>
+                    <TableCell sx={{ color: "#7267ef" }}><strong>Returned By</strong></TableCell>
+                    <TableCell sx={{ color: "#7267ef" }}><strong>Returned Date</strong></TableCell>
+                    <TableCell sx={{ color: "#7267ef" }}><strong>Stock Adjustment ID</strong></TableCell>
+                    <TableCell sx={{ color: "#7267ef" }}><strong>Adjustment Type</strong></TableCell>
+                    <TableCell sx={{ color: "#7267ef" }}><strong>Wastage Reason</strong></TableCell>
                     <TableCell sx={{ color: "#660000" }}><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredStockManagement.map((item, index) => (
+                  {filteredStockReturn.map((item, index) => (
                     <TableRow key={index}>
                       <TableCell>{item.itemId}</TableCell>
-                      <TableCell>{item.stockManagementId}</TableCell>
-                      <TableCell>{item.openingStock}</TableCell>
-                      <TableCell>{item.stockIssued}</TableCell>
-                      <TableCell>{item.stockIssuedBy}</TableCell>
-                      <TableCell>{item.stockBalance}</TableCell>
-                      <TableCell>{item.stockValuation}</TableCell>
-                      <TableCell>{item.lastUpdated}</TableCell>
+                      <TableCell>{item.stockReturnId}</TableCell>
+                      <TableCell>{item.returnQuantity}</TableCell>
+                      <TableCell>{item.returnReason}</TableCell>
+                      <TableCell>{item.returnBy}</TableCell>
+                      <TableCell>{item.returnDate}</TableCell>
+                      <TableCell>{item.stockAdjustmentID}</TableCell>
+                      <TableCell>{item.adjustmentType}</TableCell>
+                      <TableCell>{item.wastageReason}</TableCell>
                       <TableCell>
                         <IconButton color="warning" onClick={() => handleEdit(item)}>
                           <Edit sx={{ color: "orange" }} />
                         </IconButton>
-                        <IconButton color="error" onClick={() => handleDelete(item.stockManagementId)}>
+                        <IconButton color="error" onClick={() => handleDelete(item.stockReturnId)}>
                           <Delete sx={{ color: "red" }} />
                         </IconButton>
                       </TableCell>
@@ -270,9 +256,9 @@ const StockMaster = () => {
           <Box component="form" sx={{ mt: 2 }}>
             <Grid container spacing={3} direction="column">
 
-              {/* Stock Information */}
+              {/* Stock Return Information */}
               <Grid item xs={12}>
-                <h3 style={{ color: '#7267ef' }}>Stock Id's Information</h3>
+                <h3 style={{ color: '#7267ef' }}>Stock Returns Id's </h3>
                 <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
@@ -286,12 +272,12 @@ const StockMaster = () => {
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="stockManagementId">Stock Id</label>
+                    <label htmlFor="stockReturnId">Stock Return Id</label>
                     <input 
-                    id="stockManagementId" 
-                    name="stockManagementId" 
+                    id="stockReturnId" 
+                    name="stockReturnId" 
                     className="input" 
-                    value={formData.stockManagementId || ''} 
+                    value={formData.stockReturnId || ''} 
                     disabled 
                     />
                   </Grid>
@@ -300,37 +286,49 @@ const StockMaster = () => {
                 </Grid>
               </Grid>
               <Grid item xs={12}>
-                <h3 style={{ color: '#7267ef' }}>Stock Information</h3>
+                <h3 style={{ color: '#7267ef' }}>Stock Return Information</h3>
                 <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
                <Grid item xs={6}>
-                    <label htmlFor="openingStock">Opening Stock</label>
+                    <label htmlFor="returnQuantity">Return Quantity</label>
                     <input 
-                    id="openingStock" 
-                    name="openingStock" 
+                    id="returnQuantity" 
+                    name="returnQuantity" 
                     className="input" 
-                    value={formData.openingStock || ''} 
+                    value={formData.returnQuantity || ''} 
                     onChange={handleChange} 
                     type="number"
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="stockIssued">Stock Issued</label>
+  <label htmlFor="returnReason">Return Reason</label>
+  <textarea
+    id="returnReason"
+    name="returnReason"
+    className="input"
+    rows={3} // you can adjust the number of visible rows
+    value={formData.returnReason || ''}
+    onChange={handleChange}
+  />
+</Grid>
+
+                  <Grid item xs={6}>
+                    <label htmlFor="returnBy">Return By</label>
                     <input 
-                    type="number"
-                    id="stockIssued" 
-                    name="stockIssued" 
+                    id="returnBy" 
+                    name="returnBy" 
                     className="input" 
-                    value={formData.stockIssued || ''} 
+                    value={formData.returnBy || ''} 
                     onChange={handleChange} 
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="stockIssuedBy">Stock Issued By</label>
+                    <label htmlFor="returnDate">Return Date</label>
                     <input 
-                    id="stockIssuedBy" 
-                    name="stockIssuedBy" 
+                    type="date"
+                    id="returnDate" 
+                    name="returnDate" 
                     className="input" 
-                    value={formData.stockIssuedBy || ''} 
+                    value={formData.returnDate || ''} 
                     onChange={handleChange} 
                     />
                   </Grid>
@@ -338,37 +336,43 @@ const StockMaster = () => {
 
               
               <Grid item xs={12}>
-                <h3 style={{ color: '#7267ef' }}>Stock Balance and Valuations</h3>
+                <h3 style={{ color: '#7267ef' }}>Stock Adjustment info.</h3>
                 <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
                <Grid item xs={6}>
-                    <label htmlFor="stockBalance">Stock Balance</label>
+                    <label htmlFor="stockAdjustmentID">Stock Adjustment ID</label>
                     <input 
-                    id="stockBalance" 
-                    name="stockBalance" 
+                    id="stockAdjustmentID" 
+                    name="stockAdjustmentID" 
                     className="input" 
-                    value={formData.stockBalance || ''} 
+                    value={formData.stockAdjustmentID || ''} 
                     onChange={handleChange} 
-                    readOnly
+                    
                     />
                   </Grid>
+                 <Grid item xs={6}>
+  <label htmlFor="adjustmentType">Adjustment Type</label>
+  <select
+    id="adjustmentType"
+    name="adjustmentType"
+    className="input"
+    value={formData.adjustmentType || ''}
+    onChange={handleChange}
+  >
+    <option value="">-- Select Adjustment Type --</option>
+    <option value="Addition">Addition</option>
+    <option value="Deduction">Deduction</option>
+    <option value="Scrap">Scrap</option>
+  </select>
+</Grid>
+
                   <Grid item xs={6}>
-                    <label htmlFor="stockValuation">Stock Valuation</label>
+                    <label htmlFor="wastageReason">Wastage Reason</label>
                     <input 
-                    id="stockValuation" 
-                    name="stockValuation" 
+            
+                    id="wastageReason" 
+                    name="wastageReason" 
                     className="input" 
-                    value={formData.stockValuation || ''} 
-                    onChange={handleChange} 
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <label htmlFor="lastUpdated">Last Updated </label>
-                    <input 
-                    type="date"
-                    id="lastUpdated" 
-                    name="lastUpdated" 
-                    className="input" 
-                    value={formData.lastUpdated || ''} 
+                    value={formData.wastageReason || ''} 
                     onChange={handleChange} 
                     />
                   </Grid>
@@ -410,4 +414,4 @@ const StockMaster = () => {
   );
 };
 
-export default StockMaster;
+export default StockReturn;
