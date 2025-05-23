@@ -5,6 +5,7 @@ import { Navigate } from 'react-router-dom';
 
 import AdminLayout from 'layouts/AdminLayout';
 import GuestLayout from 'layouts/GuestLayout';
+
  
 
 
@@ -20,6 +21,9 @@ const LogisticForm = lazy(() => import('../views/procurementmodule/logistic.jsx'
 const ItemMaster = lazy(() => import('../views/inventrymanagment/itemmaster.jsx'));
 const StockMaster = lazy(() =>import('../views/inventrymanagment/stockmaster.jsx'));
 const StockReturn = lazy(() => import('../views/inventrymanagment/stockreturn.jsx'));
+const InventoryValuationForm = lazy(() =>import('../views/inventrymanagment/stockvaluationandreport.jsx'));
+const ProjectManagement = lazy(()=>import('../views/constructionmodule/projectmanagement.jsx'));
+const SiteExecution = lazy(()=>import('../views/constructionmodule/siteexecution.jsx'));
 // Typography = lazy(() => import('../views/ui-elements/basic/BasicTypography'));
 //const Color = lazy(() => import('../views/ui-elements/basic/BasicColor'));
 
@@ -92,6 +96,18 @@ const MainRoutes = {
         {
           path: '/stockreturns',
           element:<StockReturn/>
+        },
+        {
+          path: '/stock valuation and report',
+          element:<InventoryValuationForm/>
+        },
+        {
+          path: '/projectmanagement',
+          element:<ProjectManagement/>
+        },
+        {
+          path: '/site execution',
+          element:<SiteExecution/>
         }
       ]
     },

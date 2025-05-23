@@ -70,30 +70,7 @@ const DesignForm = () => {
       
         <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
   <Grid item xs={12}>
-    {/* <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-      <Typography variant="h6" gutterBottom>PROJECT RECORDS</Typography>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{color:'#7267ef'}}><strong>Project ID</strong></TableCell>
-            <TableCell sx={{ display: 'flex', justifyContent: 'flex-end',color:'#660000'}}><strong>Action</strong></TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {dummyProjects.map((proj, i) => (
-            <TableRow key={i}>
-              <TableCell>{proj.id}</TableCell>
-              <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                  <AddCircle sx={{ color: "#7267ef" }} />
-                </IconButton>
-                
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Paper> */}
+    
     <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
   <Typography variant="h6" gutterBottom>
     PROJECT RECORDS

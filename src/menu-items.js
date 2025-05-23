@@ -192,7 +192,7 @@ const menuItems = {
               id: 'valuation',
               title: 'Inventry Valuation & Reporting',
               type: 'item',
-              url: '/icons/font-awesome-5'
+              url: '/stock valuation and report'
             }
           ]
         }
@@ -215,13 +215,13 @@ const menuItems = {
               id: 'project',
               title: 'Project Management',
               type: 'item',
-              url: '/icons/Feather'
+              url: '/projectmanagement'
             },
             {
               id: 'siteexecution',
               title: 'Site Execution',
               type: 'item',
-              url: '/icons/font-awesome-5'
+              url: '/site execution'
             },
             {
               id: 'qualitycontrol',
