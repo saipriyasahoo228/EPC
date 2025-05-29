@@ -227,13 +227,13 @@ const menuItems = {
               id: 'qualitycontrol',
               title: 'Quality Control & Assurance',
               type: 'item',
-              url: '/icons/Feather'
+              url: '/qualitycontrol'
             },
             {
               id: 'safety',
               title: 'Safety Management',
               type: 'item',
-              url: '/icons/font-awesome-5'
+              url: '/safetymanagement'
             },
             {
               id: 'material',

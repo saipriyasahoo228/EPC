@@ -68,6 +68,7 @@ export default defineConfig(({ mode }) => {
       }
     },
     build: {
+      outDir: 'build',
       chunkSizeWarningLimit: 1600,
       rollupOptions: {
         input: {
@@ -76,7 +77,7 @@ export default defineConfig(({ mode }) => {
         }
       }
     },
-    base: API_URL,
+    base: '/EPC',
     plugins: [react(), tsconfigPaths()]
   };
 });

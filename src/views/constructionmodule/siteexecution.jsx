@@ -1,4 +1,4 @@
-// DesignForm.jsx
+
 import React, { useState } from "react";
 import {
   Dialog,
@@ -37,10 +37,16 @@ const SiteExecution = () => {
   const [site, setSite] = useState([]);
 
   const handleOpenForm = (projectId) => {
-    setSelectedProjectId(projectId);
-    setFormData({ siteId: `SIT-2025-${site.length + 1}` });
-    setOpen(true);
-  };
+  setSelectedProjectId(projectId);
+
+  const currentYear = new Date().getFullYear(); // Get system year dynamically
+  const newSiteNumber = site.length + 1;
+  const paddedNumber = newSiteNumber.toString().padStart(3, '0'); // e.g., "001"
+
+  setFormData({ siteId: `SIT-${currentYear}-${paddedNumber}` });
+
+  setOpen(true);
+};
 
   const handleClose = () => setOpen(false);
 
@@ -119,7 +125,7 @@ const SiteExecution = () => {
       <Grid container spacing={2}>
   <Grid item xs={12}>
     <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-      <Typography variant="h6" gutterBottom>SUBMITTED DESIGNS</Typography>
+      <Typography variant="h6" gutterBottom>SITE EXECUTION DETAILS</Typography>
       <input
         type="text"
         placeholder="Search Site"

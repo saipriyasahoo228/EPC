@@ -24,6 +24,8 @@ const StockReturn = lazy(() => import('../views/inventrymanagment/stockreturn.js
 const InventoryValuationForm = lazy(() =>import('../views/inventrymanagment/stockvaluationandreport.jsx'));
 const ProjectManagement = lazy(()=>import('../views/constructionmodule/projectmanagement.jsx'));
 const SiteExecution = lazy(()=>import('../views/constructionmodule/siteexecution.jsx'));
+const QualityControl = lazy(()=>import('../views/constructionmodule/qualitycontrol.jsx'));
+const SafetyManagement = lazy(() =>import('../views/constructionmodule/safetymanagement.jsx'));
 // Typography = lazy(() => import('../views/ui-elements/basic/BasicTypography'));
 //const Color = lazy(() => import('../views/ui-elements/basic/BasicColor'));
 
@@ -108,6 +110,14 @@ const MainRoutes = {
         {
           path: '/site execution',
           element:<SiteExecution/>
+        },
+        {
+          path: 'qualitycontrol',
+          element:<QualityControl/>
+        },
+        {
+          path: '/safetymanagement',
+          element:<SafetyManagement/>
         }
       ]
     },
