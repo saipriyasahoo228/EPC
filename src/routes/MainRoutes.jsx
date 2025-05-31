@@ -26,6 +26,9 @@ const ProjectManagement = lazy(()=>import('../views/constructionmodule/projectma
 const SiteExecution = lazy(()=>import('../views/constructionmodule/siteexecution.jsx'));
 const QualityControl = lazy(()=>import('../views/constructionmodule/qualitycontrol.jsx'));
 const SafetyManagement = lazy(() =>import('../views/constructionmodule/safetymanagement.jsx'));
+const InventoryManagement = lazy(()=>import('../views/constructionmodule/inventorymanagement.jsx'));
+const Testing = lazy(()=>import('../views/commisioningmodule/testing.jsx'));
+const HandoverProcess = lazy(()=>import('../views/commisioningmodule/handoverprocess.jsx'));
 // Typography = lazy(() => import('../views/ui-elements/basic/BasicTypography'));
 //const Color = lazy(() => import('../views/ui-elements/basic/BasicColor'));
 
@@ -118,6 +121,18 @@ const MainRoutes = {
         {
           path: '/safetymanagement',
           element:<SafetyManagement/>
+        },
+        {
+          path: '/materials & inventorymanagement',
+          element:<InventoryManagement/>
+        },
+        {
+          path:'/testing',
+          element:<Testing/>
+        },
+        {
+          path:'/handoverprocess',
+          element:<HandoverProcess/>
         }
       ]
     },

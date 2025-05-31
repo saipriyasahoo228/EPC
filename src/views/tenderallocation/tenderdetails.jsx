@@ -443,8 +443,8 @@ const TenderDetailsEntry = () => {
                   >
                     <option value="">Select status</option>
                     <option value="Open">Open</option>
-                    <option value="Closed">Closed</option>
                     <option value="Under Review">Under Review</option>
+                    <option value="Closed">Closed</option>
                   </select>
           
                   <button

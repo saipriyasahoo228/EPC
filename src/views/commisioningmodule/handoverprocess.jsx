@@ -28,24 +28,24 @@ const dummyProjects = [
   { id: "PRJ-2025-003" },
 ];
 
-const SafetyManagement = () => {
+const HandoverProcess = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
-  const [safetymanagement, setSafetyManagement] = useState([]);
+  const [handoverprocess, setHandoverProcess] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditId, setCurrentEditId] = useState(null);
 
   const handleOpenForm = (projectId) => {
     setSelectedProjectId(projectId);
     const currentYear = new Date().getFullYear();
-    const newSafetyNumber = safetymanagement.length + 1;
-    const paddedNumber = newSafetyNumber.toString().padStart(3, '0');
+    const newHandoverNumber = handoverprocess.length + 1;
+    const paddedNumber = newHandoverNumber.toString().padStart(3, '0');
     
     setFormData({ 
-      safetymanagementID: `SAF-${currentYear}-${paddedNumber}`,
+      handoverprocessID: `HND-${currentYear}-${paddedNumber}`,
       projectId: projectId
     });
     setIsEditMode(false);
@@ -53,17 +53,17 @@ const SafetyManagement = () => {
     setOpen(true);
   };
 
-  const handleEdit = (safetyItem) => {
-    setFormData(safetyItem);
-    setSelectedProjectId(safetyItem.projectId);
+  const handleEdit = (handoverItem) => {
+    setFormData(handoverItem);
+    setSelectedProjectId(handoverItem.projectId);
     setIsEditMode(true);
-    setCurrentEditId(safetyItem.safetymanagementID);
+    setCurrentEditId(handoverItem.handoverprocessID);
     setOpen(true);
   };
 
-  const handleDelete = (safetyId) => {
-    if (window.confirm("Are you sure you want to delete safety management!")) {
-      setSafetyManagement(safetymanagement.filter(item => item.safetymanagementID !== safetyId));
+  const handleDelete = (handoverId) => {
+    if (window.confirm("Are you sure you want to delete this handover process!")) {
+      setHandoverProcess(handoverprocess.filter(item => item.handoverprocessID !== handoverId));
     }
   };
 
@@ -79,22 +79,23 @@ const SafetyManagement = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
+
+
+const handleSubmit = () => {
     if (isEditMode) {
       // Update existing record
-      setSafetyManagement(safetymanagement.map(item => 
-        item.safetymanagementID === currentEditId ? formData : item
+      setHandoverProcess(handoverprocess.map(item => 
+        item.handoverprocessID === currentEditId ? formData : item
       ));
     } else {
       // Add new record
-      const newSafety = { ...formData, projectId: selectedProjectId };
-      setSafetyManagement([...safetymanagement, newSafety]);
+      const newHandover = { ...formData, projectId: selectedProjectId };
+      setHandoverProcess([...handoverprocess, newHandover]);
     }
     handleClose();
   };
-
-  const filteredSafety = safetymanagement.filter((s) =>
-    Object.values(s).some(
+  const filteredHandover = handoverprocess.filter((h) =>
+    Object.values(h).some(
       (val) =>
         val &&
         val.toString().toLowerCase().includes(searchQuery.toLowerCase())
@@ -103,7 +104,7 @@ const SafetyManagement = () => {
   
   return (
     <>
-      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Quality Control & Assurance</Typography>
+      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Testing & Inspection</Typography>
       
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
         <Grid item xs={12}>
@@ -155,10 +156,10 @@ const SafetyManagement = () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-            <Typography variant="h6" gutterBottom>SAFETY MANAGEMENT DETAILS</Typography>
+            <Typography variant="h6" gutterBottom>TESTING MANAGEMENT DETAILS</Typography>
             <input
               type="text"
-              placeholder="Search Safety Management"
+              placeholder="Search Testing Management"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input"
@@ -170,34 +171,39 @@ const SafetyManagement = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{color:'#7267ef'}}><strong>Project ID</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Safety Report ID</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Incident Date</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Incident Description</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Affected Personnel ID</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Injury Severity</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Corrective Measures</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Safety Training Conducted</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Handover ID</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Handover Date</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Receiving Department</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Handover Document ID</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>System/Component List</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Training Provided</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Training Documentation</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Pending Issues</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Final Approval</strong></TableCell>
+                   
                     <TableCell sx={{color:'#660000'}}><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredSafety.map((s, i) => (
+                  {filteredHandover.map((h, i) => (
                     <TableRow key={i}>
-                      <TableCell>{s.projectId}</TableCell>
-                      <TableCell>{s.safetymanagementID}</TableCell>
-                      <TableCell>{s.incidentDate}</TableCell>
-                      <TableCell>{s.incidentDescription}</TableCell>
-                      <TableCell>{s.affectedpersonnelID}</TableCell>
-                      <TableCell>{s.injurySeverity}</TableCell>
-                      <TableCell>{s.correctiveMeasures}</TableCell>
-                      <TableCell>{s.injurySeverity}</TableCell>
-                      <TableCell>{s.safetyTraining}</TableCell>
+                      <TableCell>{h.projectId}</TableCell>
+                      <TableCell>{h.handoverprocessID}</TableCell>
+                      <TableCell>{h.handoverDate}</TableCell>
+                      <TableCell>{h.receivingDepartment}</TableCell>
+                      <TableCell>{h.handoverDocID}</TableCell>
+                      <TableCell>{h.componentList}</TableCell>
+                      <TableCell>{h.trainingprovided}</TableCell>
+                      <TableCell>{h.document}</TableCell>
+                      <TableCell>{h.issues}</TableCell>
+                      <TableCell>{h.approvalStatus}</TableCell>
+                     
                      
                       <TableCell>
-                        <IconButton onClick={() => handleEdit(s)} color="warning">
+                        <IconButton onClick={() => handleEdit(h)} color="warning">
                           <Edit sx={{ color: "orange" }} />
                         </IconButton>
-                        <IconButton onClick={() => handleDelete(s.safetymanagementID)} color="error">
+                        <IconButton onClick={() => handleDelete(h.handoverprocessID)} color="error">
                           <Delete sx={{ color: "red" }} />
                         </IconButton>
                       </TableCell>
@@ -245,11 +251,11 @@ const SafetyManagement = () => {
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="safetymanagementID">Safety Report ID</label>
+                    <label htmlFor="handoverprocessID">Handover ID</label>
                     <input 
-                      id="safetymanagementID" 
+                      id="handoverprocessID" 
                       className="input" 
-                      value={formData.safetymanagementID || ''} 
+                      value={formData.handoverprocessID || ''} 
                       disabled 
                       
                     />
@@ -259,87 +265,117 @@ const SafetyManagement = () => {
 
               {/* Design Info */}
               <Grid item xs={12}>
-                <h3 style={{ color: '#7267ef' }}>Incident Information</h3>
+                <h3 style={{ color: '#7267ef' }}>Handover Information</h3>
                 <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
-                    <label htmlFor="incidentDate">Incident Date</label>
+                    <label htmlFor="handoverDate">Handover Date</label>
                     <input 
-                      type='date' 
-                      id="incidentDate" 
-                      name="incidentDate" 
+                      type="date"
+                      id="handoverDate" 
+                      name="handoverDate" 
                       className="input" 
-                      value={formData.incidentDate || ''} 
+                      value={formData.handoverDate || ''} 
                       onChange={handleChange} 
                      
                     />
                   </Grid>
                   
                   <Grid item xs={6}>
-                    <label htmlFor="incidentDescription">Incident Description</label>
-                    <textarea
-                      rows={3}
-                      id="incidentDescription" 
-                      name="incidentDescription" 
+                    <label htmlFor="receivingDepartment">Recieving Department</label>
+                    <input
+                      
+                      id="receivingDepartment" 
+                      name="receivingDepartment" 
                       className="input" 
-                      value={formData.incidentDescription || ''} 
+                      value={formData.receivingDepartment || ''} 
                       onChange={handleChange} 
                      
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="affectedpersonnelID">Affected Personnel ID</label>
+                    <label htmlFor="handoverDocID">Handover DocumentID</label>
                     <input 
-                      id="affectedpersonnelID" 
-                      name="affectedpersonnelID" 
+                      id="handoverDocID" 
+                      name="handoverDocID" 
                       className="input" 
-                      value={formData.affectedpersonnelID || ''} 
+                      value={formData.handoverDocID || ''} 
                       onChange={handleChange} 
                      
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="injurySeverity">Approval Status</label>
+                    <label htmlFor="componentList">System/Component List</label>
+                    <input 
+                      id="componentList" 
+                      name="componentList" 
+                      className="input" 
+                      value={formData.componentList || ''} 
+                      onChange={handleChange} 
+                     
+                    />
+                  </Grid>
+                   <Grid item xs={6}>
+                    <label htmlFor="trainingprovided">Training Provided</label>
+                    <input 
+                      id="trainingprovided" 
+                      name="trainingprovided" 
+                      className="input" 
+                      value={formData.trainingprovided || ''} 
+                      onChange={handleChange} 
+                     
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <label htmlFor="document">Training Documentation</label>
+                    <input 
+                      id="document" 
+                      name="document" 
+                      className="input" 
+                      value={formData.document || ''} 
+                      onChange={handleChange} 
+                     
+                    />
+                  </Grid>
+                 
+                 
+                </Grid>
+                <Grid item xs={12}>
+                <h3 style={{ color: '#7267ef' }}>Pending Issues & Final Status</h3>
+                <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <label htmlFor="issues">Pending Issues</label>
+                    <input 
+                      id="issues" 
+                      name="issues" 
+                      className="input" 
+                      value={formData.issues || ''} 
+                      onChange={handleChange} 
+                     
+                    />
+                  </Grid>
+                   
+                   <Grid item xs={6}>
+                    <label htmlFor="approvalStatus">Approval Status</label>
                     <select
-                      id="injurySeverity"
-                      name="injurySeverity"
+                      id="approvalStatus"
+                      name="approvalStatus"
                       className="input"
-                      value={formData.injurySeverity || ''}
+                      value={formData.approvalStatus || ''}
                       onChange={handleChange}
                       
                     >
-                      <option value="">Select Severity</option>
-                      <option value="Minor">Minor</option>
-                      <option value="Moderate">Moderate</option>
-                      <option value="Severe">Severe</option>
-                      <option value="Fatal">Fatal</option>
+                      <option value="">Select Status</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Conditional">Conditional</option>
+                      <option value="Pending">Pending</option>
+                     
                     </select>
                   </Grid>
-                </Grid>
-                <Grid item xs={6}>
-                    <label htmlFor="correctiveMeasures">Corrective Measures</label>
-                    <input 
-                      id="correctiveMeasures" 
-                      name="correctiveMeasures" 
-                      className="input" 
-                      value={formData.correctiveMeasures || ''} 
-                      onChange={handleChange} 
-                     
-                    />
                   </Grid>
-                 <Grid item xs={6}>
-  <label htmlFor="safetyTraining">Safety Training Conducted</label>
-  <input
-    type="checkbox"
-    id="safetyTraining"
-    name="safetyTraining"
-    checked={formData.safetyTraining || false}
-    onChange={(e) =>
-      setFormData({ ...formData, safetyTraining: e.target.checked })
-    }
-  />
-</Grid>
-
+                  </Grid>
+               
               </Grid>
 
              
@@ -382,4 +418,4 @@ const SafetyManagement = () => {
   );
 };
 
-export default SafetyManagement;
+export default HandoverProcess;

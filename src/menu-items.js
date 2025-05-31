@@ -239,7 +239,7 @@ const menuItems = {
               id: 'material',
               title: 'Material & Inventry Management',
               type: 'item',
-              url: '/icons/font-awesome-5'
+              url: '/materials & inventorymanagement'
             }
           ]
         }
@@ -262,13 +262,13 @@ const menuItems = {
               id: 'testing',
               title: 'Testing & Inspection',
               type: 'item',
-              url: '/icons/Feather'
+              url: '/testing'
             },
             {
               id: 'handover',
               title: 'Handover Process',
               type: 'item',
-              url: '/icons/font-awesome-5'
+              url: '/handoverprocess'
             },
             {
               id: 'compliance',

@@ -28,24 +28,24 @@ const dummyProjects = [
   { id: "PRJ-2025-003" },
 ];
 
-const SafetyManagement = () => {
+const Testing = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
-  const [safetymanagement, setSafetyManagement] = useState([]);
+  const [testingmanagement, setTestingManagement] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditId, setCurrentEditId] = useState(null);
 
   const handleOpenForm = (projectId) => {
     setSelectedProjectId(projectId);
     const currentYear = new Date().getFullYear();
-    const newSafetyNumber = safetymanagement.length + 1;
-    const paddedNumber = newSafetyNumber.toString().padStart(3, '0');
+    const newTestingNumber = testingmanagement.length + 1;
+    const paddedNumber = newTestingNumber.toString().padStart(3, '0');
     
     setFormData({ 
-      safetymanagementID: `SAF-${currentYear}-${paddedNumber}`,
+      testingmanagementID: `TST-${currentYear}-${paddedNumber}`,
       projectId: projectId
     });
     setIsEditMode(false);
@@ -53,17 +53,17 @@ const SafetyManagement = () => {
     setOpen(true);
   };
 
-  const handleEdit = (safetyItem) => {
-    setFormData(safetyItem);
-    setSelectedProjectId(safetyItem.projectId);
+  const handleEdit = (testingItem) => {
+    setFormData(testingItem);
+    setSelectedProjectId(testingItem.projectId);
     setIsEditMode(true);
-    setCurrentEditId(safetyItem.safetymanagementID);
+    setCurrentEditId(testingItem.testingmanagementID);
     setOpen(true);
   };
 
-  const handleDelete = (safetyId) => {
-    if (window.confirm("Are you sure you want to delete safety management!")) {
-      setSafetyManagement(safetymanagement.filter(item => item.safetymanagementID !== safetyId));
+  const handleDelete = (testingId) => {
+    if (window.confirm("Are you sure you want to delete testing management!")) {
+      setTestingManagement(testingmanagement.filter(item => item.testingmanagementID !== testingId));
     }
   };
 
@@ -82,19 +82,19 @@ const SafetyManagement = () => {
   const handleSubmit = () => {
     if (isEditMode) {
       // Update existing record
-      setSafetyManagement(safetymanagement.map(item => 
-        item.safetymanagementID === currentEditId ? formData : item
+      setTestingManagement(testingmanagement.map(item => 
+        item.testingmanagementID === currentEditId ? formData : item
       ));
     } else {
       // Add new record
-      const newSafety = { ...formData, projectId: selectedProjectId };
-      setSafetyManagement([...safetymanagement, newSafety]);
+      const newTesting = { ...formData, projectId: selectedProjectId };
+      setTestingManagement([...testingmanagement, newTesting]);
     }
     handleClose();
   };
 
-  const filteredSafety = safetymanagement.filter((s) =>
-    Object.values(s).some(
+  const filteredTesting = testingmanagement.filter((t) =>
+    Object.values(t).some(
       (val) =>
         val &&
         val.toString().toLowerCase().includes(searchQuery.toLowerCase())
@@ -103,7 +103,7 @@ const SafetyManagement = () => {
   
   return (
     <>
-      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Quality Control & Assurance</Typography>
+      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Testing & Inspection</Typography>
       
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
         <Grid item xs={12}>
@@ -155,10 +155,10 @@ const SafetyManagement = () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-            <Typography variant="h6" gutterBottom>SAFETY MANAGEMENT DETAILS</Typography>
+            <Typography variant="h6" gutterBottom>TESTING MANAGEMENT DETAILS</Typography>
             <input
               type="text"
-              placeholder="Search Safety Management"
+              placeholder="Search Testing Management"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input"
@@ -170,34 +170,39 @@ const SafetyManagement = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{color:'#7267ef'}}><strong>Project ID</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Safety Report ID</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Incident Date</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Incident Description</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Affected Personnel ID</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Injury Severity</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Testing ID</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Equipment Name</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Testing Date</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Testing ConductedBy</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Test Procedure</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Performane Parameters</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Defects Identified</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Corrective Measures</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Safety Training Conducted</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Retest Date</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Testing Date</strong></TableCell>
                     <TableCell sx={{color:'#660000'}}><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredSafety.map((s, i) => (
+                  {filteredTesting.map((t, i) => (
                     <TableRow key={i}>
-                      <TableCell>{s.projectId}</TableCell>
-                      <TableCell>{s.safetymanagementID}</TableCell>
-                      <TableCell>{s.incidentDate}</TableCell>
-                      <TableCell>{s.incidentDescription}</TableCell>
-                      <TableCell>{s.affectedpersonnelID}</TableCell>
-                      <TableCell>{s.injurySeverity}</TableCell>
-                      <TableCell>{s.correctiveMeasures}</TableCell>
-                      <TableCell>{s.injurySeverity}</TableCell>
-                      <TableCell>{s.safetyTraining}</TableCell>
+                      <TableCell>{t.projectId}</TableCell>
+                      <TableCell>{t.testingmanagementID}</TableCell>
+                      <TableCell>{t.systemName}</TableCell>
+                      <TableCell>{t.testingDate}</TableCell>
+                      <TableCell>{t.testingBy}</TableCell>
+                      <TableCell>{t.testProcedure}</TableCell>
+                      <TableCell>{t.performance}</TableCell>
+                      <TableCell>{t.defect}</TableCell>
+                      <TableCell>{t.correction}</TableCell>
+                      <TableCell>{t.retestDate}</TableCell>
+                      <TableCell>{t.testingStatus}</TableCell>
                      
                       <TableCell>
-                        <IconButton onClick={() => handleEdit(s)} color="warning">
+                        <IconButton onClick={() => handleEdit(t)} color="warning">
                           <Edit sx={{ color: "orange" }} />
                         </IconButton>
-                        <IconButton onClick={() => handleDelete(s.safetymanagementID)} color="error">
+                        <IconButton onClick={() => handleDelete(t.testingmanagementID)} color="error">
                           <Delete sx={{ color: "red" }} />
                         </IconButton>
                       </TableCell>
@@ -212,7 +217,7 @@ const SafetyManagement = () => {
 
       <Dialog open={open} onClose={handleClose} fullWidth>
         <DialogTitle>
-          {isEditMode ? "Edit Safety Management Details" : "Enter Safety Management Details"}
+          {isEditMode ? "Edit Testing Management Details" : "Enter Testing Management Details"}
         </DialogTitle>
         <DialogContent sx={{ position: 'relative' }}>
           <IconButton
@@ -245,11 +250,11 @@ const SafetyManagement = () => {
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="safetymanagementID">Safety Report ID</label>
+                    <label htmlFor="testingmanagementID">Testing ID</label>
                     <input 
-                      id="safetymanagementID" 
+                      id="testingmanagementID" 
                       className="input" 
-                      value={formData.safetymanagementID || ''} 
+                      value={formData.testingmanagementID || ''} 
                       disabled 
                       
                     />
@@ -259,87 +264,127 @@ const SafetyManagement = () => {
 
               {/* Design Info */}
               <Grid item xs={12}>
-                <h3 style={{ color: '#7267ef' }}>Incident Information</h3>
+                <h3 style={{ color: '#7267ef' }}>Testing & Equipment Information</h3>
                 <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
-                    <label htmlFor="incidentDate">Incident Date</label>
+                    <label htmlFor="systemName">System/Equipment Name</label>
                     <input 
-                      type='date' 
-                      id="incidentDate" 
-                      name="incidentDate" 
+                      
+                      id="systemName" 
+                      name="systemName" 
                       className="input" 
-                      value={formData.incidentDate || ''} 
+                      value={formData.systemName || ''} 
                       onChange={handleChange} 
                      
                     />
                   </Grid>
                   
                   <Grid item xs={6}>
-                    <label htmlFor="incidentDescription">Incident Description</label>
-                    <textarea
-                      rows={3}
-                      id="incidentDescription" 
-                      name="incidentDescription" 
+                    <label htmlFor="testingDate">Testing Date</label>
+                    <input
+                      type="date"
+                      id="testingDate" 
+                      name="testingDate" 
                       className="input" 
-                      value={formData.incidentDescription || ''} 
+                      value={formData.testingDate || ''} 
                       onChange={handleChange} 
                      
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="affectedpersonnelID">Affected Personnel ID</label>
+                    <label htmlFor="testingBy">Testing CoductedBy</label>
                     <input 
-                      id="affectedpersonnelID" 
-                      name="affectedpersonnelID" 
+                      id="testingBy" 
+                      name="testingBy" 
                       className="input" 
-                      value={formData.affectedpersonnelID || ''} 
+                      value={formData.testingBy || ''} 
                       onChange={handleChange} 
                      
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="injurySeverity">Approval Status</label>
+                    <label htmlFor="testProcedure">Test Procedure</label>
+                    <input 
+                      id="testProcedure" 
+                      name="testProcedure" 
+                      className="input" 
+                      value={formData.testProcedure || ''} 
+                      onChange={handleChange} 
+                     
+                    />
+                  </Grid>
+                   <Grid item xs={6}>
+                    <label htmlFor="performance">Performance Parameters</label>
+                    <input 
+                      id="performance" 
+                      name="performance" 
+                      className="input" 
+                      value={formData.performance || ''} 
+                      onChange={handleChange} 
+                     
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <label htmlFor="defect">Defects Identified</label>
+                    <input 
+                      id="defect" 
+                      name="defect" 
+                      className="input" 
+                      value={formData.defect || ''} 
+                      onChange={handleChange} 
+                     
+                    />
+                  </Grid>
+                 
+                 
+                </Grid>
+                <Grid item xs={12}>
+                <h3 style={{ color: '#7267ef' }}>Correction Measure & Testing Status</h3>
+                <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <label htmlFor="correction">Correction Measure</label>
+                    <input 
+                      id="correction" 
+                      name="correction" 
+                      className="input" 
+                      value={formData.correction || ''} 
+                      onChange={handleChange} 
+                     
+                    />
+                  </Grid>
+                   <Grid item xs={6}>
+                    <label htmlFor="retestDate">Retest Date</label>
+                    <input 
+                      id="retestDate" 
+                      name="retestDate" 
+                      className="input" 
+                      value={formData.retestDate || ''} 
+                      onChange={handleChange} 
+                     
+                    />
+                  </Grid>
+                   <Grid item xs={6}>
+                    <label htmlFor="testingStatus">Testing Status</label>
                     <select
-                      id="injurySeverity"
-                      name="injurySeverity"
+                      id="testingStatus"
+                      name="testingStatus"
                       className="input"
-                      value={formData.injurySeverity || ''}
+                      value={formData.testingStatus || ''}
                       onChange={handleChange}
                       
                     >
-                      <option value="">Select Severity</option>
-                      <option value="Minor">Minor</option>
-                      <option value="Moderate">Moderate</option>
-                      <option value="Severe">Severe</option>
-                      <option value="Fatal">Fatal</option>
+                      <option value="">Select Status</option>
+                      <option value="Pass">Pass</option>
+                      <option value="Failed">Failed</option>
+                      <option value="Retest">Retest</option>
+                      <option value="Required">Required</option>
                     </select>
                   </Grid>
-                </Grid>
-                <Grid item xs={6}>
-                    <label htmlFor="correctiveMeasures">Corrective Measures</label>
-                    <input 
-                      id="correctiveMeasures" 
-                      name="correctiveMeasures" 
-                      className="input" 
-                      value={formData.correctiveMeasures || ''} 
-                      onChange={handleChange} 
-                     
-                    />
                   </Grid>
-                 <Grid item xs={6}>
-  <label htmlFor="safetyTraining">Safety Training Conducted</label>
-  <input
-    type="checkbox"
-    id="safetyTraining"
-    name="safetyTraining"
-    checked={formData.safetyTraining || false}
-    onChange={(e) =>
-      setFormData({ ...formData, safetyTraining: e.target.checked })
-    }
-  />
-</Grid>
-
+                  </Grid>
+               
               </Grid>
 
              
@@ -382,4 +427,4 @@ const SafetyManagement = () => {
   );
 };
 
-export default SafetyManagement;
+export default Testing;
