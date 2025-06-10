@@ -28,24 +28,24 @@ const dummyProjects = [
   { id: "PRJ-2025-003" },
 ];
 
-const HandoverProcess = () => {
+const ComplianceForm = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
-  const [handoverprocess, setHandoverProcess] = useState([]);
+  const [complianceprocess, setComplianceProcess] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditId, setCurrentEditId] = useState(null);
 
   const handleOpenForm = (projectId) => {
     setSelectedProjectId(projectId);
     const currentYear = new Date().getFullYear();
-    const newHandoverNumber = handoverprocess.length + 1;
-    const paddedNumber = newHandoverNumber.toString().padStart(3, '0');
+    const newComplianceNumber = complianceprocess.length + 1;
+    const paddedNumber = newComplianceNumber.toString().padStart(3, '0');
     
     setFormData({ 
-      handoverprocessID: `HND-${currentYear}-${paddedNumber}`,
+      complianceprocessID: `CMP-${currentYear}-${paddedNumber}`,
       projectId: projectId
     });
     setIsEditMode(false);
@@ -53,17 +53,17 @@ const HandoverProcess = () => {
     setOpen(true);
   };
 
-  const handleEdit = (handoverItem) => {
-    setFormData(handoverItem);
-    setSelectedProjectId(handoverItem.projectId);
+  const handleEdit = (complianceItem) => {
+    setFormData(complianceItem);
+    setSelectedProjectId(complianceItem.projectId);
     setIsEditMode(true);
-    setCurrentEditId(handoverItem.handoverprocessID);
+    setCurrentEditId(complianceItem.complianceprocessID);
     setOpen(true);
   };
 
-  const handleDelete = (handoverId) => {
-    if (window.confirm("Are you sure you want to delete this handover process!")) {
-      setHandoverProcess(handoverprocess.filter(item => item.handoverprocessID !== handoverId));
+  const handleDelete = (complianceId) => {
+    if (window.confirm("Are you sure you want to delete this compliance process!")) {
+      setComplianceProcess(complianceprocess.filter(item => item.complianceprocessID !== complianceId));
     }
   };
 
@@ -84,18 +84,18 @@ const HandoverProcess = () => {
 const handleSubmit = () => {
     if (isEditMode) {
       // Update existing record
-      setHandoverProcess(handoverprocess.map(item => 
-        item.handoverprocessID === currentEditId ? formData : item
+      setComplianceProcess(complianceprocess.map(item => 
+        item.complianceprocessID === currentEditId ? formData : item
       ));
     } else {
       // Add new record
-      const newHandover = { ...formData, projectId: selectedProjectId };
-      setHandoverProcess([...handoverprocess, newHandover]);
+      const newCompliance = { ...formData, projectId: selectedProjectId };
+      setComplianceProcess([...complianceprocess, newCompliance]);
     }
     handleClose();
   };
-  const filteredHandover = handoverprocess.filter((h) =>
-    Object.values(h).some(
+  const filteredCompliance = complianceprocess.filter((c) =>
+    Object.values(c).some(
       (val) =>
         val &&
         val.toString().toLowerCase().includes(searchQuery.toLowerCase())
@@ -104,7 +104,7 @@ const handleSubmit = () => {
   
   return (
     <>
-      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Testing & Inspection</Typography>
+      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Compliance & Certification</Typography>
       
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
         <Grid item xs={12}>
@@ -156,10 +156,10 @@ const handleSubmit = () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-            <Typography variant="h6" gutterBottom>TESTING MANAGEMENT DETAILS</Typography>
+            <Typography variant="h6" gutterBottom>COMPLIANCE & CERTIFICATION DETAILS</Typography>
             <input
               type="text"
-              placeholder="Search Handover Process"
+              placeholder="Search Compliance & Certification"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input"
@@ -171,39 +171,41 @@ const handleSubmit = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{color:'#7267ef'}}><strong>Project ID</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Handover ID</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Handover Date</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Receiving Department</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Handover Document ID</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>System/Component List</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Training Provided</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Training Documentation</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Pending Issues</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Final Approval</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Compliance Process ID</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Regulatory Body</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Inspection Date</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Inspector Name</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Compliance Checklist ID</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Compliance Status</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Non-Compliance Issues</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Corrective Action Plan</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Certification ID</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Certification Expiry Date</strong></TableCell>
                    
                     <TableCell sx={{color:'#660000'}}><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredHandover.map((h, i) => (
+                  {filteredCompliance.map((c, i) => (
                     <TableRow key={i}>
-                      <TableCell>{h.projectId}</TableCell>
-                      <TableCell>{h.handoverprocessID}</TableCell>
-                      <TableCell>{h.handoverDate}</TableCell>
-                      <TableCell>{h.receivingDepartment}</TableCell>
-                      <TableCell>{h.handoverDocID}</TableCell>
-                      <TableCell>{h.componentList}</TableCell>
-                      <TableCell>{h.trainingprovided}</TableCell>
-                      <TableCell>{h.document}</TableCell>
-                      <TableCell>{h.issues}</TableCell>
-                      <TableCell>{h.approvalStatus}</TableCell>
+                      <TableCell>{c.projectId}</TableCell>
+                      <TableCell>{c.complianceprocessID}</TableCell>
+                      <TableCell>{c.regulatoryBody}</TableCell>
+                      <TableCell>{c.inspectionDate}</TableCell>
+                      <TableCell>{c.inspectorName}</TableCell>
+                      <TableCell>{c.checkListID}</TableCell>
+                      <TableCell>{c.complianceStatus}</TableCell>
+                      <TableCell>{c.issues}</TableCell>
+                      <TableCell>{c.actionplan}</TableCell>
+                      <TableCell>{c.certificationID}</TableCell>
+                      <TableCell>{c.expiryDate}</TableCell>
                      
                      
                       <TableCell>
-                        <IconButton onClick={() => handleEdit(h)} color="warning">
+                        <IconButton onClick={() => handleEdit(c)} color="warning">
                           <Edit sx={{ color: "orange" }} />
                         </IconButton>
-                        <IconButton onClick={() => handleDelete(h.handoverprocessID)} color="error">
+                        <IconButton onClick={() => handleDelete(c.complianceprocessID)} color="error">
                           <Delete sx={{ color: "red" }} />
                         </IconButton>
                       </TableCell>
@@ -218,7 +220,7 @@ const handleSubmit = () => {
 
       <Dialog open={open} onClose={handleClose} fullWidth>
         <DialogTitle>
-          {isEditMode ? "Edit Safety Management Details" : "Enter Safety Management Details"}
+          {isEditMode ? "Edit Compliance Details" : "Enter Compliance Details"}
         </DialogTitle>
         <DialogContent sx={{ position: 'relative' }}>
           <IconButton
@@ -251,11 +253,11 @@ const handleSubmit = () => {
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="handoverprocessID">Handover ID</label>
+                    <label htmlFor="complianceprocessID">Compliance ID</label>
                     <input 
-                      id="handoverprocessID" 
+                      id="complianceprocessID" 
                       className="input" 
-                      value={formData.handoverprocessID || ''} 
+                      value={formData.complianceprocessID || ''} 
                       disabled 
                       
                     />
@@ -265,87 +267,75 @@ const handleSubmit = () => {
 
               {/* Design Info */}
               <Grid item xs={12}>
-                <h3 style={{ color: '#7267ef' }}>Handover Information</h3>
+                <h3 style={{ color: '#7267ef' }}>Compliance & Certification Infor..</h3>
                 <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
-                    <label htmlFor="handoverDate">Handover Date</label>
+                    <label htmlFor="regulatoryBody">Regulatory Body</label>
                     <input 
-                      type="date"
-                      id="handoverDate" 
-                      name="handoverDate" 
+                      
+                      id="regulatoryBody" 
+                      name="regulatoryBody" 
                       className="input" 
-                      value={formData.handoverDate || ''} 
+                      value={formData.regulatoryBody || ''} 
                       onChange={handleChange} 
                      
                     />
                   </Grid>
                   
                   <Grid item xs={6}>
-                    <label htmlFor="receivingDepartment">Recieving Department</label>
+                    <label htmlFor="inspectionDate">Inspection Date</label>
                     <input
-                      
-                      id="receivingDepartment" 
-                      name="receivingDepartment" 
+                      type="date"
+                      id="inspectionDate" 
+                      name="inspectionDate" 
                       className="input" 
-                      value={formData.receivingDepartment || ''} 
+                      value={formData.inspectionDate || ''} 
                       onChange={handleChange} 
                      
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="handoverDocID">Handover DocumentID</label>
+                    <label htmlFor="inspectorName">Inspector Name</label>
                     <input 
-                      id="handoverDocID" 
-                      name="handoverDocID" 
+                      id="inspectorName" 
+                      name="inspectorName" 
                       className="input" 
-                      value={formData.handoverDocID || ''} 
+                      value={formData.inspectorName || ''} 
                       onChange={handleChange} 
                      
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="componentList">System/Component List</label>
+                    <label htmlFor="checkListID">Compliance CheckList ID</label>
                     <input 
-                      id="componentList" 
-                      name="componentList" 
+                      id="checkListID" 
+                      name="checkListID" 
                       className="input" 
-                      value={formData.componentList || ''} 
+                      value={formData.checkListID || ''} 
                       onChange={handleChange} 
                      
                     />
                   </Grid>
                    <Grid item xs={6}>
-                    <label htmlFor="trainingprovided">Training Provided</label>
-                    <input 
-                      id="trainingprovided" 
-                      name="trainingprovided" 
-                      className="input" 
-                      value={formData.trainingprovided || ''} 
-                      onChange={handleChange} 
+                    <label htmlFor="complianceStatus">Compliance Status</label>
+                    <select
+                      id="complianceStatus"
+                      name="complianceStatus"
+                      className="input"
+                      value={formData.complianceStatus || ''}
+                      onChange={handleChange}
+                      
+                    >
+                      <option value="">Select Status</option>
+                      <option value="Compliant">Compliant</option>
+                      <option value="Pending">Pending</option>
+                      
                      
-                    />
+                    </select>
                   </Grid>
-                  <Grid item xs={6}>
-                    <label htmlFor="document">Training Documentation</label>
-                    <input 
-                      id="document" 
-                      name="document" 
-                      className="input" 
-                      value={formData.document || ''} 
-                      onChange={handleChange} 
-                     
-                    />
-                  </Grid>
-                 
-                 
-                </Grid>
-                <Grid item xs={12}>
-                <h3 style={{ color: '#7267ef' }}>Pending Issues & Final Status</h3>
-                <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <label htmlFor="issues">Pending Issues</label>
+                   <Grid item xs={6}>
+                    <label htmlFor="issues">Non-Compliant Issues</label>
                     <input 
                       id="issues" 
                       name="issues" 
@@ -355,24 +345,49 @@ const handleSubmit = () => {
                      
                     />
                   </Grid>
-                   
-                   <Grid item xs={6}>
-                    <label htmlFor="approvalStatus">Approval Status</label>
-                    <select
-                      id="approvalStatus"
-                      name="approvalStatus"
-                      className="input"
-                      value={formData.approvalStatus || ''}
-                      onChange={handleChange}
-                      
-                    >
-                      <option value="">Select Status</option>
-                      <option value="Approved">Approved</option>
-                      <option value="Conditional">Conditional</option>
-                      <option value="Pending">Pending</option>
+                  <Grid item xs={6}>
+                    <label htmlFor="actionplan">Corrective Action Plan</label>
+                    <input 
+                      id="actionplan" 
+                      name="actionplan" 
+                      className="input" 
+                      value={formData.actionplan || ''} 
+                      onChange={handleChange} 
                      
-                    </select>
+                    />
                   </Grid>
+                 
+                 
+                </Grid>
+                <Grid item xs={12}>
+                <h3 style={{ color: '#7267ef' }}>Certification ID & Expiry Date</h3>
+                <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <label htmlFor="certificationID">Certification ID</label>
+                    <input 
+                      id="certificationID" 
+                      name="certificationID" 
+                      className="input" 
+                      value={formData.certificationID || ''} 
+                      onChange={handleChange} 
+                     
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <label htmlFor="expiryDate">Certification Expiry Date</label>
+                    <input 
+                      type="date"
+                      id="expiryDate" 
+                      name="expiryDate" 
+                      className="input" 
+                      value={formData.expiryDate || ''} 
+                      onChange={handleChange} 
+                     
+                    />
+                  </Grid>
+                   
+                  
                   </Grid>
                   </Grid>
                
@@ -418,4 +433,4 @@ const handleSubmit = () => {
   );
 };
 
-export default HandoverProcess;
+export default ComplianceForm;

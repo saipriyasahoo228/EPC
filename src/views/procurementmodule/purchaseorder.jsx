@@ -77,38 +77,6 @@ const PurchaseOrder = () => {
   }, [open, selectedProjectIndex]); // Runs whenever open or selectedProjectIndex changes
 
 
-  // Open form with new procurement ID
-  // const handleOpenForm = (projectId) => {
-  //   setSelectedProjectId(projectId);
-  //   // Update formData with both procurementId and projectId in one call
-  //   setFormData((prevFormData) => ({
-  //     ...prevFormData,  // retain existing formData
-  //     projectId,        // add/update projectId
-  //   }));
-  
-  //   setOpen(true);
-  // };
-  
-  // Open form with new procurement ID
-  // const handleOpenForm = (projectId) => {
-  //   setSelectedProjectId(projectId);
-  //   const selectedProject = dummyProjects.find((project) => project.projectId === projectId);
-  
-  //   if (selectedProject) {
-  //     setFormData((prevFormData) => ({
-  //       ...prevFormData,
-  //       projectId: selectedProject.projectId,
-  //       procurementId: selectedProject.procurementId,
-  //       purchaseOrderId: selectedProject.purchaseOrderId,
-  //     }));
-  //   }
-  
-  //   console.log('Updated Form Data:', formData); // Debugging here
-  //   setOpen(true);
-  // };
-  
-
-  // const handleClose = () => setOpen(false);
 
   const handleOpenForm = () => {
     setOpen(true);
@@ -196,38 +164,11 @@ const PurchaseOrder = () => {
 
   return (
     <>
-      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Material Procurement</Typography>
+      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Purchase Order</Typography>
 
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
         <Grid item xs={12}>
-          {/* <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-            <Typography variant="h6" gutterBottom>PURCHASE ORDERS</Typography>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ color: '#7267ef' }}><strong>Project ID</strong></TableCell>
-                  <TableCell sx={{ color: '#7267ef' }}><strong>Procurement ID</strong></TableCell>
-                  <TableCell sx={{ color: '#7267ef' }}><strong>Purchase Order ID</strong></TableCell>
-                  <TableCell sx={{ display: 'flex', justifyContent: 'flex-end', color: '#660000' }}><strong>Action</strong></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {dummyProjects.map((proj, i) => (
-                  <TableRow key={i}>
-                    <TableCell>{proj.projectId}</TableCell>
-                    <TableCell>{proj.procurementId}</TableCell>
-                    <TableCell>{proj.purchaseOrderId}</TableCell>
-
-                    <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                        <AddCircle sx={{ color: "#7267ef" }} />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Paper> */}
+        
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
   <Typography variant="h6" gutterBottom>PURCHASE ORDERS</Typography>
 
@@ -283,7 +224,7 @@ const PurchaseOrder = () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-            <Typography variant="h6" gutterBottom>SUBMITTED MATERIALS PROCUREMENT RECORDS</Typography>
+            <Typography variant="h6" gutterBottom>SUBMITTED PURCHASE RECORDS</Typography>
             <input
               type="text"
               placeholder="Search Purchase Order Details"

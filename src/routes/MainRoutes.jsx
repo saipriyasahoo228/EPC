@@ -29,6 +29,10 @@ const SafetyManagement = lazy(() =>import('../views/constructionmodule/safetyman
 const InventoryManagement = lazy(()=>import('../views/constructionmodule/inventorymanagement.jsx'));
 const Testing = lazy(()=>import('../views/commisioningmodule/testing.jsx'));
 const HandoverProcess = lazy(()=>import('../views/commisioningmodule/handoverprocess.jsx'));
+const ComplianceForm = lazy(()=>import('../views/commisioningmodule/compliance.jsx'));
+const SystemIntegration = lazy(()=>import('../views/commisioningmodule/systemintegration.jsx'));
+const AssetManagement = lazy(()=>import('../views/maintenancemodule/assetmanagement.jsx'));
+const AccountLedger = lazy(()=>import('../views/accountledgermodule/generalledger.jsx'));
 // Typography = lazy(() => import('../views/ui-elements/basic/BasicTypography'));
 //const Color = lazy(() => import('../views/ui-elements/basic/BasicColor'));
 
@@ -133,6 +137,22 @@ const MainRoutes = {
         {
           path:'/handoverprocess',
           element:<HandoverProcess/>
+        },
+        {
+        path:'/compliance',
+        element:<ComplianceForm/>
+        },
+        {
+          path: '/systemintegration',
+          element:<SystemIntegration/>
+        },
+        {
+          path: '/assetsmanagement',
+          element:<AssetManagement/>
+        },
+        {
+          path: '/generalledger',
+          element:<AccountLedger/>
         }
       ]
     },

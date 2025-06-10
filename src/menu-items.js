@@ -75,47 +75,7 @@ const menuItems = {
         }
       ]
     },
-    {
-      id: 'account',
-      title: 'ACCOUNT MASTER',
-      type: 'group',
-      icon: 'icon-ui',
-      children: [
-        {
-          id: 'accountmodule',
-          title: 'Account Ledger Module',
-          type: 'collapse',
-          icon: 'material-icons-two-tone',
-          iconname: 'history_edu',
-          children: [
-            {
-              id: 'general',
-              title: 'General Ledger',
-              type: 'item',
-              url: '/icons/Feather'
-            },
-            {
-              id: 'payable',
-              title: 'Accounts Payable',
-              type: 'item',
-              url: '/icons/font-awesome-5'
-            },
-            {
-              id: 'recievable',
-              title: 'Account Recievable',
-              type: 'item',
-              url: '/icons/Feather'
-            },
-            {
-              id: 'financial',
-              title: 'Financial Report & Auditing',
-              type: 'item',
-              url: '/icons/font-awesome-5'
-            }
-          ]
-        }
-      ]
-    },
+    
     {
       id: 'procurment',
       title: 'PROCUREMENT MASTER',
@@ -274,13 +234,13 @@ const menuItems = {
               id: 'compliance',
               title: 'Compliance & Certification',
               type: 'item',
-              url: '/icons/Feather'
+              url: '/compliance'
             },
             {
               id: 'system',
               title: 'Syatem Integration',
               type: 'item',
-              url: '/icons/font-awesome-5'
+              url: '/systemintegration'
             }
           ]
         }
@@ -303,7 +263,7 @@ const menuItems = {
               id: 'assets',
               title: 'Assets Management',
               type: 'item',
-              url: '/icons/Feather'
+              url: '/assetsmanagement'
             },
             {
               id: 'scheduling',
@@ -320,6 +280,47 @@ const menuItems = {
             {
               id: 'check',
               title: 'Safety Check',
+              type: 'item',
+              url: '/icons/font-awesome-5'
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'account',
+      title: 'ACCOUNT MASTER',
+      type: 'group',
+      icon: 'icon-ui',
+      children: [
+        {
+          id: 'accountmodule',
+          title: 'Account Ledger Module',
+          type: 'collapse',
+          icon: 'material-icons-two-tone',
+          iconname: 'history_edu',
+          children: [
+            {
+              id: 'general',
+              title: 'General Ledger',
+              type: 'item',
+              url: '/generalledger'
+            },
+            {
+              id: 'payable',
+              title: 'Accounts Payable',
+              type: 'item',
+              url: '/icons/font-awesome-5'
+            },
+            {
+              id: 'recievable',
+              title: 'Account Recievable',
+              type: 'item',
+              url: '/icons/Feather'
+            },
+            {
+              id: 'financial',
+              title: 'Financial Report & Auditing',
               type: 'item',
               url: '/icons/font-awesome-5'
             }
