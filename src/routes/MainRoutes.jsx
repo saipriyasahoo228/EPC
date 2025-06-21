@@ -6,6 +6,7 @@ import { Navigate } from 'react-router-dom';
 import AdminLayout from 'layouts/AdminLayout';
 import GuestLayout from 'layouts/GuestLayout';
 
+
  
 
 
@@ -33,6 +34,12 @@ const ComplianceForm = lazy(()=>import('../views/commisioningmodule/compliance.j
 const SystemIntegration = lazy(()=>import('../views/commisioningmodule/systemintegration.jsx'));
 const AssetManagement = lazy(()=>import('../views/maintenancemodule/assetmanagement.jsx'));
 const AccountLedger = lazy(()=>import('../views/accountledgermodule/generalledger.jsx'));
+const Acoountpayble = lazy(()=>import('../views/accountledgermodule/accountpayble.jsx'));
+const AccountsReceivable = lazy(()=>import('../views/accountledgermodule/accountrecievable.jsx'));
+const FinancialReports = lazy(()=>import('../views/accountledgermodule/financialreport.jsx'));
+const AssetScheduling = lazy(()=>import('../views/maintenancemodule/maintenancescheduling.jsx'));
+const MaintenanceReport = lazy(()=>import('../views/maintenancemodule/maintenancereport.jsx'));
+const SafetyCheck  = lazy(()=>import('../views/maintenancemodule/safetycheck.jsx'));
 // Typography = lazy(() => import('../views/ui-elements/basic/BasicTypography'));
 //const Color = lazy(() => import('../views/ui-elements/basic/BasicColor'));
 
@@ -153,6 +160,30 @@ const MainRoutes = {
         {
           path: '/generalledger',
           element:<AccountLedger/>
+        },
+        {
+          path: '/accountpayble',
+          element:<Acoountpayble/>
+        },
+        {
+          path: '/account recieve',
+          element: <AccountsReceivable/>
+        },
+        {
+          path: '/financial report',
+          element:<FinancialReports/>
+        },
+        {
+          path: '/asset scheduling',
+          element:<AssetScheduling/>
+        },
+        {
+          path: '/maintenance report',
+          element:<MaintenanceReport/>
+        },
+        {
+          path: '/safety',
+          element:<SafetyCheck/>
         }
       ]
     },

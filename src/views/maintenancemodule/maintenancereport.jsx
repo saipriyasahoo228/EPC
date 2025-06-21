@@ -23,29 +23,29 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 
 const dummyProjects = [
-  { id: "2025-VND-001" },
-  { id: "2025-VND-002" },
-  { id: "2025-VND-003" },
+  { id: "2025-AST-001" },
+  { id: "2025-AST-002" },
+  { id: "2025-AST-003" },
 ];
 
-const AssetManagement = () => {
+const MaintenanceReport = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
-  const [assetmanagement, setAssetManagement] = useState([]);
+  const [maintenancereport, setMaintenanceReport] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditId, setCurrentEditId] = useState(null);
 
   const handleOpenForm = (projectId) => {
     setSelectedProjectId(projectId);
     const currentYear = new Date().getFullYear();
-    const newSystemNumber = assetmanagement.length + 1;
+    const newSystemNumber = maintenancereport.length + 1;
     const paddedNumber = newSystemNumber.toString().padStart(3, '0');
     
     setFormData({ 
-      assetmanagementID: `AST-${currentYear}-${paddedNumber}`,
+      workOrderID: `WO-${currentYear}-${paddedNumber}`,
       projectId: projectId
     });
     setIsEditMode(false);
@@ -53,17 +53,17 @@ const AssetManagement = () => {
     setOpen(true);
   };
 
-  const handleEdit = (assetItem) => {
-    setFormData(assetItem);
-    setSelectedProjectId(assetItem.projectId);
+  const handleEdit = (maintenancereportItem) => {
+    setFormData(maintenancereportItem);
+    setSelectedProjectId(maintenancereportItem.projectId);
     setIsEditMode(true);
-    setCurrentEditId(assetItem.assetmanagementID);
+    setCurrentEditId(maintenancereportItem.workOrderID);
     setOpen(true);
   };
 
-  const handleDelete = (assetId) => {
-    if (window.confirm("Are you sure you want to delete asset management report!")) {
-      setAssetManagement(assetmanagement.filter(item => item.assetmanagementID !== assetId));
+  const handleDelete = (workOrderID) => {
+    if (window.confirm("Are you sure you want to delete maintenance  report!")) {
+      setMaintenanceReport(maintenancereport.filter(item => item.workOrderID !== workOrderID));
     }
   };
 
@@ -88,20 +88,20 @@ const AssetManagement = () => {
 
   if (isEditMode) {
     // Update existing record
-    setAssetManagement(assetmanagement.map(item => 
-      item.assetmanagementID === currentEditId ? updatedFormData : item
+    setMaintenanceReport(maintenancereport.map(item => 
+      item.workOrderID === currentEditId ? updatedFormData : item
     ));
   } else {
     // Add new record
-    const newSystem = { ...updatedFormData, projectId: selectedProjectId };
-    setAssetManagement([...assetmanagement, newSystem]);
+    const newMaintenance = { ...updatedFormData, projectId: selectedProjectId };
+    setMaintenanceReport([...maintenancereport, newMaintenance]);
   }
 
   handleClose();
 };
 
 
-  const filteredAsset = assetmanagement.filter((t) =>
+  const filteredMaintenancereport = maintenancereport.filter((t) =>
     Object.values(t).some(
       (val) =>
         val &&
@@ -111,20 +111,20 @@ const AssetManagement = () => {
   
   return (
     <>
-      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Assets Management</Typography>
+      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Maintenance Management Report</Typography>
       
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
             <Typography variant="h6" gutterBottom>
-              VENDOR RECORDS
+              ASSETS RECORDS
             </Typography>
 
             {/* Search Input */}
             <Box sx={{ my: 2, mx: 1 }}>
               <input
                 type="text"
-                placeholder="Search Vendor ID"
+                placeholder="Search Asset ID"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="input"
@@ -135,7 +135,7 @@ const AssetManagement = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ color: '#7267ef' }}><strong>Vendor ID</strong></TableCell>
+                  <TableCell sx={{ color: '#7267ef' }}><strong>Asset ID</strong></TableCell>
                   <TableCell sx={{ display: 'flex', justifyContent: 'flex-end', color: '#660000' }}>
                     <strong>Action</strong>
                   </TableCell>
@@ -163,10 +163,10 @@ const AssetManagement = () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-            <Typography variant="h6" gutterBottom>Assets Details</Typography>
+            <Typography variant="h6" gutterBottom>Maintenance Management Report</Typography>
             <input
               type="text"
-              placeholder="Search Assets Management Details"
+              placeholder="Search Maintenance Details"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input"
@@ -177,45 +177,40 @@ const AssetManagement = () => {
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Project ID</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Asset ID</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Asset Name</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Asset Type</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Model Number</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Serial Number</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Location</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Purchase Date</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Warranty Expiry Date</strong></TableCell>
-                    
-                    <TableCell sx={{color:'#7267ef'}}><strong>Maintenance Requirment</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Current Condition</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Depreciation Value</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>WorkOrder ID</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Reported Issuees</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Report Date</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Inspection Date</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Technician ID</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Repair WorkDone</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Parts Replaced</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Total Maintenance Cost</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Completion Date</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Final Status</strong></TableCell>
                     <TableCell sx={{color:'#660000'}}><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredAsset.map((t, i) => (
+                  {filteredMaintenancereport.map((t, i) => (
                     <TableRow key={i}>
                       <TableCell>{t.projectId}</TableCell>
-                      <TableCell>{t.assetmanagementID}</TableCell>
-                      <TableCell>{t.assetName}</TableCell>
-                      <TableCell>{t.assetType}</TableCell>
-                      <TableCell>{t.modelNumber}</TableCell>
-                      <TableCell>{t.serialNumber}</TableCell>
-                      <TableCell>{t.location}</TableCell>
-                      <TableCell>{t.purchaseDate}</TableCell>
-                      <TableCell>{t.warrantyExpiryDate}</TableCell>
-                      <TableCell>{t.maintenanceRequirement}</TableCell>
-                      <TableCell>{t.currentCondition}</TableCell>
-                      <TableCell>{t.depreciationValue}</TableCell>
-
-                     
-                     
+                      <TableCell>{t.workOrderID}</TableCell>
+                      <TableCell>{t.reportedIssue}</TableCell>
+                      <TableCell>{t.reportDate}</TableCell>
+                      <TableCell>{t.inspectionDate}</TableCell>
+                      <TableCell>{t.technicianId}</TableCell>
+                      <TableCell>{t.repairWorkDone}</TableCell>
+                      <TableCell>{t.partsReplaced}</TableCell>
+                      <TableCell>{t.totalMaintenanceCost}</TableCell>
+                      <TableCell>{t.completionDate}</TableCell>
+                      <TableCell>{t.finalStatus}</TableCell>
+                      
                       <TableCell>
                         <IconButton onClick={() => handleEdit(t)} color="warning">
                           <Edit sx={{ color: "orange" }} />
                         </IconButton>
-                        <IconButton onClick={() => handleDelete(t.assetmanagementID)} color="error">
+                        <IconButton onClick={() => handleDelete(t.workOrderID)} color="error">
                           <Delete sx={{ color: "red" }} />
                         </IconButton>
                       </TableCell>
@@ -230,7 +225,7 @@ const AssetManagement = () => {
 
       <Dialog open={open} onClose={handleClose} fullWidth>
         <DialogTitle>
-          {isEditMode ? "Edit Asset Management Details" : "Enter Assets Management Details"}
+          {isEditMode ? "Edit Maintenance Report" : "Enter Maintenance Report"}
         </DialogTitle>
         <DialogContent sx={{ position: 'relative' }}>
           <IconButton
@@ -247,24 +242,12 @@ const AssetManagement = () => {
           </IconButton>
           <Box component="form" sx={{ mt: 2 }}>
   <Grid container spacing={3} direction="column">
-    {/* Asset Information */}
     <Grid item xs={12}>
-      <h3 style={{ color: '#7267ef' }}>Asset Information</h3>
+      <h3 style={{ color: '#7267ef' }}>Maintenance Report</h3>
       <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
       <Grid container spacing={2}>
         <Grid item xs={6}>
-          <label htmlFor="assetmanagementID">Asset ID</label>
-          <input
-            id="assetmanagementID"
-            name="assetmanagementID"
-            className="input"
-            value={formData.assetmanagementID || ''}
-            onChange={handleChange}
-            disabled
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <label htmlFor="projectId">Vendor ID</label>
+          <label htmlFor="projectId">Asset ID</label>
           <input
             id="projectId"
             name="projectId"
@@ -275,114 +258,147 @@ const AssetManagement = () => {
           />
         </Grid>
         <Grid item xs={6}>
-          <label htmlFor="assetName">Asset Name</label>
+          <label htmlFor="workOrderID">Work Order ID</label>
           <input
-            id="assetName"
-            name="assetName"
+            id="workOrderID"
+            name="workOrderID"
             className="input"
-            value={formData.assetName || ''}
+            value={formData.workOrderID || ''}
             onChange={handleChange}
+            disabled
           />
         </Grid>
-        <Grid item xs={6}>
-          <label htmlFor="assetType">Asset Type</label>
-          <input
-            id="assetType"
-            name="assetType"
-            className="input"
-            value={formData.assetType || ''}
-            onChange={handleChange}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <label htmlFor="modelNumber">Model Number</label>
-          <input
-            id="modelNumber"
-            name="modelNumber"
-            className="input"
-            value={formData.modelNumber || ''}
-            onChange={handleChange}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <label htmlFor="serialNumber">Serial Number</label>
-          <input
-            id="serialNumber"
-            name="serialNumber"
-            className="input"
-            value={formData.serialNumber || ''}
-            onChange={handleChange}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <label htmlFor="location">Location</label>
-          <input
-            id="location"
-            name="location"
-            className="input"
-            value={formData.location || ''}
-            onChange={handleChange}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <label htmlFor="purchaseDate">Purchase Date</label>
-          <input
-            type="date"
-            id="purchaseDate"
-            name="purchaseDate"
-            className="input"
-            value={formData.purchaseDate || ''}
-            onChange={handleChange}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <label htmlFor="warrantyExpiryDate">Warranty Expiry Date</label>
-          <input
-            type="date"
-            id="warrantyExpiryDate"
-            name="warrantyExpiryDate"
-            className="input"
-            value={formData.warrantyExpiryDate || ''}
-            onChange={handleChange}
-          />
-        </Grid>
+
         
+
         <Grid item xs={6}>
-          <label htmlFor="maintenanceRequirement">Maintenance Requirement</label>
-          <input
-            id="maintenanceRequirement"
-            name="maintenanceRequirement"
+          <label htmlFor="reportedIssue">Reported Issue</label>
+          <textarea
+            id="reportedIssue"
+            name="reportedIssue"
             className="input"
-            value={formData.maintenanceRequirement || ''}
+            rows="3"
+            value={formData.reportedIssue || ''}
             onChange={handleChange}
           />
         </Grid>
+
         <Grid item xs={6}>
-          <label htmlFor="currentCondition">Current Condition</label>
+          <label htmlFor="issueReportedBy">Issue Reported By</label>
           <input
-            id="currentCondition"
-            name="currentCondition"
+            id="issueReportedBy"
+            name="issueReportedBy"
             className="input"
-            value={formData.currentCondition || ''}
+            value={formData.issueReportedBy || ''}
             onChange={handleChange}
           />
         </Grid>
+
         <Grid item xs={6}>
-          <label htmlFor="depreciationValue">Depreciation Value</label>
+          <label htmlFor="reportDate">Report Date</label>
+          <input
+            type="date"
+            id="reportDate"
+            name="reportDate"
+            className="input"
+            value={formData.reportDate || ''}
+            onChange={handleChange}
+          />
+        </Grid>
+
+        <Grid item xs={6}>
+          <label htmlFor="inspectionDate">Inspection Date</label>
+          <input
+            type="date"
+            id="inspectionDate"
+            name="inspectionDate"
+            className="input"
+            value={formData.inspectionDate || ''}
+            onChange={handleChange}
+          />
+        </Grid>
+
+        <Grid item xs={6}>
+          <label htmlFor="technicianId">Technician ID</label>
+          <input
+            id="technicianId"
+            name="technicianId"
+            className="input"
+            value={formData.technicianId || ''}
+            onChange={handleChange}
+          />
+        </Grid>
+
+        <Grid item xs={6}>
+          <label htmlFor="repairWorkDone">Repair Work Done</label>
+          <textarea
+            id="repairWorkDone"
+            name="repairWorkDone"
+            className="input"
+            rows="3"
+            value={formData.repairWorkDone || ''}
+            onChange={handleChange}
+          />
+        </Grid>
+
+        <Grid item xs={6}>
+          <label htmlFor="partsReplaced">Parts Replaced</label>
+          <textarea
+            id="partsReplaced"
+            name="partsReplaced"
+            className="input"
+            rows="2"
+            value={formData.partsReplaced || ''}
+            onChange={handleChange}
+          />
+        </Grid>
+
+        <Grid item xs={6}>
+          <label htmlFor="totalMaintenanceCost">Total Maintenance Cost</label>
           <input
             type="number"
             step="0.01"
-            id="depreciationValue"
-            name="depreciationValue"
+            id="totalMaintenanceCost"
+            name="totalMaintenanceCost"
             className="input"
-            value={formData.depreciationValue || ''}
+            value={formData.totalMaintenanceCost || ''}
             onChange={handleChange}
           />
         </Grid>
+
+        <Grid item xs={6}>
+          <label htmlFor="completionDate">Completion Date</label>
+          <input
+            type="date"
+            id="completionDate"
+            name="completionDate"
+            className="input"
+            value={formData.completionDate || ''}
+            onChange={handleChange}
+          />
+        </Grid>
+
+        <Grid item xs={6}>
+          <label htmlFor="finalStatus">Final Status</label>
+          <select
+            id="finalStatus"
+            name="finalStatus"
+            className="input"
+            value={formData.finalStatus || ''}
+            onChange={handleChange}
+          >
+            <option value="">-- Select Status --</option>
+            <option value="Completed">Completed</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Pending Approval">Pending Approval</option>
+          </select>
+        </Grid>
+
       </Grid>
     </Grid>
   </Grid>
 </Box>
+
 
         </DialogContent>
 
@@ -421,4 +437,4 @@ const AssetManagement = () => {
   );
 };
 
-export default AssetManagement;
+export default MaintenanceReport;

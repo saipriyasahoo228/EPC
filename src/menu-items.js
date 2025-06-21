@@ -269,19 +269,19 @@ const menuItems = {
               id: 'scheduling',
               title: 'Maintenance Scheduling',
               type: 'item',
-              url: '/icons/font-awesome-5'
+              url: '/asset scheduling'
             },
             {
               id: 'reporting',
               title: 'Maintenance Reporting & Orders',
               type: 'item',
-              url: '/icons/Feather'
+              url: '/maintenance report'
             },
             {
               id: 'check',
               title: 'Safety Check',
               type: 'item',
-              url: '/icons/font-awesome-5'
+              url: 'safety'
             }
           ]
         }
@@ -310,19 +310,19 @@ const menuItems = {
               id: 'payable',
               title: 'Accounts Payable',
               type: 'item',
-              url: '/icons/font-awesome-5'
+              url: '/accountpayble'
             },
             {
               id: 'recievable',
               title: 'Account Recievable',
               type: 'item',
-              url: '/icons/Feather'
+              url: '/account recieve'
             },
             {
               id: 'financial',
               title: 'Financial Report & Auditing',
               type: 'item',
-              url: '/icons/font-awesome-5'
+              url: '/financial report'
             }
           ]
         }

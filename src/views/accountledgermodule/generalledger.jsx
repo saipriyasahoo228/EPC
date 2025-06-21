@@ -201,16 +201,16 @@ const AccountLedger = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Ledger ID</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Account</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Debit</TableCell>
-              <TableCell>Credit</TableCell>
-              <TableCell>Balance</TableCell>
-              <TableCell>Ref No</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Ledger ID</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Date</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Account</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Type</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Debit</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Credit</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Balance</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Ref No</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Status</TableCell>
+              <TableCell sx={{color:'#660000'}}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
