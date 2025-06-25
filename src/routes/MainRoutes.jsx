@@ -40,6 +40,8 @@ const FinancialReports = lazy(()=>import('../views/accountledgermodule/financial
 const AssetScheduling = lazy(()=>import('../views/maintenancemodule/maintenancescheduling.jsx'));
 const MaintenanceReport = lazy(()=>import('../views/maintenancemodule/maintenancereport.jsx'));
 const SafetyCheck  = lazy(()=>import('../views/maintenancemodule/safetycheck.jsx'));
+const UserRole = lazy(()=>import('../views/accesscontroluserrole/user.jsx'));
+const UserRoleAccessControl = lazy(()=>import('../views/accesscontroluserrole/access.jsx'));
 // Typography = lazy(() => import('../views/ui-elements/basic/BasicTypography'));
 //const Color = lazy(() => import('../views/ui-elements/basic/BasicColor'));
 
@@ -184,6 +186,14 @@ const MainRoutes = {
         {
           path: '/safety',
           element:<SafetyCheck/>
+        },
+        {
+        path:'/user',
+        element:<UserRole/>
+        },
+        {
+          path:'/accesscontrol',
+          element:<UserRoleAccessControl/>
         }
       ]
     },
