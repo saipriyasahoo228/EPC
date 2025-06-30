@@ -44,10 +44,32 @@
 //       >
 //         <Card.Body className="p-4">
 //           <div className="text-center mb-4">
-//             <h4 className="mt-3" style={{ color: '#7267ef', fontWeight: 700 }}>
-//               WELCOME TO EPC HUB 
+//             <h4
+//               className="mt-3"
+//               style={{
+//                 background: 'linear-gradient(90deg, #b388eb, #7267ef, #a174f8)',
+//                 backgroundSize: '200% auto',
+//                 color: 'transparent',
+//                 backgroundClip: 'text',
+//                 WebkitBackgroundClip: 'text',
+//                 fontWeight: 700,
+//                 animation: 'shimmer 2.5s linear infinite',
+//               }}
+//             >
+//               WELCOME TO EPC HUB
 //             </h4>
-//             <p style={{ color: '#7267ef', fontSize: '0.95rem', fontWeight: 500 }}>
+//             <p
+//               style={{
+//                 background: 'linear-gradient(90deg, #d1b3ff, #b388eb, #e0c3fc)',
+//                 backgroundSize: '200% auto',
+//                 color: 'transparent',
+//                 backgroundClip: 'text',
+//                 WebkitBackgroundClip: 'text',
+//                 fontWeight: 500,
+//                 fontSize: '0.95rem',
+//                 animation: 'shimmer 3s linear infinite',
+//               }}
+//             >
 //               Engineering, Procurement & Construction
 //             </p>
 //           </div>
@@ -102,37 +124,61 @@
 //           >
 //             Sign In
 //           </Button>
-
-//           {/* <div className="text-center">
-//             <p className="mb-0 text-muted">
-//               Don’t have an account?{' '}
-//               <NavLink to="/register" className="fw-semibold" style={{ color: '#b388eb' }}>
-//                 Sign up
-//               </NavLink>
-//             </p>
-//           </div> */}
 //         </Card.Body>
 //       </Card>
+
+//       {/* shimmer animation keyframes */}
+//       <style>{`
+//         @keyframes shimmer {
+//           0% {
+//             background-position: 200% center;
+//           }
+//           100% {
+//             background-position: -200% center;
+//           }
+//         }
+//       `}</style>
 //     </div>
 //   );
 // }
+
+
+
+
+
+
+
+
+
+
+
+
 import { useState } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { Card, Button, Form, InputGroup } from 'react-bootstrap';
 import FeatherIcon from 'feather-icons-react';
 import epcbackground1 from '../../assets/images/user/epcbackground1.jpg';
+import { login } from '../../auth'; // Adjust path as needed
+import { setUserInfo, setRole } from '../../store'; // Adjust path as needed
 
 export default function SignIn1() {
   const navigate = useNavigate();
-  const [userId, setUserId] = useState('');
+  const dispatch = useDispatch();
+
+  const [mobileNumber, setMobileNumber] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogin = () => {
-    if (userId === 'admin' && password === 'admin123') {
-      navigate('/dashboard');
-    } else {
-      setError('Invalid user ID or password');
+  const handleLogin = async () => {
+    setError('');
+    try {
+      const { user } = await login(mobileNumber, password);
+      dispatch(setUserInfo(user));
+      dispatch(setRole(user.isadmin));
+      navigate('/dashboard'); // or your main page
+    } catch (err) {
+      setError('Invalid mobile number or password.');
     }
   };
 
@@ -194,13 +240,14 @@ export default function SignIn1() {
 
           <InputGroup className="mb-3">
             <InputGroup.Text style={{ backgroundColor: '#f4f1fa' }}>
-              <FeatherIcon icon="user" />
+              <FeatherIcon icon="phone" />
             </InputGroup.Text>
             <Form.Control
               type="text"
-              placeholder="User ID"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
+              placeholder="Mobile Number"
+              value={mobileNumber}
+              onChange={(e) => setMobileNumber(e.target.value)}
+              required
             />
           </InputGroup>
 
@@ -213,6 +260,7 @@ export default function SignIn1() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </InputGroup>
 
@@ -245,15 +293,10 @@ export default function SignIn1() {
         </Card.Body>
       </Card>
 
-      {/* shimmer animation keyframes */}
       <style>{`
         @keyframes shimmer {
-          0% {
-            background-position: 200% center;
-          }
-          100% {
-            background-position: -200% center;
-          }
+          0% { background-position: 200% center; }
+          100% { background-position: -200% center; }
         }
       `}</style>
     </div>
