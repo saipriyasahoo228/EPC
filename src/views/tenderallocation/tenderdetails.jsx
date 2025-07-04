@@ -1,9 +1,11 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef,useEffect } from "react";
 import { Pencil, Trash, Download } from "lucide-react";
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { Button, Badge } from '@mui/material';
 import AuditTrail from './tenderaudit';
+import { createTender,getTenders,updateTender,deleteTender } from '../../allapi/tenderAllocation'
+
 
 const TenderDetailsEntry = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,52 +120,131 @@ const TenderDetailsEntry = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = () => {
-    setLoading(true);
-  
-    setTimeout(() => {
-      if (isEditing) {
-        const updatedTender = { ...formData, id: editTenderId };
-        const oldTender = tenders.find(t => t.id === editTenderId);
-        const updatedList = tenders.map(t => t.id === editTenderId ? updatedTender : t);
-        setTenders(updatedList);
-        logAuditTrail('Updated', editTenderId, oldTender, updatedTender);
-      } else {
-        const currentYear = new Date().getFullYear();
-        const tenderId = `${currentYear}-TND-${tenders.length + 1}`;
-        const newTender = { ...formData, id: tenderId };
-        setTenders([...tenders, newTender]);
-        logAuditTrail('Added', tenderId, {}, newTender);
-      }
-  
-      setFormData({
-        refNo: '', location: '', releaseDate: '', tenderValue: '',
-        emdAmount: '', emdValidity: '', emdConditions: '',
-        authority: '', contact: '', personnel: '',
-        startDate: '', endDate: '', description: '', status: ''
-      });
-      setIsEditing(false);
-      setEditTenderId(null);
-      setShowModal(false);
-      setLoading(false);
-    }, 1000);
-  };
+  //Fetch Tender Details
 
-  const handleEdit = (id) => {
-    const tenderToEdit = tenders.find(t => t.id === id);
-    if (tenderToEdit) {
-      setFormData({ ...tenderToEdit });
-      setIsEditing(true);
-      setEditTenderId(id);
-      setShowModal(true);
+  useEffect(() => {
+  const fetchTenders = async () => {
+    try {
+      const response = await getTenders();
+      setTenders(response);
+    } catch (error) {
+      console.error('Error fetching tenders:', error);
     }
   };
+  fetchTenders();
+}, []);
 
-  const handleDelete = (id) => {
-    const deletedTender = tenders.find(t => t.id === id);
-    setTenders(tenders.filter(tender => tender.id !== id));
-    logAuditTrail('Deleted', id, deletedTender, {});
-  };
+
+
+  
+
+//Form Submit Logic
+
+const handleSubmit = async () => {
+  setLoading(true);
+
+  try {
+    const tenderData = {
+      tender_ref_no: formData.refNo,
+      location: formData.location,
+      release_date: formData.releaseDate,
+      tender_value: parseFloat(formData.tenderValue),
+      emd_details: {
+        amount: parseFloat(formData.emdAmount),
+        validity: formData.emdValidity,
+        conditions: formData.emdConditions
+      },
+      authority: formData.authority,
+      contact: formData.contact,
+      authorized_personnel: formData.personnel,
+      start_date: formData.startDate,
+      end_date: formData.endDate,
+      tender_description: formData.description,
+      status: formData.status
+    };
+
+    if (isEditing) {
+      // ✅ Update existing tender
+      await updateTender(editTenderId, tenderData);
+      const updatedTenders = await getTenders(); // Fetch updated list
+      setTenders(updatedTenders); // Refresh table
+      alert('Tender Details Updated Successfully')
+    } else {
+      // ✅ Create new tender
+      await createTender(tenderData);
+      const updatedTenders = await getTenders(); // Fetch updated list
+      setTenders(updatedTenders); // Refresh table
+      alert('Tender Details Saved Successfully')
+    }
+
+    // ✅ Reset form and UI
+    setFormData({
+      refNo: '', location: '', releaseDate: '', tenderValue: '',
+      emdAmount: '', emdValidity: '', emdConditions: '',
+      authority: '', contact: '', personnel: '',
+      startDate: '', endDate: '', description: '', status: ''
+    });
+
+    setIsEditing(false);
+    setEditTenderId(null);
+    setShowModal(false);
+  } catch (error) {
+    console.error('Error saving tender:', error);
+    alert('Failed to save tender. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
+
+//Record Update Logic
+  const handleEdit = (id) => {
+  const tenderToEdit = tenders.find(t => t.tender_id === id);
+  if (tenderToEdit) {
+    setFormData({
+      refNo: tenderToEdit.tender_ref_no || '',
+      location: tenderToEdit.location || '',
+      releaseDate: tenderToEdit.release_date || '',
+      tenderValue: tenderToEdit.tender_value || '',
+      emdAmount: tenderToEdit.emd_details?.amount || '',
+      emdValidity: tenderToEdit.emd_details?.validity || '',
+      emdConditions: tenderToEdit.emd_details?.conditions || '',
+      authority: tenderToEdit.authority || '',
+      contact: tenderToEdit.contact || '',
+      personnel: tenderToEdit.authorized_personnel || '',
+      startDate: tenderToEdit.start_date || '',
+      endDate: tenderToEdit.end_date || '',
+      description: tenderToEdit.tender_description || '',
+      status: tenderToEdit.status || ''
+    });
+    setIsEditing(true);
+    setEditTenderId(tenderToEdit.tender_id); // ✅
+    setShowModal(true);
+  }
+};
+
+
+  // const handleDelete = (id) => {
+  //   const deletedTender = tenders.find(t => t.id === id);
+  //   setTenders(tenders.filter(tender => tender.id !== id));
+  //   logAuditTrail('Deleted', id, deletedTender, {});
+  // };
+
+  const handleDelete = async (tenderId) => {
+  if (!window.confirm("Are you sure you want to delete this tender?")) {
+    return;
+  }
+
+  try {
+    await deleteTender(tenderId); // API call
+    const deletedTender = tenders.find(t => t.tender_id === tenderId);
+    setTenders(tenders.filter(tender => tender.tender_id !== tenderId));
+    logAuditTrail('Deleted', tenderId, deletedTender, {});
+    alert('Tender deleted successfully.');
+  } catch (error) {
+    console.error('Error deleting tender:', error);
+    alert('Failed to delete tender. Please try again.');
+  }
+};
 
   // PDF Export functions
   const downloadPDF = () => {
@@ -204,18 +285,47 @@ const TenderDetailsEntry = () => {
   };
 
   // Pagination logic
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const currentTenders = tenders.slice(startIndex, startIndex + rowsPerPage);
-  const totalPages = Math.ceil(tenders.length / rowsPerPage);
+  // const startIndex = (currentPage - 1) * rowsPerPage;
+  // const currentTenders = tenders.slice(startIndex, startIndex + rowsPerPage);
+  // const totalPages = Math.ceil(tenders.length / rowsPerPage);
 
 
-  const filteredTenders = tenders.filter((d) =>
-    Object.values(d).some(
-      (val) =>
-        val &&
-        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
-    )
+  // const filteredTenders = tenders.filter((d) =>
+  //   Object.values(d).some(
+  //     (val) =>
+  //       val &&
+  //       val.toString().toLowerCase().includes(searchQuery.toLowerCase())
+  //   )
+  // );
+
+
+  const filteredTenders = tenders.filter((d) => {
+  const flatValues = [
+    d.tender_id,
+    d.tender_ref_no,
+    d.location,
+    d.release_date,
+    d.tender_value,
+    d.emd_details?.amount,
+    d.emd_details?.validity,
+    d.emd_details?.conditions,
+    d.authority,
+    d.contact,
+    d.authorized_personnel,
+    d.start_date,
+    d.end_date,
+    d.tender_description,
+    d.status
+  ];
+
+  return flatValues.some(val =>
+    val?.toString().toLowerCase().includes(searchQuery.toLowerCase())
   );
+});
+
+const totalPages = Math.ceil(filteredTenders.length / rowsPerPage);
+const startIndex = (currentPage - 1) * rowsPerPage;
+const currentTenders = filteredTenders.slice(startIndex, startIndex + rowsPerPage);
 
 
   return (
@@ -560,43 +670,41 @@ const TenderDetailsEntry = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredTenders.map(t => (
-                <tr key={t.id} style={{ backgroundColor: '#fff' }}>
-                  <td style={tableCellStyle}>{t.id}</td>
-                  <td style={tableCellStyle}>{t.refNo}</td>
-                  <td style={tableCellStyle}>{t.location}</td>
-                  <td style={tableCellStyle}>{t.releaseDate}</td>
-                  <td style={tableCellStyle}>{t.tenderValue}</td>
-                  <td style={tableCellStyle}>{t.emdAmount}</td>
-                  <td style={tableCellStyle}>{t.emdValidity}</td>
-                  <td style={tableCellStyle}>{t.emdConditions}</td>
-                  <td style={tableCellStyle}>{t.authority}</td>
-                  <td style={tableCellStyle}>{t.contact}</td>
-                  <td style={tableCellStyle}>{t.personnel}</td>
-                  <td style={tableCellStyle}>{t.startDate}</td>
-                  <td style={tableCellStyle}>{t.endDate}</td>
-                  <td style={tableCellStyle}>{t.description}</td>
-                  <td style={tableCellStyle}>{t.status}</td>
-                  <td style={tableCellStyle}>
-                    <button
-                      onClick={() => handleEdit(t.id)}
-                      style={actionBtnStyleBlue}
-                    >
-                      <Pencil size={18} color="#7267ef"/>
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm("Are you sure you want to delete this item?")) {
-                          handleDelete(t.id);
-                        }
-                      }}
-                      style={actionBtnStyleRed}
-                    >
-                      <Trash size={18} color="#800000" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              
+              {currentTenders.map(tender => (
+  <tr key={tender.tender_id}>
+    <td style={tableCellStyle}>{tender.tender_id}</td>
+    <td style={tableCellStyle}>{tender.tender_ref_no}</td>
+    <td style={tableCellStyle}>{tender.location}</td>
+    <td style={tableCellStyle}>{tender.release_date}</td>
+    <td style={tableCellStyle}>{tender.tender_value}</td>
+    <td style={tableCellStyle}>{tender.emd_details?.amount}</td>
+    <td style={tableCellStyle}>{tender.emd_details?.validity}</td>
+    <td style={tableCellStyle}>{tender.emd_details?.conditions}</td>
+    <td style={tableCellStyle}>{tender.authority}</td>
+    <td style={tableCellStyle}>{tender.contact}</td>
+    <td style={tableCellStyle}>{tender.authorized_personnel}</td>
+    <td style={tableCellStyle}>{tender.start_date}</td>
+    <td style={tableCellStyle}>{tender.end_date}</td>
+    <td style={tableCellStyle}>{tender.tender_description}</td>
+    <td style={tableCellStyle}>{tender.status}</td>
+    <td style={tableCellStyle}>
+      <button
+        onClick={() => handleEdit(tender.tender_id)}
+        style={actionBtnStyleBlue}
+      >
+        <Pencil size={18} color="#7267ef" />
+      </button>
+      <button
+        onClick={() => handleDelete(tender.tender_id)}
+        style={actionBtnStyleRed}
+      >
+        <Trash size={18} color="#800000" />
+      </button>
+    </td>
+  </tr>
+))}
+
             </tbody>
           </table>
         </div>
@@ -624,3 +732,17 @@ const TenderDetailsEntry = () => {
 };
 
 export default TenderDetailsEntry;
+
+
+
+
+
+
+
+
+
+
+
+
+
+

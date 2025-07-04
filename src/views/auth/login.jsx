@@ -176,6 +176,7 @@ export default function SignIn1() {
       const { user } = await login(mobileNumber, password);
       dispatch(setUserInfo(user));
       dispatch(setRole(user.isadmin));
+      alert('Login successful!');
       navigate('/dashboard'); // or your main page
     } catch (err) {
       setError('Invalid mobile number or password.');

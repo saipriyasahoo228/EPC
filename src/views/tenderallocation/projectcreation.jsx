@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect} from 'react';
 import {
   Button,
   Dialog,
@@ -23,16 +23,18 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import HistoryIcon from '@mui/icons-material/History';
 import { v4 as uuidv4 } from 'uuid';
+import { getTenders,getTenderbyID  } from '../../allapi/tenderAllocation'; // Adjust the path as needed
 
-const initialTenders = [
-  { tenderId: 'TND-2025-001', title: 'Road Construction Phase 1', status: 'pending' },
-  { tenderId: 'TND-2025-002', title: 'Bridge Repair Project', status: 'pending' },
-  { tenderId: 'TND-2025-003', title: 'Bridge Construction Project', status: 'pending' },
-];
+
+// const initialTenders = [
+//   { tenderId: 'TND-2025-001', title: 'Road Construction Phase 1', status: 'pending' },
+//   { tenderId: 'TND-2025-002', title: 'Bridge Repair Project', status: 'pending' },
+//   { tenderId: 'TND-2025-003', title: 'Bridge Construction Project', status: 'pending' },
+// ];
 
 const ProjectCreation = () => {
   const today = new Date().toISOString().split('T')[0];
-  const [tenders, setTenders] = useState(initialTenders);
+  const [tenders, setTenders] = useState([]);
   const [selectedTender, setSelectedTender] = useState(null);
   const [mode, setMode] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -62,6 +64,26 @@ const ProjectCreation = () => {
     tender.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  //Fetch Tender Details
+
+  useEffect(() => {
+  const fetchTenders = async () => {
+    try {
+      const data = await getTenders();
+      const enrichedData = data.map((d) => ({
+        tenderId: d.tender_id,
+        title: d.tender_ref_no || 'Untitled Tender',
+        status: 'pending', // <-- default status in frontend
+      }));
+      setTenders(enrichedData);
+    } catch (err) {
+      console.error('Error fetching tenders:', err);
+    }
+  };
+
+  fetchTenders();
+}, []);
+
   // Function to log audit trail entries
   const logAuditTrail = (action, tenderId, details = {}) => {
     const newEntry = {
@@ -75,22 +97,45 @@ const ProjectCreation = () => {
     setAuditTrails(prev => [...prev, newEntry]);
   };
 
-  const handleOpenDialog = (type, tender) => {
+  // const handleOpenDialog = (type, tender) => {
+  //   setSelectedTender(tender);
+  //   setMode(type);
+  //   setDialogOpen(true);
+
+  //   if (type === 'accept') {
+  //     const currentYear = new Date().getFullYear();
+  //     const projectCount = projects.length + 1;
+  //     const projectId = `${currentYear}-PRJ-${String(projectCount).padStart(3, '0')}`;
+  //     setFormData((prev) => ({ ...prev, projectId }));
+  //   }
+
+  //   if (type === 'view') {
+  //     logAuditTrail('Viewed tender details', tender.tenderId);
+  //   }
+  // };
+  const handleOpenDialog = async (type, tender) => {
+  setMode(type);
+  setDialogOpen(true);
+
+  if (type === 'accept') {
+    const currentYear = new Date().getFullYear();
+    const projectCount = projects.length + 1;
+    const projectId = `${currentYear}-PRJ-${String(projectCount).padStart(3, '0')}`;
+    setFormData((prev) => ({ ...prev, projectId }));
     setSelectedTender(tender);
-    setMode(type);
-    setDialogOpen(true);
+  }
 
-    if (type === 'accept') {
-      const currentYear = new Date().getFullYear();
-      const projectCount = projects.length + 1;
-      const projectId = `${currentYear}-PRJ-${String(projectCount).padStart(3, '0')}`;
-      setFormData((prev) => ({ ...prev, projectId }));
-    }
-
-    if (type === 'view') {
+  if (type === 'view') {
+    try {
+      const tenderDetails = await getTenderbyID(tender.tenderId);
+      setSelectedTender(tenderDetails); // overwrite with full backend data
       logAuditTrail('Viewed tender details', tender.tenderId);
+    } catch (error) {
+      console.error('Error fetching tender by ID:', error);
+      alert('Failed to fetch tender details.');
     }
-  };
+  }
+};
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
@@ -205,7 +250,7 @@ const ProjectCreation = () => {
             <TableRow>
               <TableCell sx={{ color: '#7267ef' }}>Status</TableCell>
               <TableCell sx={{ color: '#7267ef' }}>Tender ID</TableCell>
-              <TableCell sx={{ color: '#7267ef' }}>Title</TableCell>
+              <TableCell sx={{ color: '#7267ef' }}>Tender Ref.No</TableCell>
               <TableCell align="center" sx={{ paddingLeft: '160px', color: '#800000' }}>
                 Actions
               </TableCell>
@@ -275,10 +320,32 @@ const ProjectCreation = () => {
 
         <DialogContent>
           {mode === 'view' ? (
-            <>
-              <Typography><strong>Tender ID:</strong> {selectedTender?.tenderId}</Typography>
-              <Typography><strong>Title:</strong> {selectedTender?.title}</Typography>
-            </>
+            // <>
+            //   <Typography><strong>Tender ID:</strong> {selectedTender?.tenderId}</Typography>
+            //   <Typography><strong>Title:</strong> {selectedTender?.title}</Typography>
+            // </>
+             <>
+    <Typography><strong>Tender ID:</strong> {selectedTender?.tender_id}</Typography>
+    <Typography><strong>Reference No:</strong> {selectedTender?.tender_ref_no}</Typography>
+    <Typography><strong>Location:</strong> {selectedTender?.location}</Typography>
+    <Typography><strong>Release Date:</strong> {selectedTender?.release_date}</Typography>
+    <Typography><strong>Tender Value:</strong> ₹{selectedTender?.tender_value}</Typography>
+
+    <Typography><strong>EMD Details:</strong></Typography>
+    <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+      <li><strong>Amount:</strong> ₹{selectedTender?.emd_details?.amount}</li>
+      <li><strong>Validity:</strong> {selectedTender?.emd_details?.validity}</li>
+      <li><strong>Conditions:</strong> {selectedTender?.emd_details?.conditions}</li>
+    </ul>
+
+    <Typography><strong>Authority:</strong> {selectedTender?.authority}</Typography>
+    <Typography><strong>Contact:</strong> {selectedTender?.contact}</Typography>
+    <Typography><strong>Authorized Personnel:</strong> {selectedTender?.authorized_personnel}</Typography>
+    <Typography><strong>Start Date:</strong> {selectedTender?.start_date}</Typography>
+    <Typography><strong>End Date:</strong> {selectedTender?.end_date}</Typography>
+    <Typography><strong>Description:</strong> {selectedTender?.tender_description}</Typography>
+    <Typography><strong>Status:</strong> {selectedTender?.status}</Typography>
+  </>
           ) : mode === 'accept' ? (
             <>
               <Grid container spacing={2} sx={{ mt: 1 }}>

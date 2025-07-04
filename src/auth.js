@@ -32,6 +32,25 @@ const removeToken = () => {
 };
 
 
+// const login = async (mobile_number, password) => {
+//   try {
+//     const response = await axios.post(`${API_BASE_URL}/user/login/`, {
+//       mobile_number,
+//       password
+//     });
+
+//     const { access, refresh, user } = response.data;
+//     storeToken(access, refresh); // Store tokens
+//     localStorage.setItem('userInfo', JSON.stringify(user)); // Store user info immediately
+//     window.dispatchEvent(new Event('userInfoUpdated')); // Notify other components
+
+//     console.log('Login Successful. User Data:', response.data);
+//     return response.data;
+//   } catch (error) {
+//     console.error('Login Error:', error);
+//     throw error;
+//   }
+// };
 const login = async (mobile_number, password) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/user/login/`, {
@@ -39,9 +58,14 @@ const login = async (mobile_number, password) => {
       password
     });
 
-    const { access, refresh, user } = response.data;
+    const { Token, user } = response.data;
+
+    // 🛠️ FIXED: access and refresh are inside Token
+    const access = Token.access;
+    const refresh = Token.refresh;
+
     storeToken(access, refresh); // Store tokens
-    localStorage.setItem('userInfo', JSON.stringify(user)); // Store user info immediately
+    localStorage.setItem('userInfo', JSON.stringify(user)); // Store user info
     window.dispatchEvent(new Event('userInfoUpdated')); // Notify other components
 
     console.log('Login Successful. User Data:', response.data);
@@ -51,6 +75,7 @@ const login = async (mobile_number, password) => {
     throw error;
   }
 };
+
 
 
 const logout = () => {
