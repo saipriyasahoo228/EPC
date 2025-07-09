@@ -1,5 +1,5 @@
 // DesignForm.jsx
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -18,6 +18,7 @@ import {
   TableContainer,
   Paper,
 } from "@mui/material";
+import {getProjectsAccept} from '../../allapi/engineering';
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 
@@ -35,6 +36,24 @@ const DesignForm = () => {
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
   const [designs, setDesigns] = useState([]);
+
+  const [projects, setProjects] = useState([]);
+
+
+
+  useEffect(() => {
+  const fetchProjects = async () => {
+    try {
+      const data = await getProjectsAccept();
+      setProjects(data);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+    }
+  };
+
+  fetchProjects();
+}, []);
+
 
   const handleOpenForm = (projectId) => {
     setSelectedProjectId(projectId);
@@ -98,13 +117,13 @@ const DesignForm = () => {
       </TableRow>
     </TableHead>
     <TableBody>
-      {dummyProjects
-        .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
+      {projects
+        .filter(proj => proj.project_id.toLowerCase().includes(searchTerm.toLowerCase()))
         .map((proj, i) => (
           <TableRow key={i}>
-            <TableCell>{proj.id}</TableCell>
+            <TableCell>{proj.project_id}</TableCell>
             <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
+              <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
                 <AddCircle sx={{ color: "#7267ef" }} />
               </IconButton>
             </TableCell>

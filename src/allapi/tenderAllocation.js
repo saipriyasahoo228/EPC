@@ -58,3 +58,28 @@ export const deleteTender = async (tenderId) => {
     throw error;
   }
 };
+
+//Create Project by passing Tender_id
+
+export const createProjectFromTender = async (tenderId, projectData) => {
+  try {
+    const response = await api.post(`/tender/create-project/${tenderId}/`, projectData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating project from tender:', error);
+    throw error;
+  }
+};
+
+//Tender Cancel api
+export const cancelTender = async (tenderId, payload) => {
+  const response = await api.post(`/tender/create-project/${tenderId}/`, payload);
+  return response.data;
+};
+
+
+//Get all projects
+export const getProjects = async () => {
+  const response = await api.get('/tender/project/');
+  return response.data;
+};

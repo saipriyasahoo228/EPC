@@ -1,20 +1,30 @@
 // import { useState } from 'react';
 // import { useNavigate, NavLink } from 'react-router-dom';
+// import { useDispatch } from 'react-redux';
 // import { Card, Button, Form, InputGroup } from 'react-bootstrap';
 // import FeatherIcon from 'feather-icons-react';
 // import epcbackground1 from '../../assets/images/user/epcbackground1.jpg';
+// import { login } from '../../auth'; // Adjust path as needed
+// import { setUserInfo, setRole } from '../../store'; // Adjust path as needed
 
 // export default function SignIn1() {
 //   const navigate = useNavigate();
-//   const [userId, setUserId] = useState('');
+//   const dispatch = useDispatch();
+
+//   const [mobileNumber, setMobileNumber] = useState('');
 //   const [password, setPassword] = useState('');
 //   const [error, setError] = useState('');
 
-//   const handleLogin = () => {
-//     if (userId === 'admin' && password === 'admin123') {
-//       navigate('/dashboard');
-//     } else {
-//       setError('Invalid user ID or password');
+//   const handleLogin = async () => {
+//     setError('');
+//     try {
+//       const { user } = await login(mobileNumber, password);
+//       dispatch(setUserInfo(user));
+//       dispatch(setRole(user.isadmin));
+//       alert('Login successful!');
+//       navigate('/dashboard'); // or your main page
+//     } catch (err) {
+//       setError('Invalid mobile number or password.');
 //     }
 //   };
 
@@ -76,13 +86,14 @@
 
 //           <InputGroup className="mb-3">
 //             <InputGroup.Text style={{ backgroundColor: '#f4f1fa' }}>
-//               <FeatherIcon icon="user" />
+//               <FeatherIcon icon="phone" />
 //             </InputGroup.Text>
 //             <Form.Control
 //               type="text"
-//               placeholder="User ID"
-//               value={userId}
-//               onChange={(e) => setUserId(e.target.value)}
+//               placeholder="Mobile Number"
+//               value={mobileNumber}
+//               onChange={(e) => setMobileNumber(e.target.value)}
+//               required
 //             />
 //           </InputGroup>
 
@@ -95,6 +106,7 @@
 //               placeholder="Password"
 //               value={password}
 //               onChange={(e) => setPassword(e.target.value)}
+//               required
 //             />
 //           </InputGroup>
 
@@ -127,28 +139,15 @@
 //         </Card.Body>
 //       </Card>
 
-//       {/* shimmer animation keyframes */}
 //       <style>{`
 //         @keyframes shimmer {
-//           0% {
-//             background-position: 200% center;
-//           }
-//           100% {
-//             background-position: -200% center;
-//           }
+//           0% { background-position: 200% center; }
+//           100% { background-position: -200% center; }
 //         }
 //       `}</style>
 //     </div>
 //   );
 // }
-
-
-
-
-
-
-
-
 
 
 
@@ -169,17 +168,21 @@ export default function SignIn1() {
   const [mobileNumber, setMobileNumber] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); // ✅ Loading state
 
   const handleLogin = async () => {
     setError('');
+    setLoading(true); // ✅ Start loading
     try {
       const { user } = await login(mobileNumber, password);
       dispatch(setUserInfo(user));
       dispatch(setRole(user.isadmin));
       alert('Login successful!');
-      navigate('/dashboard'); // or your main page
+      navigate('/dashboard'); // Navigate after login
     } catch (err) {
       setError('Invalid mobile number or password.');
+    } finally {
+      setLoading(false); // ✅ Stop loading
     }
   };
 
@@ -286,10 +289,24 @@ export default function SignIn1() {
               padding: '0.6rem',
               fontWeight: 600,
               transition: '0.3s',
+              opacity: loading ? 0.8 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer',
             }}
             onClick={handleLogin}
+            disabled={loading}
           >
-            Sign In
+            {loading ? (
+              <span>
+                <span
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+                Signing In...
+              </span>
+            ) : (
+              'Sign In'
+            )}
           </Button>
         </Card.Body>
       </Card>

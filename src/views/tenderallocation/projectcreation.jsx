@@ -23,14 +23,10 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import HistoryIcon from '@mui/icons-material/History';
 import { v4 as uuidv4 } from 'uuid';
-import { getTenders,getTenderbyID  } from '../../allapi/tenderAllocation'; // Adjust the path as needed
+import { getTenders,getTenderbyID,createProjectFromTender,cancelTender,getProjects } from '../../allapi/tenderAllocation'; // Adjust the path as needed
 
 
-// const initialTenders = [
-//   { tenderId: 'TND-2025-001', title: 'Road Construction Phase 1', status: 'pending' },
-//   { tenderId: 'TND-2025-002', title: 'Bridge Repair Project', status: 'pending' },
-//   { tenderId: 'TND-2025-003', title: 'Bridge Construction Project', status: 'pending' },
-// ];
+
 
 const ProjectCreation = () => {
   const today = new Date().toISOString().split('T')[0];
@@ -38,11 +34,11 @@ const ProjectCreation = () => {
   const [selectedTender, setSelectedTender] = useState(null);
   const [mode, setMode] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [projects, setProjects] = useState([]);
+  //const [projects, setProjects] = useState([]);
+  const [projectData, setProjectData] = useState([]);
   const [auditTrails, setAuditTrails] = useState([]);
   const [auditDialogOpen, setAuditDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-
   const [formData, setFormData] = useState({
     jobAllocationDate: '',
     govtProjectId: '',
@@ -50,6 +46,7 @@ const ProjectCreation = () => {
     allocationStatus: 'Allocated',
     refundDate: '',
     cancellationNote: '',
+    
   });
 
   // Refs for input focus control
@@ -64,16 +61,15 @@ const ProjectCreation = () => {
     tender.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  //Fetch Tender Details
-
-  useEffect(() => {
+//Fetch Tender Details
+useEffect(() => {
   const fetchTenders = async () => {
     try {
       const data = await getTenders();
       const enrichedData = data.map((d) => ({
         tenderId: d.tender_id,
         title: d.tender_ref_no || 'Untitled Tender',
-        status: 'pending', // <-- default status in frontend
+        status: d.status || '', // optional if you want to show status icon
       }));
       setTenders(enrichedData);
     } catch (err) {
@@ -81,8 +77,20 @@ const ProjectCreation = () => {
     }
   };
 
+  const fetchProjects = async () => {
+    try {
+      const data = await getProjects();
+      setProjectData(data);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+    }
+  };
+
   fetchTenders();
+  fetchProjects();
 }, []);
+
+
 
   // Function to log audit trail entries
   const logAuditTrail = (action, tenderId, details = {}) => {
@@ -91,37 +99,19 @@ const ProjectCreation = () => {
       timestamp: new Date().toISOString(),
       action,
       tenderId,
-      user: 'currentUser', // Replace with actual user from your auth system
+      user: 'currentUser', 
       details
     };
     setAuditTrails(prev => [...prev, newEntry]);
   };
 
-  // const handleOpenDialog = (type, tender) => {
-  //   setSelectedTender(tender);
-  //   setMode(type);
-  //   setDialogOpen(true);
 
-  //   if (type === 'accept') {
-  //     const currentYear = new Date().getFullYear();
-  //     const projectCount = projects.length + 1;
-  //     const projectId = `${currentYear}-PRJ-${String(projectCount).padStart(3, '0')}`;
-  //     setFormData((prev) => ({ ...prev, projectId }));
-  //   }
 
-  //   if (type === 'view') {
-  //     logAuditTrail('Viewed tender details', tender.tenderId);
-  //   }
-  // };
-  const handleOpenDialog = async (type, tender) => {
+const handleOpenDialog = async (type, tender) => {
   setMode(type);
   setDialogOpen(true);
 
   if (type === 'accept') {
-    const currentYear = new Date().getFullYear();
-    const projectCount = projects.length + 1;
-    const projectId = `${currentYear}-PRJ-${String(projectCount).padStart(3, '0')}`;
-    setFormData((prev) => ({ ...prev, projectId }));
     setSelectedTender(tender);
   }
 
@@ -134,6 +124,10 @@ const ProjectCreation = () => {
       console.error('Error fetching tender by ID:', error);
       alert('Failed to fetch tender details.');
     }
+  }
+
+  if (type === 'cancel') {
+    setSelectedTender(tender);
   }
 };
 
@@ -153,38 +147,70 @@ const ProjectCreation = () => {
       nextRef?.current?.focus();
     }
   };
-
-  const handleSubmit = () => {
+//Handle Submit Logic
+const handleSubmit = async () => {
+  try {
     if (!selectedTender) return;
 
-    const updatedTenders = tenders.map((t) =>
-      t.tenderId === selectedTender.tenderId
-        ? { ...t, status: mode === 'accept' ? 'accepted' : 'cancelled' }
-        : t
-    );
-
-    setTenders(updatedTenders);
-
     if (mode === 'accept') {
-      logAuditTrail('Accepted tender', selectedTender.tenderId, {
-        projectId: formData.projectId,
-        allocationDate: formData.jobAllocationDate,
-        status: formData.allocationStatus
-      });
-    } else if (mode === 'cancel') {
-      logAuditTrail('Cancelled tender', selectedTender.tenderId, {
-        refundDate: formData.refundDate,
-        cancellationNote: formData.cancellationNote
-      });
+      const payload = {
+        status: 'Accept',
+        job_allocation_date: formData.jobAllocationDate,
+        govt_project_id: formData.govtProjectId,
+        allocation_state: formData.allocationStatus,
+      };
+
+      const response = await createProjectFromTender(selectedTender.tenderId, payload);
+      console.log('Project created successfully:', response);
+      alert(`Project ${response.project_id} created successfully!`);
+
+      setTenders((prev) =>
+        prev.map((t) =>
+          t.tenderId === selectedTender.tenderId ? { ...t, status: 'Accept' } : t
+        )
+      );
+
+      const updatedProjects = await getProjects();
+      setProjectData(updatedProjects); // ✅ updates table
     }
 
-    console.log(mode === 'accept' ? 'Accepted Project:' : 'Cancelled Tender:', {
-      ...formData,
-      tenderId: selectedTender.tenderId,
-    });
+    if (mode === 'cancel') {
+      const payload = {
+        status: 'Cancel',
+        security_money_refund_date: formData.refundDate,
+        description: formData.cancellationNote,
+      };
 
-    handleCloseDialog();
-  };
+      const response = await cancelTender(selectedTender.tenderId, payload);
+      console.log('Tender cancelled successfully:', response);
+      alert('Tender cancelled successfully!');
+
+      setTenders((prev) =>
+        prev.map((t) =>
+          t.tenderId === selectedTender.tenderId ? { ...t, status: 'Cancel' } : t
+        )
+      );
+
+      const updatedProjects = await getProjects();
+      setProjectData(updatedProjects); // ✅ updates table
+    }
+
+    setFormData({
+      jobAllocationDate: '',
+      govtProjectId: '',
+      projectId: '',
+      allocationStatus: 'Allocated',
+      refundDate: '',
+      cancellationNote: '',
+    });
+    setDialogOpen(false);
+    setSelectedTender(null);
+    setMode(null);
+  } catch (error) {
+    console.error('Error submitting:', error);
+    alert('Submission failed. Please check data and try again.');
+  }
+};
 
   const renderStatusIcon = (status) => {
     switch (status) {
@@ -280,28 +306,90 @@ const ProjectCreation = () => {
                     </Button>
 
                     <Button
-                      variant="contained"
-                      color="success"
-                      onClick={() => handleOpenDialog('accept', tender)}
-                      disabled={tender.status !== 'pending'}
-                    >
-                      Accept
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="error"
-                      onClick={() => handleOpenDialog('cancel', tender)}
-                      disabled={tender.status !== 'pending'}
-                    >
-                      Cancel
-                    </Button>
+  variant="contained"
+  color="success"
+  onClick={() => handleOpenDialog('accept', tender)}
+ 
+>
+  Accept
+</Button>
+
+<Button
+  variant="contained"
+  color="error"
+  onClick={() => handleOpenDialog('cancel', tender)}
+ 
+>
+  Cancel
+</Button>
+
                   </Box>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+
+        
       </TableContainer>
+
+
+
+{/* Project List Table */}
+<Box mt={4}>
+  <Typography variant="h6" sx={{ color: '#7267ef', mb: 1 }}>
+    PROJECT ALLOCATION REPORT
+  </Typography>
+  <TableContainer component={Paper} sx={{ border: '1px solid #7267ef' }}>
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableCell sx={{ color: '#7267ef' }}>Tender ID</TableCell>
+         
+          <TableCell sx={{ color: '#7267ef' }}>Project ID</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Govt Project ID</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Job Allocation Date</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Allocation State</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Refund Date</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Cancellation Note</TableCell>
+           <TableCell sx={{ color: '#7267ef' }}>Status</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {projectData.length > 0 ? (
+          projectData.map((proj) => (
+            <TableRow key={proj.id}>
+              <TableCell>{proj.tender}</TableCell>
+             
+              <TableCell>{proj.project_id || '-'}</TableCell>
+              <TableCell>{proj.govt_project_id || '-'}</TableCell>
+              <TableCell>{proj.job_allocation_date || '-'}</TableCell>
+              <TableCell>{proj.allocation_state || '-'}</TableCell>
+              <TableCell>{proj.security_money_refund_date || '-'}</TableCell>
+              <TableCell>{proj.description || '-'}</TableCell>
+              <TableCell>
+                {proj.status === 'Accept' ? (
+                  <CheckCircleIcon color="success" />
+                ) : proj.status === 'Cancel' ? (
+                  <CancelIcon color="error" />
+                ) : (
+                  <HourglassEmptyIcon color="disabled" />
+                )}
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={8} align="center">
+              No project records found.
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  </TableContainer>
+</Box>
+
 
       {/* Main Dialog for tender actions */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
@@ -320,10 +408,7 @@ const ProjectCreation = () => {
 
         <DialogContent>
           {mode === 'view' ? (
-            // <>
-            //   <Typography><strong>Tender ID:</strong> {selectedTender?.tenderId}</Typography>
-            //   <Typography><strong>Title:</strong> {selectedTender?.title}</Typography>
-            // </>
+            
              <>
     <Typography><strong>Tender ID:</strong> {selectedTender?.tender_id}</Typography>
     <Typography><strong>Reference No:</strong> {selectedTender?.tender_ref_no}</Typography>
@@ -354,7 +439,7 @@ const ProjectCreation = () => {
                   <input
                     type="date"
                     id="jobAllocationDate"
-                    value={formData.jobAllocationDate || today}
+                    value={formData.jobAllocationDate}
                     onChange={handleChange('jobAllocationDate')}
                     onKeyDown={(e) => handleKeyDown(e, govtIdRef)}
                     ref={jobDateRef}
@@ -373,16 +458,7 @@ const ProjectCreation = () => {
                     className="input"
                   />
                 </Grid>
-                <Grid item xs={12}>
-                  <label htmlFor="projectId">Project ID</label>
-                  <input
-                    type="text"
-                    id="projectId"
-                    value={formData.projectId}
-                    readOnly
-                    className="input"
-                  />
-                </Grid>
+              
                 <Grid item xs={12}>
                   <label htmlFor="allocationStatus">Status</label>
                   <select
@@ -398,33 +474,7 @@ const ProjectCreation = () => {
                 </Grid>
               </Grid>
 
-              <Typography variant="subtitle1" sx={{ mt: 3 }}>
-                Project Summary
-              </Typography>
-              <Table size="small" sx={{ mt: 1 }}>
-                <TableBody>
-                  <TableRow>
-                    <TableCell><strong>Tender ID</strong></TableCell>
-                    <TableCell>{selectedTender?.tenderId}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell><strong>Project ID</strong></TableCell>
-                    <TableCell>{formData.projectId}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell><strong>Govt. Project ID</strong></TableCell>
-                    <TableCell>{formData.govtProjectId}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell><strong>Job Allocation Date</strong></TableCell>
-                    <TableCell>{formData.jobAllocationDate}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell><strong>Status</strong></TableCell>
-                    <TableCell>{formData.allocationStatus}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+              
             </>
           ) : (
             <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -433,7 +483,7 @@ const ProjectCreation = () => {
                 <input
                   type="date"
                   id="refundDate"
-                  value={formData.refundDate || today}
+                  value={formData.refundDate}
                   onChange={handleChange('refundDate')}
                   onKeyDown={(e) => handleKeyDown(e, cancellationNoteRef)}
                   ref={refundDateRef}
@@ -545,6 +595,7 @@ const ProjectCreation = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          
         </DialogContent>
       </Dialog>
     </div>
