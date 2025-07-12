@@ -1,6 +1,6 @@
 
 // DesignForm.jsx
-import React, { useState } from "react";
+import React, { useState,useEffect, useRef} from "react";
 import {
   Dialog,
   DialogTitle,
@@ -21,30 +21,153 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import {getProjectsAccept, createFeasibilityStudy, fetchFeasibilityStudies, patchFeasibilityStudy, deleteFeasibilityStudy} from '../../allapi/engineering';
 
-const dummyProjects = [
-  { id: "PRJ-2025-001" },
-  { id: "PRJ-2025-002" },
-  { id: "PRJ-2025-003" },
-];
+
 
 const FeasibilityForm = () => {
+  const [projects, setProjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
   const [feasibilityStudies, setFeasibilityStudies] = useState([]);
+  const [mode, setMode] = useState('create'); // or 'edit'
+
+  const fileInputRef = useRef(null); // to reset file input
+
+
+  //Fetch all accepted projects
+   useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const data = await getProjectsAccept();
+        setProjects(data);
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+      }
+    };
+  
+    fetchProjects();
+  }, []);
+
+  //Get feasibility studies report
+ 
+const loadFeasibilityStudies = async () => {
+  try {
+    const data = await fetchFeasibilityStudies();
+    setFeasibilityStudies(data);
+  } catch (err) {
+    console.error('Fetch failed:', err);
+  }
+};
+
+useEffect(() => {
+  loadFeasibilityStudies();
+}, []);
+
+  
+
+
+// For editing
+const handleEdit = (study) => {
+  setMode('edit');
+  setSelectedProjectId(study.project);
+  setFormData({
+    feasibilityStudyId: study.feasibility_study_id,
+    studyTitle: study.study_title,
+    preparedBy: study.prepared_by,
+    studyType: study.study_type,
+    reports: null, // can't prefill file input
+    riskAssessment: study.risk_assessment,
+    regulatoryCompliance: study.regulatory_compliance,
+    projectedROI: study.projected_roi,
+    estimatedCompletionTime: study.estimated_completion_time,
+    recommendations: study.recommendations,
+    approvalStatus: study.approval_status,
+    approvalDate: study.approval_date,
+    status: study.status,
+  });
+  setOpen(true);
+};
+
+//Handle submit logic
+  
+const handleSubmit = async () => {
+  const form = new FormData();
+
+  form.append('project', selectedProjectId);
+  form.append('study_title', formData.studyTitle);
+  form.append('prepared_by', formData.preparedBy);
+  form.append('study_type', formData.studyType);
+  if (formData.reports) {
+    form.append('reports', formData.reports);
+  }
+  form.append('risk_assessment', formData.riskAssessment);
+  form.append('regulatory_compliance', formData.regulatoryCompliance);
+  form.append('projected_roi', formData.projectedROI);
+  form.append('estimated_completion_time', formData.estimatedCompletionTime);
+  form.append('recommendations', formData.recommendations);
+  form.append('approval_status', formData.approvalStatus);
+  form.append('approval_date', formData.approvalDate);
+  form.append('status', formData.status);
+
+  try {
+    if (mode === 'edit') {
+      await patchFeasibilityStudy(formData.feasibilityStudyId, form);
+      alert('Feasibility study updated successfully!');
+    } else {
+      await createFeasibilityStudy(form);
+      alert('Feasibility study submitted successfully!');
+    }
+
+    await loadFeasibilityStudies();
+    setOpen(false);
+    setMode('create'); // reset mode after closing
+    setFormData({
+      studyTitle: '',
+      preparedBy: '',
+      studyType: '',
+      reports: null,
+      riskAssessment: '',
+      regulatoryCompliance: '',
+      projectedROI: '',
+      estimatedCompletionTime: '',
+      recommendations: '',
+      approvalStatus: 'Pending',
+      approvalDate: '',
+      status: 'Draft',
+    });
+    if (fileInputRef.current) fileInputRef.current.value = null;
+
+  } catch (err) {
+    console.error('Submission failed:', err);
+    alert('Failed to submit/update feasibility study.');
+  }
+};
 
   const handleOpenForm = (projectId) => {
-    const currentYear = new Date().getFullYear(); // get system year
-    setSelectedProjectId(projectId);
-    setFormData({ 
-      projectId,
-      feasibilityStudyId: `FST-${currentYear}-${feasibilityStudies.length + 1}`,
-    }); // dynamic year
-    setOpen(true);
-  };
+  setSelectedProjectId(projectId);
+  const currentYear = new Date().getFullYear(); // get system year
+  const paddedId = String(feasibilityStudies.length + 1).padStart(4, '0'); // ensures 4-digit format
+  setFormData({ feasibilityStudyId: `FS-${currentYear}-${paddedId}` });
+  setOpen(true);
+};
+
+//HandleDelete api
+const handleDelete = async (feasibilityStudyId) => {
+  if (!window.confirm(`Are you sure you want to delete ${feasibilityStudyId}?`)) return;
+
+  try {
+    await deleteFeasibilityStudy(feasibilityStudyId);
+    alert(`✅ Feasibility study ${feasibilityStudyId} deleted successfully!`);
+    await loadFeasibilityStudies(); // Refresh table
+  } catch (error) {
+    alert('❌ Failed to delete. See console for details.');
+  }
+};
+
   
   const handleClose = () => setOpen(false);
   
@@ -53,35 +176,13 @@ const FeasibilityForm = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
   
-  const handleSubmit = () => {
-    const newStudy = { ...formData, projectId: selectedProjectId };
-    setFeasibilityStudies([...feasibilityStudies, newStudy]);
-    setOpen(false);
-  };
+  
 
-  const handleEdit = (study) => {
-    // Prepopulate the form with study data
-    setFormData({
-      ...study,
-      projectId: study.projectId, // Maintain projectId for edit
-      feasibilityStudyId: study.feasibilityStudyId, // Keep the same ID during edit
-    });
-    setOpen(true); // Open the dialog to edit
-  };
-  
-  const handleDelete = (feasibilityStudyId) => {
-    // Delete the selected study from the state
-    const updatedStudies = feasibilityStudies.filter(study => study.feasibilityStudyId !== feasibilityStudyId);
-    setFeasibilityStudies(updatedStudies);
-  };
-  
-  const filteredFeasibility =feasibilityStudies.filter((d) =>
-    Object.values(d).some(
-      (val) =>
-        val &&
-        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+
+  const filteredFeasibility = feasibilityStudies.filter((study) =>
+  study.study_title?.toLowerCase().includes(searchQuery.toLowerCase())
+);
+
 
   return (
     <>
@@ -117,19 +218,19 @@ const FeasibilityForm = () => {
       </TableRow>
     </TableHead>
     <TableBody>
-      {dummyProjects
-        .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-        .map((proj, i) => (
-          <TableRow key={i}>
-            <TableCell>{proj.id}</TableCell>
-            <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                <AddCircle sx={{ color: "#7267ef" }} />
-              </IconButton>
-            </TableCell>
-          </TableRow>
-        ))}
-    </TableBody>
+          {projects
+            .filter(proj => proj.project_id.toLowerCase().includes(searchTerm.toLowerCase()))
+            .map((proj, i) => (
+              <TableRow key={i}>
+                <TableCell>{proj.project_id}</TableCell>
+                <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
+                    <AddCircle sx={{ color: "#7267ef" }} />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+        </TableBody>
   </Table>
 </Paper>
 
@@ -171,19 +272,20 @@ const FeasibilityForm = () => {
                 <TableBody>
                   {filteredFeasibility.map((study, index) => (
                     <TableRow key={index}>
-                      <TableCell>{study.projectId}</TableCell>
-                      <TableCell>{study.feasibilityStudyId}</TableCell>
-                      <TableCell>{study.studyTitle}</TableCell>
-                      <TableCell>{study.studyType}</TableCell>
-                      <TableCell>{study.preparedBy}</TableCell>
-                      <TableCell>{study.riskAssessment}</TableCell>
-                      <TableCell>{study.regulatoryCompliance}</TableCell>
-                      <TableCell>{study.projectedROI}</TableCell>
-                      <TableCell>{study.estimatedCompletionTime}</TableCell>
+                      <TableCell>{study.project}</TableCell>
+                      <TableCell>{study.feasibility_study_id}</TableCell>
+                      <TableCell>{study.study_title}</TableCell>
+                      <TableCell>{study.study_type}</TableCell>
+                      <TableCell>{study.prepared_by}</TableCell>
+                      <TableCell>{study.risk_assessment}</TableCell>
+                      <TableCell>{study.regulatory_compliance}</TableCell>
+                      <TableCell>{study.projected_roi}</TableCell>
+                      <TableCell>{study.estimated_completion_time}</TableCell>
                       <TableCell>{study.recommendations}</TableCell>
-                      <TableCell>{study.approvalStatus}</TableCell>
-                      <TableCell>{study.approvalDate}</TableCell>
+                      <TableCell>{study.approval_status}</TableCell>
+                      <TableCell>{study.approval_date}</TableCell>
                       <TableCell>{study.status}</TableCell>
+
                       <TableCell>
   {/* Edit Button */}
   <IconButton color="warning" onClick={() => handleEdit(study)}>
@@ -191,9 +293,13 @@ const FeasibilityForm = () => {
   </IconButton>
   
   {/* Delete Button */}
-  <IconButton color="error" onClick={() => handleDelete(study.feasibilityStudyId)}>
+  {/* <IconButton color="error" onClick={() => handleDelete(study.feasibilityStudyId)}>
     <Delete sx={{ color: "red" }} />
-  </IconButton>
+  </IconButton> */}
+  <IconButton color="error" onClick={() => handleDelete(study.feasibility_study_id)}>
+  <Delete sx={{ color: "red" }} />
+</IconButton>
+
 </TableCell>
 
                     </TableRow>
@@ -231,7 +337,7 @@ const FeasibilityForm = () => {
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
                     <label htmlFor="projectId">Project ID</label>
-                    <input id="projectId" name="projectId" className="input" value={formData.projectId || ''} disabled />
+                    <input id="projectId" name="projectId" className="input" value={selectedProjectId} disabled />
                   </Grid>
                   <Grid item xs={6}>
                     <label htmlFor="feasibilityStudyId">Feasibility Study ID</label>
@@ -261,7 +367,20 @@ const FeasibilityForm = () => {
               <Grid item xs={12}>
                 <h3 style={{ color: '#7267ef' }}>Reports and Documents</h3>
                 <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
-                <input type="file" className="input" />
+              <input
+  type="file"
+  className="input"
+  ref={fileInputRef} // needed for reset
+  onChange={(e) => {
+    setFormData((prev) => ({
+      ...prev,
+      reports: e.target.files[0],
+    }));
+  }}
+/>
+
+
+
               </Grid>
 
               
@@ -275,7 +394,8 @@ const FeasibilityForm = () => {
                <textarea id="riskAssessment" name="riskAssessment" className="input" rows={3} value={formData.riskAssessment || ''} onChange={handleChange} />
              </Grid>
              <Grid item xs={6}>
-               <label htmlFor="regulatoryCompliance">Regulatory Compliance</label>               <input id="regulatoryCompliance" name="regulatoryCompliance" className="input" value={formData.regulatoryCompliance || ''} onChange={handleChange} />
+               <label htmlFor="regulatoryCompliance">Regulatory Compliance</label>               
+               <input id="regulatoryCompliance" name="regulatoryCompliance" className="input" value={formData.regulatoryCompliance || ''} onChange={handleChange} />
              </Grid>
            </Grid>
          </Grid>
@@ -364,6 +484,7 @@ const FeasibilityForm = () => {
          <Button
            variant="outlined"
            onClick={handleSubmit}
+           
            sx={{
              borderColor: '#7267ef',  // Border color
              color: '#7267ef',        // Text color
@@ -373,7 +494,8 @@ const FeasibilityForm = () => {
              }
            }}
          >
-           Submit
+          {mode === 'edit' ? 'Update' : 'Submit'}
+           
          </Button>
         </DialogActions>
       </Dialog>

@@ -18,16 +18,12 @@ import {
   TableContainer,
   Paper,
 } from "@mui/material";
-import {getProjectsAccept} from '../../allapi/engineering';
+import {getProjectsAccept, createDesignPlan, getDesignPlans,updateDesignPlan, deleteDesignPlan } from '../../allapi/engineering';
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 
 
-const dummyProjects = [
-  { id: "PRJ-2025-001" },
-  { id: "PRJ-2025-002" },
-  { id: "PRJ-2025-003" },
-];
+
 
 const DesignForm = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,8 +32,10 @@ const DesignForm = () => {
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
   const [designs, setDesigns] = useState([]);
-
   const [projects, setProjects] = useState([]);
+  const [editingId, setEditingId] = useState(null); // null means create mode
+  const [mode, setMode] = useState('create'); // or 'edit'
+
 
 
 
@@ -54,12 +52,181 @@ const DesignForm = () => {
   fetchProjects();
 }, []);
 
+//Fetch Designs
+// Define fetchDesigns outside useEffect
+const fetchDesigns = async () => {
+  try {
+    const data = await getDesignPlans();
+    setDesigns(data);
+  } catch (error) {
+    console.error('Error fetching design plans:', error);
+  }
+};
 
-  const handleOpenForm = (projectId) => {
-    setSelectedProjectId(projectId);
-    setFormData({ designId: `DES-2025-${designs.length + 1}` });
-    setOpen(true);
-  };
+// Run once when component mounts
+useEffect(() => {
+  fetchDesigns();
+}, []);
+
+
+// Handle Submit Logic
+
+const handleSubmit = async () => {
+  const data = new FormData();
+
+  // Required: Numeric PK for ForeignKey
+  data.append('project', selectedProjectId);
+
+  // Design Info
+  data.append('design_name', formData.designName);
+  data.append('design_type', formData.designType);
+  data.append('prepared_by', formData.preparedBy);
+  data.append('version_number',formData.versionNumber);
+
+  // Optional fields
+  data.append('reviewed_by', formData.reviewedBy || '');
+  data.append('approval_status', formData.approvalStatus || 'Pending');
+  data.append('approval_date', formData.approvalDate || '');
+
+  // Budget / Requirements
+  data.append('compliance_standard', formData.complianceStandard);
+  data.append('design_constraints', formData.designConstraints);
+  data.append('estimated_budget', formData.estimatedBudget);
+  data.append('resource_requirements', formData.resourceRequirements);
+
+  // Completion / Status
+  data.append('design_completion_date', formData.designCompletionDate);
+  data.append('status', formData.status);
+
+  // File upload
+  if (formData.blueprint) {
+    data.append('blueprint', formData.blueprint);
+  } else if (!editingId) {
+    alert("Please upload a blueprint file.");
+    return;
+  }
+
+  try {
+    if (editingId) {
+      // Update mode
+      data.append('design_id', formData.designId);
+      await updateDesignPlan(editingId, data);
+      alert('Design updated successfully ✅');
+    } else {
+      // Create mode
+      await createDesignPlan(data);
+      alert('Design submitted successfully ✅');
+    }
+
+    await fetchDesigns(); // Refresh list
+
+    // ✅ Reset form state
+    setFormData({
+      designName: '',
+      designType: '',
+      preparedBy: '',
+      versionNumber:'',
+      reviewedBy: '',
+      approvalStatus: '',
+      approvalDate: '',
+      complianceStandard: '',
+      designConstraints: '',
+      estimatedBudget: '',
+      resourceRequirements: '',
+      designCompletionDate: '',
+      status: '',
+      blueprint: null,
+      projectCode: '',
+      designId: '',
+    });
+
+    setSelectedProjectId(null);
+    setEditingId(null);
+    setOpen(false);
+
+  } catch (err) {
+    console.error('Submission failed:', err.response?.data || err.message);
+    alert('❌ Submission failed. Check console for details.');
+  }
+};
+
+
+const handleEdit = (design) => {
+  setMode('edit'); // Ensure mode is set to 'edit'
+  setEditingId(design.design_id); // Using custom ID like DES-2025-0003
+  setSelectedProjectId(design.project); // ForeignKey project
+
+  setFormData({
+    designId: design.design_id,
+    designName: design.design_name,
+    designType: design.design_type,
+    versionNumber: design.version_number,
+    preparedBy: design.prepared_by,
+    reviewedBy: design.reviewed_by,
+    approvalStatus: design.approval_status,
+    approvalDate: design.approval_date,
+    complianceStandard: design.compliance_standard,
+    designConstraints: design.design_constraints,
+    estimatedBudget: design.estimated_budget,
+    resourceRequirements: design.resource_requirements,
+    designCompletionDate: design.design_completion_date,
+    status: design.status,
+    blueprint: null, // File input can't be pre-filled
+    projectCode: '',
+  });
+
+  setOpen(true); // Open the dialog/form
+};
+
+
+
+//Delete Logic
+const handleDelete = async (designId) => {
+  if (!window.confirm(`Are you sure you want to delete ${designId}?`)) return;
+
+  try {
+    await deleteDesignPlan(designId); // should be like DES-2025-0001
+    alert(`Design ${designId} deleted successfully ✅`);
+    await fetchDesigns(); // Refresh list
+  } catch (error) {
+    console.error('Delete failed:', error.response?.data || error.message);
+    alert('❌ Failed to delete the design.');
+  }
+};
+
+
+
+
+const handleOpenForm = (projectId) => {
+  setMode('create'); // ✅ Explicitly set to create mode
+  setSelectedProjectId(projectId);
+
+  const paddedId = String(designs.length + 1).padStart(4, '0');
+  setFormData({
+    designId: `DES-2025-${paddedId}`,
+    designName: '',
+    designType: '',
+    preparedBy: '',
+    versionNumber: '',
+    reviewedBy: '',
+    approvalStatus: 'Pending',
+    approvalDate: '',
+    complianceStandard: '',
+    designConstraints: '',
+    estimatedBudget: '',
+    resourceRequirements: '',
+    designCompletionDate: '',
+    status: '',
+    blueprint: null,
+    projectCode: '',
+  });
+
+  setEditingId(null); // 🧼 Clear any previous ID
+  setOpen(true);
+};
+
+
+
 
   const handleClose = () => setOpen(false);
 
@@ -68,11 +235,6 @@ const DesignForm = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-    const newDesign = { ...formData, projectId: selectedProjectId };
-    setDesigns([...designs, newDesign]);
-    setOpen(false);
-  };
 
   const filteredDesigns = designs.filter((d) =>
     Object.values(d).some(
@@ -170,34 +332,38 @@ const DesignForm = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredDesigns.map((d, i) => (
-              <TableRow key={i}>
-                <TableCell>{d.projectId}</TableCell>
-                <TableCell>{d.designId}</TableCell>
-                <TableCell>{d.designName}</TableCell>
-                <TableCell>{d.designType}</TableCell>
-                <TableCell>{d.versionNumber}</TableCell>
-                <TableCell>{d.preparedBy}</TableCell>
-                <TableCell>{d.reviewedBy}</TableCell>
-                <TableCell>{d.approvalStatus}</TableCell>
-                <TableCell>{d.approvalDate}</TableCell>
-                <TableCell>{d.complianceStandard}</TableCell>
-                <TableCell>{d.designConstraints}</TableCell>
-                <TableCell>{d.estimatedBudget}</TableCell>
-                <TableCell>{d.resourceRequirements}</TableCell>
-                <TableCell>{d.designCompletionDate}</TableCell>
-                <TableCell>{d.status}</TableCell>
-                <TableCell>
-                <IconButton color="warning">
-                  <Edit sx={{ color: "orange" }} />
-                </IconButton>
-                <IconButton color="error">
-                  <Delete sx={{ color: "red" }} />
-                </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+  {filteredDesigns.map((d, i) => (
+    <TableRow key={i}>
+      <TableCell>{d.project}</TableCell>
+      <TableCell>{d.design_id}</TableCell>
+      <TableCell>{d.design_name}</TableCell>
+      <TableCell>{d.design_type}</TableCell>
+      <TableCell>{d.version_number}</TableCell>
+      <TableCell>{d.prepared_by}</TableCell>
+      <TableCell>{d.reviewed_by}</TableCell>
+      <TableCell>{d.approval_status}</TableCell>
+      <TableCell>{d.approval_date}</TableCell>
+      <TableCell>{d.compliance_standard}</TableCell>
+      <TableCell>{d.design_constraints}</TableCell>
+      <TableCell>{d.estimated_budget}</TableCell>
+      <TableCell>{d.resource_requirements}</TableCell>
+      <TableCell>{d.design_completion_date}</TableCell>
+      <TableCell>{d.status}</TableCell>
+      <TableCell>
+        <IconButton color="warning" onClick={() => handleEdit(d)}>
+  <Edit sx={{ color: "orange" }} />
+</IconButton>
+
+
+      <IconButton color="error" onClick={() => handleDelete(d.design_id)}>
+  <Delete sx={{ color: "red" }} />
+</IconButton>
+
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
         </Table>
       </TableContainer>
     </Paper>
@@ -232,6 +398,8 @@ const DesignForm = () => {
             <label htmlFor="projectId">Project ID</label>
             <input id="projectId" className="input" value={selectedProjectId} disabled />
           </Grid>
+       
+
           <Grid item xs={6}>
             <label htmlFor="designId">Design ID</label>
             <input id="designId" className="input" value={formData.designId || ''} disabled />
@@ -326,26 +494,37 @@ const DesignForm = () => {
             <label htmlFor="designCompletionDate">Design Completion Date</label>
             <input type="date" id="designCompletionDate" name="designCompletionDate" className="input" value={formData.designCompletionDate || ''} onChange={handleChange} />
           </Grid>
-          <Grid item xs={6}>
-            <label htmlFor="status">Status</label>
-            <select id="status" name="status" className="input" value={formData.status || ''} onChange={handleChange}>
-              <option value="Draft">Draft</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-            </select>
-          </Grid>
+          
+          <select
+  id="status"
+  name="status"
+  className="input"
+  value={formData.status || ''}
+  onChange={handleChange}
+  required
+>
+  <option value="">Select Status</option>
+  <option value="Draft">Draft</option>
+  <option value="In Progress">In Progress</option>
+  <option value="Completed">Completed</option>
+</select>
+
         </Grid>
       </Grid>
 
       {/* Attachments */}
-      <Grid item xs={12}>
-        <h3 style={{ color: '#7267ef' }}>Attachments</h3>
-        <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
-        <Button variant="contained" component="label">
-          Upload Blueprints/Documents
-          <input type="file" hidden multiple />
-        </Button>
-      </Grid>
+     
+      <Button variant="contained" component="label">
+  Upload Blueprints/Documents
+  <input
+    type="file"
+    hidden
+    onChange={(e) =>
+      setFormData({ ...formData, blueprint: e.target.files[0] })
+    }
+  />
+</Button>
+
 
     </Grid>
   </Box>
@@ -380,7 +559,9 @@ const DesignForm = () => {
     }
   }}
 >
-  Submit
+  {mode === 'edit' ? 'Update Design' : 'Submit Design'}
+
+  
 </Button>
 
 
