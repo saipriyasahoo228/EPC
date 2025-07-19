@@ -1,5 +1,5 @@
 // DesignForm.jsx
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -20,13 +20,10 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import {getProjectsAccept} from '../../allapi/engineering';
+import {createVendor,getVendors,deleteVendor,updateVendor} from '../../allapi/procurement';
 
 
-const dummyProjects = [
-  { id: "PRJ-2025-001" },
-  { id: "PRJ-2025-002" },
-  { id: "PRJ-2025-003" },
-];
 
 const VendorForm = () => {
     // Initialize state variables
@@ -35,6 +32,11 @@ const VendorForm = () => {
     const [open, setOpen] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState('');
     const [vendors, setVendors] = useState([]); // Initialize vendors state
+    const [projects, setProjects] = useState([]);
+    const [editingId, setEditingId] = useState(null);
+    const [mode, setMode] = useState('create'); // 'create' | 'edit'
+
+
 
     const [formData, setFormData] = useState({
         vendorId: '',
@@ -44,10 +46,10 @@ const VendorForm = () => {
         email: '',
         address: '',
         vendorRating: '',
-        complianceStatus: 'Compliant', // Default value
-        approvedSupplier: false,
+        complianceStatus: '', 
+        approvedSupplier: '',
         paymentTerms: '',
-        contractExpiry: '',
+        contractExpiryDate: '',
       });
 
     
@@ -76,44 +78,151 @@ const VendorForm = () => {
       setFormData((prev) => ({ ...prev, [name]: value }));
     };
   
-    // Submit the form
-    const handleSubmit = () => {
-        const updatedVendor = { ...formData, projectId: selectedProjectId };
-      
-        setVendors((prevVendors) => {
-          const vendorIndex = prevVendors.findIndex(
-            (vendor) => vendor.vendorId === updatedVendor.vendorId
-          );
-      
-          if (vendorIndex !== -1) {
-            // Update existing vendor
-            const newVendors = [...prevVendors];
-            newVendors[vendorIndex] = updatedVendor;
-            return newVendors;
-          } else {
-            // Add new vendor
-            return [...prevVendors, updatedVendor];
-          }
-        });
-      
-        setOpen(false);
-      };
-      
+    //Get Project Details
+   useEffect(() => {
+  const fetchProjects = async () => {
+    try {
+      const data = await getProjectsAccept();
+      console.log('Fetched projects:', data); // ✅ Check actual field names
+      setProjects(data);
+    } catch (error) {
+      console.error('Failed to fetch accepted projects:', error);
+    }
+  };
+
+  fetchProjects();
+}, []);
+
+//HandleSubmit Logic
 
 
-    // Handle editing a vendor
-const handleEdit = (index) => {
-    const vendorToEdit = vendors[index];
-    setFormData(vendorToEdit);
-    setOpen(true); // Open the form dialog for editing
+const handleSubmit = async () => {
+  const form = new FormData();
+
+  form.append('project', selectedProjectId);
+  form.append('vendor_name', formData.vendorName);
+  form.append('contact_person', formData.contactPerson);
+  form.append('phone_number', formData.phoneNumber);
+  form.append('email', formData.email);
+  form.append('address', formData.address);
+  form.append('vendor_rating', formData.vendorRating);
+  form.append('compliance_status', formData.complianceStatus);
+
+  // ✅ Convert to boolean correctly
+  if (formData.approvedSupplier !== '') {
+    form.append('approved_supplier', formData.approvedSupplier === 'true');
+  }
+
+  form.append('payment_terms', formData.paymentTerms);
+  form.append('contract_expiry_date', formData.contractExpiryDate);
+
+  try {
+    if (editingId) {
+      await updateVendor(editingId, form);
+      alert('✅ Vendor updated successfully!');
+    } else {
+      await createVendor(form);
+      alert('✅ Vendor submitted successfully!');
+    }
+
+    // Reset form
+    setFormData({
+      vendorId: '',
+      vendorName: '',
+      contactPerson: '',
+      phoneNumber: '',
+      email: '',
+      address: '',
+      vendorRating: '',
+      complianceStatus: '',
+      approvedSupplier: '',
+      paymentTerms: '',
+      contractExpiryDate: '',
+    });
+
+    setSelectedProjectId(null);
+    setEditingId(null);
+    setOpen(false);
+    await fetchVendors?.(); // Reload table
+
+  } catch (error) {
+    console.error('❌ Submission failed:', error.response?.data || error.message);
+    alert(`❌ Submission failed:\n${JSON.stringify(error.response?.data || {}, null, 2)}`);
+  }
+};
+
+
+//Delete Vendor Details
+const handleDelete = async (vendorId) => {
+  if (!vendorId) {
+    alert("❌ Vendor ID is missing.");
+    return;
+  }
+
+  const confirmDelete = window.confirm(`Are you sure you want to delete ${vendorId}?`);
+  if (!confirmDelete) return;
+
+  try {
+    await deleteVendor(vendorId);
+    alert(`✅ Vendor ${vendorId} deleted successfully!`);
+    await fetchVendors?.();
+  } catch (error) {
+    const errMsg = error.response?.data || error.message;
+    alert(`❌ Failed to delete vendor: ${JSON.stringify(errMsg)}`);
+  }
+};
+
+//Fetch Vendor Details
+ // ✅ Define fetchVendors outside useEffect so you can reuse it
+  const fetchVendors = async () => {
+    try {
+      const data = await getVendors();
+      setVendors(data);
+    } catch (error) {
+      console.error('Failed to fetch vendors:', error);
+    }
   };
+
+  useEffect(() => {
+    fetchVendors();
+  }, []);
+
+
+ // Handle editing logic
+
   
-  // Handle deleting a vendor
-  const handleDelete = (index) => {
-    const updatedVendors = vendors.filter((_, i) => i !== index);
-    setVendors(updatedVendors);
-  };
-  
+ const handleEdit = (vendor) => {
+  if (!vendor || !vendor.vendor_id) {
+    console.error("Invalid vendor data:", vendor);
+    return;
+  }
+
+  setEditingId(vendor.vendor_id); // Used for PATCH
+  setSelectedProjectId(vendor.project); // ForeignKey to project
+
+  setFormData({
+    vendorId: vendor.vendor_id,
+    vendorName: vendor.vendor_name || '',
+    contactPerson: vendor.contact_person || '',
+    phoneNumber: vendor.phone_number || '',
+    email: vendor.email || '',
+    address: vendor.address || '',
+    vendorRating: vendor.vendor_rating || '',
+    complianceStatus: vendor.compliance_status || '',
+    approvedSupplier:
+      vendor.approved_supplier !== undefined
+        ? vendor.approved_supplier.toString()
+        : '',
+    paymentTerms: vendor.payment_terms || '',
+    contractExpiryDate: vendor.contract_expiry_date || '',
+  });
+
+  setMode('edit'); // Optional: to control button label
+  setOpen(true);   // Open the form dialog
+};
+
+
+
 
   const filteredVendors = vendors.filter((d) =>
     Object.values(d).some(
@@ -132,30 +241,7 @@ const handleEdit = (index) => {
       
         <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
   <Grid item xs={12}>
-    {/* <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-      <Typography variant="h6" gutterBottom>PROJECT RECORDS</Typography>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{color:'#7267ef'}}><strong>Project ID</strong></TableCell>
-            <TableCell sx={{ display: 'flex', justifyContent: 'flex-end',color:'#660000'}}><strong>Action</strong></TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {dummyProjects.map((proj, i) => (
-            <TableRow key={i}>
-              <TableCell>{proj.id}</TableCell>
-              <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                  <AddCircle sx={{ color: "#7267ef" }} />
-                </IconButton>
-                
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Paper> */}
+    
     <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
   <Typography variant="h6" gutterBottom>
     PROJECT RECORDS
@@ -163,14 +249,14 @@ const handleEdit = (index) => {
 
   {/* Search Input */}
   <Box sx={{ my: 2, mx: 1 }}>
-    <input
-      type="text"
-      placeholder="Search Project ID"
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
-      className="input"
-      style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }}
-    />
+   <input
+  type="text"
+  className="input"
+  placeholder="Search Project ID"
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value)}
+/>
+
   </Box>
 
   <Table>
@@ -183,19 +269,22 @@ const handleEdit = (index) => {
       </TableRow>
     </TableHead>
     <TableBody>
-      {dummyProjects
-        .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-        .map((proj, i) => (
-          <TableRow key={i}>
-            <TableCell>{proj.id}</TableCell>
-            <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                <AddCircle sx={{ color: "#7267ef" }} />
-              </IconButton>
-            </TableCell>
-          </TableRow>
-        ))}
-    </TableBody>
+  {projects
+    .filter((proj) =>
+      proj.project_id?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .map((proj, i) => (
+      <TableRow key={i}>
+        <TableCell>{proj.project_id}</TableCell>
+        <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
+            <AddCircle sx={{ color: "#7267ef" }} />
+          </IconButton>
+        </TableCell>
+      </TableRow>
+    ))}
+</TableBody>
+
   </Table>
 </Paper>
 
@@ -234,25 +323,27 @@ const handleEdit = (index) => {
   <TableBody>
     {filteredVendors.map((v, i) => (
       <TableRow key={i}>
-        <TableCell>{v.projectId}</TableCell>
-        <TableCell>{v.vendorId}</TableCell>
-        <TableCell>{v.vendorName}</TableCell>
-        <TableCell>{v.contactPerson}</TableCell>
-        <TableCell>{v.phoneNumber}</TableCell>
+        <TableCell>{v.project}</TableCell>
+        <TableCell>{v.vendor_id}</TableCell>
+        <TableCell>{v.vendor_name}</TableCell>
+        <TableCell>{v.contact_person}</TableCell>
+        <TableCell>{v.phone_number}</TableCell>
         <TableCell>{v.email}</TableCell>
         <TableCell>{v.address}</TableCell>
-        <TableCell>{v.vendorRating}</TableCell>
-        <TableCell>{v.complianceStatus}</TableCell>
+        <TableCell>{v.vendor_rating}</TableCell>
+        <TableCell>{v.compliance_status}</TableCell>
         <TableCell>{v.approvedSupplier ? "Yes" : "No"}</TableCell>
-        <TableCell>{v.paymentTerms}</TableCell>
-        <TableCell>{v.contractExpiry}</TableCell>
+        <TableCell>{v.payment_terms}</TableCell>
+        <TableCell>{v.contract_expiry_date}</TableCell>
         <TableCell>
-          <IconButton color="warning" onClick={() => handleEdit(i)}>
-            <Edit sx={{ color: "orange" }} />
-          </IconButton>
-          <IconButton color="error" onClick={() => handleDelete(i)}>
-            <Delete sx={{ color: "red" }} />
-          </IconButton>
+          <IconButton color="warning" onClick={() => handleEdit(v)}>
+  <Edit sx={{ color: 'orange' }} />
+</IconButton>
+
+         <IconButton color="error" onClick={() => handleDelete(v.vendor_id)}>
+  <Delete sx={{ color: "red" }} />
+</IconButton>
+
         </TableCell>
       </TableRow>
     ))}
@@ -298,6 +389,10 @@ const handleEdit = (index) => {
                 disabled
               />
             </Grid>
+             <Grid item xs={6}>
+                        <label htmlFor="projectId">Project ID</label>
+                        <input id="projectId" className="input" value={selectedProjectId} disabled />
+                      </Grid>
             <Grid item xs={6}>
               <label htmlFor="vendorName">Vendor Name</label>
               <input
@@ -318,16 +413,7 @@ const handleEdit = (index) => {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={6}>
-              <label htmlFor="phoneNumber">Phone Number</label>
-              <input
-                id="phoneNumber"
-                name="phoneNumber"
-                className="input"
-                value={formData.phoneNumber || ''}
-                onChange={handleChange}
-              />
-            </Grid>
+           
           </Grid>
         </Grid>
 
@@ -344,6 +430,16 @@ const handleEdit = (index) => {
                 type="email"
                 className="input"
                 value={formData.email || ''}
+                onChange={handleChange}
+              />
+            </Grid>
+             <Grid item xs={6}>
+              <label htmlFor="phoneNumber">Phone Number</label>
+              <input
+                id="phoneNumber"
+                name="phoneNumber"
+                className="input"
+                value={formData.phoneNumber || ''}
                 onChange={handleChange}
               />
             </Grid>
@@ -371,16 +467,20 @@ const handleEdit = (index) => {
                 max={5}
               />
             </Grid>
-            <select
-  id="complianceStatus"
-  name="complianceStatus"
-  className="input"
-  value={formData.complianceStatus}
-  onChange={handleChange}
->
-  <option value="Compliant">Compliant</option>
-  <option value="Non-Compliant">Non-Compliant</option>
-</select>
+            <Grid item xs={6}>
+  <label htmlFor="complianceStatus">Compliance Status</label>
+  <select
+    id="complianceStatus"
+    name="complianceStatus"
+    className="input"
+    value={formData.complianceStatus}  // ✅ fallback default
+    onChange={handleChange}
+  >
+     <option value="">Select</option>
+    <option value="Compliant">Compliant</option>
+    <option value="Non-Compliant">Non-Compliant</option>
+  </select>
+</Grid>
 
           </Grid>
         </Grid>
@@ -392,16 +492,19 @@ const handleEdit = (index) => {
           <Grid container spacing={2}>
             <Grid item xs={6}>
               <label htmlFor="approvedSupplier">Approved Supplier</label>
-              <select
-                id="approvedSupplier"
-                name="approvedSupplier"
-                className="input"
-                value={formData.approvedSupplier || ''}
-                onChange={handleChange}
-              >
-                <option value={true}>Yes</option>
-                <option value={false}>No</option>
-              </select>
+            <select
+  id="approvedSupplier"
+  name="approvedSupplier"
+  className="input"
+  value={formData.approvedSupplier || ''}
+  onChange={handleChange}
+>
+  <option value="">Select</option>
+  <option value="true">Yes</option>
+  <option value="false">No</option>
+</select>
+
+
             </Grid>
             <Grid item xs={6}>
               <label htmlFor="paymentTerms">Payment Terms</label>
@@ -458,7 +561,7 @@ const handleEdit = (index) => {
         }
       }}
     >
-      Submit
+       {editingId ? 'Update Vendor' : 'Submit Vendor'}
     </Button>
   </DialogActions>
 </Dialog>

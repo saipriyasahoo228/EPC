@@ -229,7 +229,7 @@ const LogisticForm = () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-            <Typography variant="h6" gutterBottom>SUBMITTED MATERIALS PROCUREMENT RECORDS</Typography>
+            <Typography variant="h6" gutterBottom>SUBMITTED LOGISTIC RECORDS</Typography>
             <input
               type="text"
               placeholder="Search Logistic Management Here.."

@@ -315,16 +315,7 @@ const PurchaseOrder = () => {
     />
   </Grid>
 
-  <Grid item xs={6}>
-    <label htmlFor="vendorId">Vendor ID</label>
-    <input
-      id="vendorId"
-      name="vendorId"
-      className="input"
-      value={formData.vendorId || ''}
-      disabled // This makes it non-editable
-    />
-  </Grid>
+ 
 
   <Grid item xs={6}>
     <label htmlFor="projectId">Project ID</label>
@@ -334,6 +325,17 @@ const PurchaseOrder = () => {
       className="input"
       value={formData.projectId || ''}
       disabled // This makes it non-editable
+    />
+  </Grid>
+
+   <Grid item xs={6}>
+    <label htmlFor="vendorId">Vendor ID</label>
+    <input
+      id="vendorId"
+      name="vendorId"
+      className="input"
+      value={formData.vendorId || ''}
+     // disabled // This makes it non-editable
     />
   </Grid>
 

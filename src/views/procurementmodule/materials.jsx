@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState , useEffect} from "react";
 import {
   Dialog,
   DialogTitle,
@@ -19,18 +19,19 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
-
-const dummyProjects = [
-  { id: "PRJ-2025-001" },
-  { id: "PRJ-2025-002" },
-  { id: "PRJ-2025-003" },
-];
+import {getProjectsAccept } from '../../allapi/engineering';
+import {createMaterialProcurement, getMaterialProcurements,deleteProcurement,updateMaterialProcurement } from '../../allapi/procurement';
 
 const MaterialForm = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [projects, setProjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [mode, setMode] = useState('create'); // or 'update'
+
+
   const [formData, setFormData] = useState({
     projectId:'',
     procurementId: '',
@@ -44,36 +45,46 @@ const MaterialForm = () => {
     approvalStatus: 'Pending',
     poId: '',
     expectedDeliveryDate: '',
-    paymentStatus:''
+    paymentStatus:'',
+    purchaseOrder:'',
   });
   
   const [procurements, setProcurements] = useState([]);
-  const [selectedProcurementIndex, setSelectedProcurementIndex] = useState(null);
+  
 
 
-  // Open form with new procurement ID
-  const handleOpenForm = (projectId) => {
-    setSelectedProjectId(projectId);
-    
-    const yearPrefix = new Date().getFullYear();
-    const nextProcurementNumber = procurements.length + 1;
-    const formattedNumber = nextProcurementNumber.toString().padStart(3, '0');
-    
-    const procurementId = `${yearPrefix}-PROC-${formattedNumber}`;
-  
-    // Update formData with both procurementId and projectId in one call
-    setFormData((prevFormData) => ({
-      ...prevFormData,  // retain existing formData
-      procurementId,    // add/update procurementId
-      projectId,        // add/update projectId
-    }));
-  
-    setOpen(true);
+  //Fetch All Accepted Projects
+  useEffect(() => {
+  const fetchProjects = async () => {
+    try {
+      const data = await getProjectsAccept();
+      setProjects(data);
+    } catch (error) {
+      console.error('Failed to load accepted projects:', error);
+    }
   };
-  
-  const handleClose = () => setOpen(false);
 
-  // Handle input changes
+  fetchProjects();
+}, []);
+
+//Fetch all Procurement details
+const fetchProcurements = async () => {
+  try {
+    const data = await getMaterialProcurements();
+    setProcurements(data);
+  } catch (error) {
+    console.error('❌ Error loading procurements:', error);
+  }
+};
+
+useEffect(() => {
+  fetchProcurements(); // ✅ called when the component mounts
+}, []);
+
+
+
+
+// Handle input changes
   const handleChange = (event) => {
     const { name, value } = event.target;
   
@@ -95,72 +106,144 @@ const MaterialForm = () => {
     });
   };
   
+const handleOpenForm = (projectId) => {
+  const yearPrefix = new Date().getFullYear();
+  const nextProcurementNumber = procurements.length + 1;
+  const formattedNumber = nextProcurementNumber.toString().padStart(3, '0');
+
+  const procurementId = `${yearPrefix}-PRC-${formattedNumber}`;
+
+  setFormData({
+    projectId,
+    procurementId,
+    materialName: '',
+    materialCode: '',
+    quantity: '',
+    unitPrice: '',
+    totalCost: '',
+    requestedBy: '',
+    requestDate: '',
+    approvalStatus: 'Pending',
+    paymentStatus: 'Pending',
+    expectedDeliveryDate: '',
+    purchaseOrder: '',
+  });
+
+  setMode('create'); // ✅ Set mode
+  setOpen(true);
+};
+const handleClose = () => setOpen(false);
+
 
   
-  // Submit form
-  const handleSubmit = () => {
-    const currentYear = new Date().getFullYear(); // Get the current year
-  
-    // Filter procurements for the current year to find the highest PO number
-    const currentYearProcurements = procurements.filter(
-      (p) => p.poId && p.poId.startsWith(`${currentYear}-PO`)
-    );
-  
-    // Find the highest PO number for the current year and increment it
-    const maxPoNumber = currentYearProcurements.reduce((max, p) => {
-      const poNumber = parseInt(p.poId.split('-')[2], 10); // Extract the number part of PO ID
-      return poNumber > max ? poNumber : max;
-    }, 0);
-  
-    const nextPoNumber = maxPoNumber + 1;  // Auto-increment PO number
-    const poId = `${currentYear}-PurchaseOrder ID-${nextPoNumber}`; // Generate PO ID
-  
-    if (selectedProcurementIndex !== null) {
-      // Editing existing procurement, keep the same PO ID
-      const updatedProcurements = [...procurements];
-      updatedProcurements[selectedProcurementIndex] = {
-        ...formData,
-        poId: updatedProcurements[selectedProcurementIndex].poId, // Retain the same PO ID
-      };
-      setProcurements(updatedProcurements);
+// Submit form
+
+
+const handleSubmit = async () => {
+  const form = new FormData();
+
+  form.append('project', formData.projectId);
+  form.append('material_name', formData.materialName);
+  form.append('material_code', formData.materialCode);
+  form.append('quantity_requested', formData.quantity);
+  form.append('unit_price', formData.unitPrice);
+  form.append('requested_by', formData.requestedBy);
+  form.append('request_date', formData.requestDate);
+  form.append('purchase_order', formData.purchaseOrder || '');
+  form.append('approval_status', formData.approvalStatus || 'Pending');
+  form.append('payment_status', formData.paymentStatus || 'Pending');
+
+  if (formData.expectedDeliveryDate) {
+    form.append('expected_delivery_date', formData.expectedDeliveryDate);
+  }
+
+  try {
+    if (mode === 'update') {
+      await updateMaterialProcurement(formData.procurementId, form);
+      alert('✅ Material Procurement updated successfully!');
     } else {
-      // Adding new procurement, generate a new PO ID
-      const updatedProcurement = {
-        ...formData,
-        projectId: selectedProjectId,
-        poId: poId, // Add the generated PO ID
-      };
-      setProcurements((prev) => [...prev, updatedProcurement]);
+      await createMaterialProcurement(form);
+      alert('✅ Material Procurement submitted successfully!');
     }
-  
-    // Show PO ID in an alert
-    if (selectedProcurementIndex === null) {
-      alert(`PO ID generated: ${poId}`);
+
+    // Reset form
+    setFormData({
+      projectId: '',
+      procurementId: '',
+      materialName: '',
+      materialCode: '',
+      quantity: '',
+      unitPrice: '',
+      totalCost: '',
+      requestedBy: '',
+      requestDate: '',
+      approvalStatus: '',
+      paymentStatus: '',
+      expectedDeliveryDate: '',
+      purchaseOrder: '',
+    });
+
+    setSelectedProjectId(null);
+    setOpen(false);
+    setMode('create'); // reset to create mode
+
+    if (typeof fetchProcurements === 'function') {
+      await fetchProcurements();
     }
-  
-    // Reset the form after submission
-    setFormData({});  // Reset form data
-    setSelectedProjectId(null);  // Clear selected project
-    setSelectedProcurementIndex(null);  // Clear selected procurement index
 
-    setOpen(false); // Close the form
-  };
+  } catch (error) {
+    const errData = error.response?.data;
+    console.error('❌ Submission failed:', errData || error.message);
 
-  
+    let errorMsg = 'Submission failed. Please check form values.';
+    if (errData && typeof errData === 'object') {
+      const messages = Object.entries(errData).map(
+        ([field, value]) => `${field}: ${Array.isArray(value) ? value.join(', ') : value}`
+      );
+      errorMsg = messages.join('\n');
+    }
+
+    alert(`❌ ${errorMsg}`);
+  }
+};
 
 
+//HandleEdit
+  const handleEdit = (procurement) => {
+  setFormData({
+    projectId: procurement.project,
+    procurementId: procurement.procurement_id,
+    materialName: procurement.material_name,
+    materialCode: procurement.material_code,
+    quantity: procurement.quantity_requested,
+    unitPrice: procurement.unit_price,
+    totalCost: procurement.total_cost,
+    requestedBy: procurement.requested_by,
+    requestDate: procurement.request_date,
+    approvalStatus: procurement.approval_status,
+    paymentStatus: procurement.payment_status,
+    expectedDeliveryDate: procurement.expected_delivery_date,
+    purchaseOrder: procurement.purchase_order,
+  });
 
-  const handleEdit = (index) => {
-    const procurementToEdit = procurements[index];
-    setFormData(procurementToEdit);
-    setSelectedProcurementIndex(index);
-    setOpen(true);
-  };
+  setMode('update'); // Use this instead of setIsEditing(true)
+  setOpen(true);     // Open the Dialog/Form
+};
 
-  const handleDelete = (index) => {
-    const updatedProcurements = procurements.filter((_, i) => i !== index);
-    setProcurements(updatedProcurements);
-  };
+//Handle Delete Logic
+const handleDelete = async (id) => {
+  const confirmDelete = window.confirm(`Delete ${id}?`);
+  if (!confirmDelete) return;
+
+  try {
+    await deleteProcurement(id);
+    alert(`Deleted ${id} successfully`);
+    fetchProcurements(); // 🔁 refresh the data
+    setProcurements((prev) => prev.filter((item) => item.procurementId !== id));
+  } catch (err) {
+    alert('Failed to delete. Check console for details.');
+  }
+};
 
   const filteredProcurements = procurements.filter((d) =>
     Object.values(d).some(
@@ -203,19 +286,22 @@ const MaterialForm = () => {
       </TableRow>
     </TableHead>
     <TableBody>
-      {dummyProjects
-        .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-        .map((proj, i) => (
-          <TableRow key={i}>
-            <TableCell>{proj.id}</TableCell>
-            <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                <AddCircle sx={{ color: "#7267ef" }} />
-              </IconButton>
-            </TableCell>
-          </TableRow>
-        ))}
-    </TableBody>
+  {projects
+    .filter((proj) =>
+      proj.project_id?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .map((proj, i) => (
+      <TableRow key={i}>
+        <TableCell>{proj.project_id}</TableCell>
+        <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
+            <AddCircle sx={{ color: "#7267ef" }} />
+          </IconButton>
+        </TableCell>
+      </TableRow>
+    ))}
+</TableBody>
+
   </Table>
 </Paper>
 
@@ -241,6 +327,7 @@ const MaterialForm = () => {
                     <TableCell sx={{ color: '#7267ef' }}><strong>Procurement ID</strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Purchase Order ID</strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Material Name</strong></TableCell>
+                    <TableCell sx={{ color: '#7267ef' }}><strong>Material Code</strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Quantity</strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Unit Price</strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Total Cost</strong></TableCell>
@@ -248,34 +335,38 @@ const MaterialForm = () => {
                     <TableCell sx={{ color: '#7267ef' }}><strong>Request Date</strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Approval Status</strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Payment Status</strong></TableCell>
+                     <TableCell sx={{ color: '#7267ef' }}><strong>Expected Delivery Date</strong></TableCell>
                     <TableCell sx={{ color: '#660000' }}><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredProcurements.map((p, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{p.projectId}</TableCell>
-                      <TableCell>{p.procurementId}</TableCell>
-                      <TableCell>{p.poId}</TableCell>
-                      <TableCell>{p.materialName}</TableCell>
-                      <TableCell>{p.quantity}</TableCell>
-                      <TableCell>{p.unitPrice}</TableCell>
-                      <TableCell>{p.totalCost}</TableCell>
-                      <TableCell>{p.requestedBy}</TableCell>
-                      <TableCell>{p.requestDate}</TableCell>
-                      <TableCell>{p.approvalStatus}</TableCell>
-                      <TableCell>{p.paymentStatus}</TableCell>
-                      <TableCell>
-                        <IconButton color="warning" onClick={() => handleEdit(i)}>
-                          <Edit sx={{ color: "orange" }} />
-                        </IconButton>
-                        <IconButton color="error" onClick={() => handleDelete(i)}>
-                          <Delete sx={{ color: "red" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+  {filteredProcurements.map((p, i) => (
+    <TableRow key={i}>
+      <TableCell>{p.project}</TableCell>
+      <TableCell>{p.procurement_id}</TableCell>
+      <TableCell>{p.purchase_order || '-'}</TableCell>
+      <TableCell>{p.material_name}</TableCell>
+      <TableCell>{p.material_code}</TableCell>
+      <TableCell>{p.quantity_requested}</TableCell>
+      <TableCell>{p.unit_price}</TableCell>
+      <TableCell>{p.total_cost}</TableCell>
+      <TableCell>{p.requested_by}</TableCell>
+      <TableCell>{p.request_date}</TableCell>
+      <TableCell>{p.approval_status}</TableCell>
+      <TableCell>{p.payment_status}</TableCell>
+      <TableCell>{p.expected_delivery_date}</TableCell>
+      <TableCell>
+        <IconButton color="warning" onClick={() => handleEdit(p)}>
+          <Edit sx={{ color: "orange" }} />
+        </IconButton>
+        <IconButton color="error" onClick={() => handleDelete(p.procurement_id)}>
+          <Delete sx={{ color: "red" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
               </Table>
             </TableContainer>
           </Paper>
@@ -462,13 +553,19 @@ const MaterialForm = () => {
         <option value="Partially Paid">Partially Paid</option>
       </select>
     </Grid>
+     <Grid item xs={6}>
+          <label htmlFor="purchaseOrder">Purchase OrderId</label>
+          <input
+            id="purchaseOrder"
+            name="purchaseOrder"
+            className="input"
+            value={formData.purchaseOrder || ''}
+            onChange={handleChange}
+          />
+        </Grid>
   </Grid>
 </Grid>
-
-
-   
-
-  </Grid>
+</Grid>
 </Box>
 
         </DialogContent>
@@ -499,7 +596,7 @@ const MaterialForm = () => {
                   }
                 }}
               >
-                Submit
+                {mode === 'update' ? 'Update Procurement' : 'Submit Procurement'}
               </Button>
         </DialogActions>
       </Dialog>

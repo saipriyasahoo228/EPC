@@ -112,3 +112,11 @@ export const deleteFeasibilityStudy = async (feasibilityStudyId) => {
     throw error;
   }
 };
+
+
+// Update Vendor (PATCH)
+export const updateVendor = async (vendorId, formData) => {
+  return await api.patch(`/procurement/vendor/${vendorId}/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};

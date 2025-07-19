@@ -293,9 +293,7 @@ const handleDelete = async (feasibilityStudyId) => {
   </IconButton>
   
   {/* Delete Button */}
-  {/* <IconButton color="error" onClick={() => handleDelete(study.feasibilityStudyId)}>
-    <Delete sx={{ color: "red" }} />
-  </IconButton> */}
+  
   <IconButton color="error" onClick={() => handleDelete(study.feasibility_study_id)}>
   <Delete sx={{ color: "red" }} />
 </IconButton>
