@@ -18,7 +18,7 @@ import {
   TableContainer,
   Paper,
 } from "@mui/material";
-import { AddCircle, Edit, Delete } from "@mui/icons-material";
+import { AddCircle, Edit, Delete,ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import {getProjectsAccept} from '../../allapi/engineering';
 import {createVendor,getVendors,deleteVendor,updateVendor} from '../../allapi/procurement';
@@ -35,6 +35,13 @@ const VendorForm = () => {
     const [projects, setProjects] = useState([]);
     const [editingId, setEditingId] = useState(null);
     const [mode, setMode] = useState('create'); // 'create' | 'edit'
+    const rowsPerPage = 4;
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const [vendorPage, setVendorPage] = useState(1);
+    const vendorRowsPerPage = 5;
+    
+    
 
 
 
@@ -51,6 +58,22 @@ const VendorForm = () => {
         paymentTerms: '',
         contractExpiryDate: '',
       });
+
+
+
+      
+  
+  // ✅ Filtered projects based on search
+  const filteredProjects = projects.filter((proj) =>
+    proj.project_id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // ✅ Pagination Logic
+  const totalPages = Math.ceil(filteredProjects.length / rowsPerPage);
+  const paginatedProjects = filteredProjects.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
 
     
   
@@ -232,6 +255,13 @@ const handleDelete = async (vendorId) => {
     )
   );
 
+const vendorTotalPages = Math.ceil(filteredVendors.length / vendorRowsPerPage);
+
+// Paginated designs
+const paginatedVendor = filteredVendors.slice(
+  (vendorPage - 1) * vendorRowsPerPage,
+  vendorPage * vendorRowsPerPage
+);
     
   
 
@@ -242,51 +272,97 @@ const handleDelete = async (vendorId) => {
         <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
   <Grid item xs={12}>
     
-    <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-  <Typography variant="h6" gutterBottom>
-    PROJECT RECORDS
-  </Typography>
-
-  {/* Search Input */}
-  <Box sx={{ my: 2, mx: 1 }}>
-   <input
-  type="text"
-  className="input"
-  placeholder="Search Project ID"
-  value={searchTerm}
-  onChange={(e) => setSearchTerm(e.target.value)}
-/>
-
-  </Box>
-
-  <Table>
-    <TableHead>
-      <TableRow>
-        <TableCell sx={{ color: '#7267ef' }}><strong>Project ID</strong></TableCell>
-        <TableCell sx={{ display: 'flex', justifyContent: 'flex-end', color: '#660000' }}>
-          <strong>Action</strong>
-        </TableCell>
-      </TableRow>
-    </TableHead>
-    <TableBody>
-  {projects
-    .filter((proj) =>
-      proj.project_id?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .map((proj, i) => (
-      <TableRow key={i}>
-        <TableCell>{proj.project_id}</TableCell>
-        <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
-            <AddCircle sx={{ color: "#7267ef" }} />
-          </IconButton>
-        </TableCell>
-      </TableRow>
-    ))}
-</TableBody>
-
-  </Table>
-</Paper>
+   <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+         <Typography variant="h6" gutterBottom>
+           PROJECT RECORDS
+         </Typography>
+   
+         {/* Search Input */}
+         <Box sx={{ my: 2, mx: 1 }}>
+           <input
+             type="text"
+             placeholder="Search Project ID"
+             value={searchTerm}
+             onChange={(e) => {
+               setSearchTerm(e.target.value);
+               setCurrentPage(1); // Reset to page 1 on search
+             }}
+             className="input"
+             style={{
+               width: '100%',
+               padding: '8px',
+               border: '1px solid #ccc',
+               borderRadius: 4,
+             }}
+           />
+         </Box>
+   
+         <Table>
+           <TableHead>
+             <TableRow>
+               <TableCell sx={{ color: '#7267ef' }}>
+                 <strong>Project ID</strong>
+               </TableCell>
+               <TableCell
+                 sx={{
+                   display: 'flex',
+                   justifyContent: 'flex-end',
+                   color: '#660000',
+                 }}
+               >
+                 <strong>Action</strong>
+               </TableCell>
+             </TableRow>
+           </TableHead>
+           <TableBody>
+             {paginatedProjects.length > 0 ? (
+               paginatedProjects.map((proj, i) => (
+                 <TableRow key={i}>
+                   <TableCell>{proj.project_id}</TableCell>
+                   <TableCell
+                     sx={{ display: 'flex', justifyContent: 'flex-end' }}
+                   >
+                     <IconButton
+                       onClick={() => handleOpenForm(proj.project_id)}
+                       color="primary"
+                     >
+                       <AddCircle sx={{ color: '#7267ef' }} />
+                     </IconButton>
+                   </TableCell>
+                 </TableRow>
+               ))
+             ) : (
+               <TableRow>
+                 <TableCell colSpan={2} align="center">
+                   No records found
+                 </TableCell>
+               </TableRow>
+             )}
+           </TableBody>
+         </Table>
+   
+         {/* ✅ Pagination Icons */}
+         <Box display="flex" justifyContent="flex-end" alignItems="center" mt={2} pr={2}>
+           <IconButton
+             disabled={currentPage === 1}
+             onClick={() => setCurrentPage((prev) => prev - 1)}
+           >
+             <ArrowBackIos />
+           </IconButton>
+   
+           <Typography variant="body2" sx={{ mx: 2 }}>
+             Page {currentPage} of {totalPages || 1}
+           </Typography>
+   
+           <IconButton
+             disabled={currentPage >= totalPages}
+             onClick={() => setCurrentPage((prev) => prev + 1)}
+           >
+             <ArrowForwardIos />
+           </IconButton>
+         </Box>
+       </Paper>
+   
 
   </Grid>
 </Grid>
@@ -321,7 +397,7 @@ const handleDelete = async (vendorId) => {
     </TableRow>
   </TableHead>
   <TableBody>
-    {filteredVendors.map((v, i) => (
+    {paginatedVendor.map((v, i) => (
       <TableRow key={i}>
         <TableCell>{v.project}</TableCell>
         <TableCell>{v.vendor_id}</TableCell>
@@ -351,7 +427,27 @@ const handleDelete = async (vendorId) => {
 </Table>
 
       </TableContainer>
+      <Box display="flex" justifyContent="flex-end" alignItems="center" mt={2} pr={2}>
+                  <IconButton
+                    disabled={vendorPage === 1}
+                    onClick={() => setVendorPage(prev => prev - 1)}
+                  >
+                    <ArrowBackIos />
+                  </IconButton>
+                
+                  <Typography variant="body2" sx={{ mx: 2 }}>
+                    Page {vendorPage} of {vendorTotalPages || 1}
+                  </Typography>
+                
+                  <IconButton
+                    disabled={vendorPage >= vendorTotalPages}
+                    onClick={() => setVendorPage(prev => prev + 1)}
+                  >
+                    <ArrowForwardIos />
+                  </IconButton>
+                </Box>
     </Paper>
+    
   </Grid>
 </Grid>
 

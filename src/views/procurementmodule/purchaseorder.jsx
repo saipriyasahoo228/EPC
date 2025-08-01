@@ -19,31 +19,18 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
-
-const dummyProjects = [
-  {
-    projectId: "PRJ-2025-001",
-    procurementId: "PROC-2025-001",
-    purchaseOrderId: "PO-2025-001",
-  },
-  {
-    projectId: "PRJ-2025-002",
-    procurementId: "PROC-2025-002",
-    purchaseOrderId: "PO-2025-002",
-  },
-  {
-    projectId: "PRJ-2025-003",
-    procurementId: "PROC-2025-003",
-    purchaseOrderId: "PO-2025-003",
-  },
-];
-
+import { getMaterialProcurements ,createPurchaseOrder, getPurchaseOrders, deletePurchaseOrder,updatePurchaseOrder} from '../../allapi/procurement';
 
 const PurchaseOrder = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(null);
   const [open, setOpen] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
+  //const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+//const [editingId, setEditingId] = useState(null); // To track which PO you're editing
+
   const [formData, setFormData] = useState({
     projectId: '',
     purchaseOrderId:'',
@@ -60,31 +47,48 @@ const PurchaseOrder = () => {
   });
   
   const [procurements, setProcurements] = useState([]);
-  const [selectedProcurementIndex, setSelectedProcurementIndex] = useState(null);
+  
   const [selectedProjectIndex, setSelectedProjectIndex] = useState(0); // Default to first project
 
-  // Set the formData to the selected project data from dummyProjects
+
+ //Fetch projectID,purchaseorderID and procurementID
   useEffect(() => {
-    if (open) {
-      const selectedProject = dummyProjects[selectedProjectIndex];
-      setFormData({
-        ...formData,
-        projectId: selectedProject.projectId,
-        procurementId: selectedProject.procurementId,
-        purchaseOrderId: selectedProject.purchaseOrderId,
-      });
-    }
-  }, [open, selectedProjectIndex]); // Runs whenever open or selectedProjectIndex changes
+    const fetchData = async () => {
+      try {
+        const data = await getMaterialProcurements();
+        setProcurements(data);
+      } catch (error) {
+        console.error('Failed to fetch procurements:', error);
+      }
+    };
 
+    fetchData();
+  }, []);
 
+  
+  const handleOpen = (index) => {
+  setSelectedIndex(index);
+  setIsEditMode(false);
+  setOpen(true);
+};
 
-  const handleOpenForm = () => {
-    setOpen(true);
-  };
+//useEffect to open the dialog form
+useEffect(() => {
+  if (open && selectedIndex !== null) {
+    const selected = procurements[selectedIndex];
+    setFormData({
+      projectId: selected.project,
+      procurementId: selected.procurement_id,
+      purchaseOrderId: selected.purchase_order,
+    });
+  }
+}, [open, selectedIndex]);
 
+//close the form
   const handleClose = () => {
-    setOpen(false);
-  };
+  setOpen(false);
+  setSelectedIndex(null);
+};
 
 
   // Handle input changes
@@ -110,49 +114,101 @@ const PurchaseOrder = () => {
   };
   
 
-  
-  // Submit form
+// fetch purchase orders
+const fetchPurchaseOrders = async () => {
+  try {
+    const data = await getPurchaseOrders();
+    setPurchaseOrders(data);
+  } catch (err) {
+    console.error('❌ Failed to fetch PO data:', err);
+  }
+};
+
+//useEffect just calls it on component mount
+useEffect(() => {
+  fetchPurchaseOrders();
+}, []);
+
   
 
-  const handleSubmit = () => {
-    if (selectedProcurementIndex !== null) {
-      // Editing existing procurement, retain the existing PO ID
-      const updatedProcurements = [...procurements];
-      updatedProcurements[selectedProcurementIndex] = {
-        ...formData,
-        poId: updatedProcurements[selectedProcurementIndex].poId, // Keep existing PO ID
-      };
-      setProcurements(updatedProcurements);
+
+//HandleSubmit Logic
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  const payload = {
+    vendor: formData.vendorId,
+    procurement: formData.procurementId,
+    order_date: formData.orderDate,
+    delivery_date: formData.deliveryDate,
+    total_order_value: formData.totalOrderValue,
+    payment_terms: formData.paymentTerms,
+    tax_details: formData.taxDetails,
+    order_status: formData.orderStatus,
+    invoice_id: formData.invoiceId || null,
+  };
+
+  try {
+    if (isEditMode) {
+      await updatePurchaseOrder(formData.po_id, payload); // PATCH
+      alert(`✅ Purchase Order Updated: ${formData.po_id}`);
     } else {
-      // Adding new procurement, use the manually entered PO ID from formData
-      const updatedProcurement = {
-        ...formData,
-        projectId: selectedProjectId,
-      };
-      setProcurements((prev) => [...prev, updatedProcurement]);
+      const data = await createPurchaseOrder(payload); // POST
+      alert(`✅ Purchase Order Created: ${data.po_number}`);
     }
-  
-    // Reset form after submission
+
     setFormData({});
-    setSelectedProjectId(null);
-    setSelectedProcurementIndex(null);
     setOpen(false);
-  };
+    setIsEditMode(false);
+    fetchPurchaseOrders(); // Refresh table
+  } catch (err) {
+    console.error('❌ Submission failed:', err);
+    alert('❌ Submission failed');
+  }
+};
+
+
+
+//HandleEdit Logic
+const handleEdit = (purchaseOrder) => {
+  setFormData({
+    po_id: purchaseOrder.po_number,  // Required for PATCH
+    vendorId: purchaseOrder.vendor,
+    procurementId: purchaseOrder.procurement,
+    orderDate: purchaseOrder.order_date,
+    deliveryDate: purchaseOrder.delivery_date,
+    totalOrderValue: purchaseOrder.total_order_value,
+    paymentTerms: purchaseOrder.payment_terms,
+    taxDetails: purchaseOrder.tax_details,
+    orderStatus: purchaseOrder.order_status,
+    invoiceId: purchaseOrder.invoice_id || '',
+  });
+
+  setIsEditMode(true);
+  setOpen(true);
+};
+
   
 
 
 
-  const handleEdit = (index) => {
-    const procurementToEdit = procurements[index];
-    setFormData(procurementToEdit);
-    setSelectedProcurementIndex(index);
-    setOpen(true);
-  };
+//HandleDelete
+const handleDelete = async (po_id) => {
+  if (!window.confirm(`Are you sure you want to delete Purchase Order ${po_id}?`)) return;
 
-  const handleDelete = (index) => {
-    const updatedProcurements = procurements.filter((_, i) => i !== index);
-    setProcurements(updatedProcurements);
-  };
+  try {
+    await deletePurchaseOrder(po_id); // Call your API delete function
+    console.log(`✅ Purchase Order ${po_id} deleted successfully.`);
+    fetchPurchaseOrders(); // Refresh the list
+  } catch (error) {
+    console.error(`❌ Failed to delete Purchase Order ${po_id}:`, error);
+  }
+};
+
+  
+   
+
+  
 
   const filteredPurchase =procurements.filter((d) =>
     Object.values(d).some(
@@ -195,26 +251,21 @@ const PurchaseOrder = () => {
         </TableCell>
       </TableRow>
     </TableHead>
-    <TableBody>
-      {dummyProjects
-        .filter((proj) =>
-          `${proj.projectId} ${proj.procurementId} ${proj.purchaseOrderId}`
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())
-        )
-        .map((proj, i) => (
-          <TableRow key={i}>
-            <TableCell>{proj.projectId}</TableCell>
-            <TableCell>{proj.procurementId}</TableCell>
-            <TableCell>{proj.purchaseOrderId}</TableCell>
-            <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <IconButton onClick={() => handleOpenForm(proj.projectId)} color="primary">
-                <AddCircle sx={{ color: "#7267ef" }} />
-              </IconButton>
-            </TableCell>
-          </TableRow>
-        ))}
-    </TableBody>
+   <TableBody>
+  {procurements.map((item, index) => (
+    <TableRow key={item.id}>
+      <TableCell>{item.project}</TableCell>
+      <TableCell>{item.procurement_id}</TableCell>
+      <TableCell>{item.purchase_order}</TableCell>
+      <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+       
+        <IconButton onClick={() => handleOpen(index)} color="primary">
+                    <AddCircle sx={{ color: "#7267ef" }} />
+                  </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
   </Table>
 </Paper>
 
@@ -232,52 +283,51 @@ const PurchaseOrder = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input"
             />
-            <TableContainer sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd' }}>
-              <Table stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>PurchaseOrder ID</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Vendor ID </strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Procurement ID </strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Order Date </strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Dalivery Date</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Total Order Value</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Total Cost</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Payment Terms</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Tax Details</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Order Status</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Invoice Id</strong></TableCell>
-                    <TableCell sx={{ color: '#660000' }}><strong>Actions</strong></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredPurchase.map((p, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{p.purchaseOrderId}</TableCell>
-                      <TableCell>{p.vendorId}</TableCell>
-                      <TableCell>{p.procurementId}</TableCell>
-                      <TableCell>{p.orderDate}</TableCell>
-                      <TableCell>{p.deliveryDate}</TableCell>
-                      <TableCell>{p.totalOrderValue}</TableCell>
-                      <TableCell>{p.totalCost}</TableCell>
-                      <TableCell>{p.paymentTerms}</TableCell>
-                      <TableCell>{p.taxDetails}</TableCell>
-                      <TableCell>{p.orderStatus}</TableCell>
-                      <TableCell>{p.invoiceId}</TableCell>
-                      
-                      <TableCell>
-                        <IconButton color="warning" onClick={() => handleEdit(i)}>
-                          <Edit sx={{ color: "orange" }} />
-                        </IconButton>
-                        <IconButton color="error" onClick={() => handleDelete(i)}>
-                          <Delete sx={{ color: "red" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+           <TableContainer sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd' }}>
+  <Table stickyHeader>
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ color: '#7267ef' }}><strong>PO Number</strong></TableCell>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Vendor</strong></TableCell>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Procurement</strong></TableCell>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Order Date</strong></TableCell>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Delivery Date</strong></TableCell>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Total Value</strong></TableCell>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Payment Terms</strong></TableCell>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Tax Details</strong></TableCell>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Order Status</strong></TableCell>
+        <TableCell sx={{ color: '#7267ef' }}><strong>Invoice ID</strong></TableCell>
+        <TableCell sx={{ color: '#660000' }}><strong>Actions</strong></TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {purchaseOrders.map((p, i) => (
+        <TableRow key={p.id || i}>
+          <TableCell>{p.po_number}</TableCell>
+          <TableCell>{p.vendor}</TableCell>
+          <TableCell>{p.procurement}</TableCell>
+          <TableCell>{p.order_date}</TableCell>
+          <TableCell>{p.delivery_date}</TableCell>
+          <TableCell>{p.total_order_value}</TableCell>
+          <TableCell>{p.payment_terms}</TableCell>
+          <TableCell>{p.tax_details}</TableCell>
+          <TableCell>{p.order_status}</TableCell>
+          <TableCell>{p.invoice_id}</TableCell>
+          <TableCell>
+            <IconButton color="warning" onClick={() => handleEdit(p)}>
+              <Edit sx={{ color: "orange" }} />
+            </IconButton>
+            <IconButton color="error" onClick={() => handleDelete(p.po_number)}
+>
+              <Delete sx={{ color: "red" }} />
+            </IconButton>
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+</TableContainer>
+
           </Paper>
         </Grid>
       </Grid>
@@ -335,7 +385,8 @@ const PurchaseOrder = () => {
       name="vendorId"
       className="input"
       value={formData.vendorId || ''}
-     // disabled // This makes it non-editable
+      onChange={handleChange}
+     
     />
   </Grid>
 
@@ -360,9 +411,20 @@ const PurchaseOrder = () => {
       <Grid container spacing={2}>
         
         <Grid item xs={6}>
+          <label htmlFor="orderDate">Order Date </label>
+          <input
+            type="date"
+            id="orderDate"
+            name="orderDate"
+            className="input"
+            value={formData.orderDate || ''}
+            onChange={handleChange}
+          />
+        </Grid>
+         <Grid item xs={6}>
           <label htmlFor="deliveryDate">Dalivery Date </label>
           <input
-          type="date"
+            type="date"
             id="deliveryDate"
             name="deliveryDate"
             className="input"
@@ -373,6 +435,7 @@ const PurchaseOrder = () => {
         <Grid item xs={6}>
           <label htmlFor="totalOrderValue">Total Order Value</label>
           <input
+            type="number"
             id="totalOrderValue"
             name="totalOrderValue"
             className="input"
@@ -476,7 +539,7 @@ const PurchaseOrder = () => {
                   }
                 }}
               >
-                Submit
+                {isEditMode ? 'Update' : 'Submit'}
               </Button>
         </DialogActions>
       </Dialog>

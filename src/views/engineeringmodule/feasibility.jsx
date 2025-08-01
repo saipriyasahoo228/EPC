@@ -19,7 +19,7 @@ import {
   TableContainer,
   Paper,
 } from "@mui/material";
-import { AddCircle, Edit, Delete } from "@mui/icons-material";
+import { AddCircle, Edit, Delete ,ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import {getProjectsAccept, createFeasibilityStudy, fetchFeasibilityStudies, patchFeasibilityStudy, deleteFeasibilityStudy} from '../../allapi/engineering';
 
@@ -34,8 +34,27 @@ const FeasibilityForm = () => {
   const [formData, setFormData] = useState({});
   const [feasibilityStudies, setFeasibilityStudies] = useState([]);
   const [mode, setMode] = useState('create'); // or 'edit'
-
+  const rowsPerPage = 4;
+  const [currentPage, setCurrentPage] = useState(1);
   const fileInputRef = useRef(null); // to reset file input
+
+  const [feasibilityPage, setFeasibilityPage] = useState(1);
+  const feasibilityRowsPerPage = 5;
+
+
+
+  
+  // ✅ Filtered projects based on search
+  const filteredProjects = projects.filter((proj) =>
+    proj.project_id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // ✅ Pagination Logic
+  const totalPages = Math.ceil(filteredProjects.length / rowsPerPage);
+  const paginatedProjects = filteredProjects.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
 
 
   //Fetch all accepted projects
@@ -179,8 +198,21 @@ const handleDelete = async (feasibilityStudyId) => {
   
 
 
-  const filteredFeasibility = feasibilityStudies.filter((study) =>
-  study.study_title?.toLowerCase().includes(searchQuery.toLowerCase())
+
+const filteredFeasibility = feasibilityStudies.filter((study) =>
+    Object.values(study).some(
+      (val) =>
+        val &&
+        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+  // Total pages for designs
+const feasibityTotalPages = Math.ceil(filteredFeasibility.length / feasibilityRowsPerPage);
+
+// Paginated designs
+const paginatedFeasibility = filteredFeasibility.slice(
+  (feasibilityPage - 1) * feasibilityRowsPerPage,
+  feasibilityPage * feasibilityRowsPerPage
 );
 
 
@@ -191,48 +223,97 @@ const handleDelete = async (feasibilityStudyId) => {
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
         <Grid item xs={12}>
           
-          <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-  <Typography variant="h6" gutterBottom>
-    PROJECT RECORDS
-  </Typography>
+    <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+      <Typography variant="h6" gutterBottom>
+        PROJECT RECORDS
+      </Typography>
 
-  {/* Search Input */}
-  <Box sx={{ my: 2, mx: 1 }}>
-    <input
-      type="text"
-      placeholder="Search Project ID"
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
-      className="input"
-      style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }}
-    />
-  </Box>
+      {/* Search Input */}
+      <Box sx={{ my: 2, mx: 1 }}>
+        <input
+          type="text"
+          placeholder="Search Project ID"
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1); // Reset to page 1 on search
+          }}
+          className="input"
+          style={{
+            width: '100%',
+            padding: '8px',
+            border: '1px solid #ccc',
+            borderRadius: 4,
+          }}
+        />
+      </Box>
 
-  <Table>
-    <TableHead>
-      <TableRow>
-        <TableCell sx={{ color: '#7267ef' }}><strong>Project ID</strong></TableCell>
-        <TableCell sx={{ display: 'flex', justifyContent: 'flex-end', color: '#660000' }}>
-          <strong>Action</strong>
-        </TableCell>
-      </TableRow>
-    </TableHead>
-    <TableBody>
-          {projects
-            .filter(proj => proj.project_id.toLowerCase().includes(searchTerm.toLowerCase()))
-            .map((proj, i) => (
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ color: '#7267ef' }}>
+              <strong>Project ID</strong>
+            </TableCell>
+            <TableCell
+              sx={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                color: '#660000',
+              }}
+            >
+              <strong>Action</strong>
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {paginatedProjects.length > 0 ? (
+            paginatedProjects.map((proj, i) => (
               <TableRow key={i}>
                 <TableCell>{proj.project_id}</TableCell>
-                <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
-                    <AddCircle sx={{ color: "#7267ef" }} />
+                <TableCell
+                  sx={{ display: 'flex', justifyContent: 'flex-end' }}
+                >
+                  <IconButton
+                    onClick={() => handleOpenForm(proj.project_id)}
+                    color="primary"
+                  >
+                    <AddCircle sx={{ color: '#7267ef' }} />
                   </IconButton>
                 </TableCell>
               </TableRow>
-            ))}
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={2} align="center">
+                No records found
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
-  </Table>
-</Paper>
+      </Table>
+
+      {/* ✅ Pagination Icons */}
+      <Box display="flex" justifyContent="flex-end" alignItems="center" mt={2} pr={2}>
+        <IconButton
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((prev) => prev - 1)}
+        >
+          <ArrowBackIos />
+        </IconButton>
+
+        <Typography variant="body2" sx={{ mx: 2 }}>
+          Page {currentPage} of {totalPages || 1}
+        </Typography>
+
+        <IconButton
+          disabled={currentPage >= totalPages}
+          onClick={() => setCurrentPage((prev) => prev + 1)}
+        >
+          <ArrowForwardIos />
+        </IconButton>
+      </Box>
+    </Paper>
+
 
         </Grid>
       </Grid>
@@ -270,7 +351,7 @@ const handleDelete = async (feasibilityStudyId) => {
                 </TableHead>
 
                 <TableBody>
-                  {filteredFeasibility.map((study, index) => (
+                  {paginatedFeasibility.map((study, index) => (
                     <TableRow key={index}>
                       <TableCell>{study.project}</TableCell>
                       <TableCell>{study.feasibility_study_id}</TableCell>
@@ -305,6 +386,26 @@ const handleDelete = async (feasibilityStudyId) => {
                 </TableBody>
               </Table>
             </TableContainer>
+            <Box display="flex" justifyContent="flex-end" alignItems="center" mt={2} pr={2}>
+              <IconButton
+                disabled={feasibilityPage === 1}
+                onClick={() => setFeasibilityPage(prev => prev - 1)}
+              >
+                <ArrowBackIos />
+              </IconButton>
+            
+              <Typography variant="body2" sx={{ mx: 2 }}>
+                Page {feasibilityPage} of {feasibityTotalPages || 1}
+              </Typography>
+            
+              <IconButton
+                disabled={feasibilityPage >= feasibityTotalPages}
+                onClick={() => setFeasibilityPage(prev => prev + 1)}
+              >
+                <ArrowForwardIos />
+              </IconButton>
+            </Box>
+            
           </Paper>
         </Grid>
       </Grid>

@@ -223,12 +223,7 @@ const handleSubmit = async () => {
 };
 
 
-  // const handleDelete = (id) => {
-  //   const deletedTender = tenders.find(t => t.id === id);
-  //   setTenders(tenders.filter(tender => tender.id !== id));
-  //   logAuditTrail('Deleted', id, deletedTender, {});
-  // };
-
+  
   const handleDelete = async (tenderId) => {
   if (!window.confirm("Are you sure you want to delete this tender?")) {
     return;
@@ -284,19 +279,6 @@ const handleSubmit = async () => {
     doc.save("tender-report.pdf");
   };
 
-  // Pagination logic
-  // const startIndex = (currentPage - 1) * rowsPerPage;
-  // const currentTenders = tenders.slice(startIndex, startIndex + rowsPerPage);
-  // const totalPages = Math.ceil(tenders.length / rowsPerPage);
-
-
-  // const filteredTenders = tenders.filter((d) =>
-  //   Object.values(d).some(
-  //     (val) =>
-  //       val &&
-  //       val.toString().toLowerCase().includes(searchQuery.toLowerCase())
-  //   )
-  // );
 
 
   const filteredTenders = tenders.filter((d) => {

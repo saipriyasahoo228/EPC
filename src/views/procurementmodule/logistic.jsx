@@ -324,16 +324,6 @@ const LogisticForm = () => {
     />
   </Grid>
 
-  <Grid item xs={6}>
-    <label htmlFor="logisticId">Logistic ID</label>
-    <input
-      id="logisticId"
-      name="logisticId"
-      className="input"
-      value={formData.logisticId || ''}
-      disabled // This makes it non-editable
-    />
-  </Grid>
 
   <Grid item xs={6}>
     <label htmlFor="projectId">Project ID</label>

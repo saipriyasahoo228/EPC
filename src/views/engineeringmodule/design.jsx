@@ -19,7 +19,7 @@ import {
   Paper,
 } from "@mui/material";
 import {getProjectsAccept, createDesignPlan, getDesignPlans,updateDesignPlan, deleteDesignPlan } from '../../allapi/engineering';
-import { AddCircle, Edit, Delete } from "@mui/icons-material";
+import { AddCircle, Edit, Delete , ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 
 
@@ -35,6 +35,11 @@ const DesignForm = () => {
   const [projects, setProjects] = useState([]);
   const [editingId, setEditingId] = useState(null); // null means create mode
   const [mode, setMode] = useState('create'); // or 'edit'
+  const rowsPerPage = 4;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [designsPage, setDesignsPage] = useState(1);
+  const designsRowsPerPage = 5;
+
 
 
 
@@ -69,7 +74,7 @@ useEffect(() => {
 }, []);
 
 
-// Handle Submit Logic
+//  Handle Submit Logic
 
 const handleSubmit = async () => {
   const data = new FormData();
@@ -81,7 +86,7 @@ const handleSubmit = async () => {
   data.append('design_name', formData.designName);
   data.append('design_type', formData.designType);
   data.append('prepared_by', formData.preparedBy);
-  data.append('version_number',formData.versionNumber);
+  data.append('version_number', formData.versionNumber);
 
   // Optional fields
   data.append('reviewed_by', formData.reviewedBy || '');
@@ -107,15 +112,17 @@ const handleSubmit = async () => {
   }
 
   try {
+    let response;
+
     if (editingId) {
       // Update mode
       data.append('design_id', formData.designId);
-      await updateDesignPlan(editingId, data);
-      alert('Design updated successfully ✅');
+      response = await updateDesignPlan(editingId, data);
+      alert('✅ Design updated successfully');
     } else {
       // Create mode
-      await createDesignPlan(data);
-      alert('Design submitted successfully ✅');
+      response = await createDesignPlan(data);
+      alert('✅ Design submitted successfully');
     }
 
     await fetchDesigns(); // Refresh list
@@ -125,7 +132,7 @@ const handleSubmit = async () => {
       designName: '',
       designType: '',
       preparedBy: '',
-      versionNumber:'',
+      versionNumber: '',
       reviewedBy: '',
       approvalStatus: '',
       approvalDate: '',
@@ -145,8 +152,22 @@ const handleSubmit = async () => {
     setOpen(false);
 
   } catch (err) {
-    console.error('Submission failed:', err.response?.data || err.message);
-    alert('❌ Submission failed. Check console for details.');
+    // ✅ Show backend error response
+    if (err.response) {
+      console.error('Backend Error:', err.response.data);
+
+      // Convert object errors to readable string
+      const errorMessage = typeof err.response.data === 'object'
+        ? Object.entries(err.response.data)
+            .map(([field, msg]) => `${field}: ${msg}`)
+            .join('\n')
+        : err.response.data;
+
+      alert(`❌ Submission failed:\n${errorMessage}`);
+    } else {
+      console.error('Network/Other Error:', err.message);
+      alert(`❌ Submission failed: ${err.message}`);
+    }
   }
 };
 
@@ -194,16 +215,17 @@ const handleDelete = async (designId) => {
   }
 };
 
-
-
+//Handle Open Form
 
 const handleOpenForm = (projectId) => {
   setMode('create'); // ✅ Explicitly set to create mode
   setSelectedProjectId(projectId);
 
+  const currentYear = new Date().getFullYear(); // ✅ Get current year dynamically
   const paddedId = String(designs.length + 1).padStart(4, '0');
+
   setFormData({
-    designId: `DES-2025-${paddedId}`,
+    designId: `DES-${currentYear}-${paddedId}`,  // ✅ Uses system year
     designName: '',
     designType: '',
     preparedBy: '',
@@ -227,7 +249,6 @@ const handleOpenForm = (projectId) => {
 
 
 
-
   const handleClose = () => setOpen(false);
 
   const handleChange = (e) => {
@@ -243,7 +264,15 @@ const handleOpenForm = (projectId) => {
         val.toString().toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
-  
+  // Total pages for designs
+const designsTotalPages = Math.ceil(filteredDesigns.length / designsRowsPerPage);
+
+// Paginated designs
+const paginatedDesigns = filteredDesigns.slice(
+  (designsPage - 1) * designsRowsPerPage,
+  designsPage * designsRowsPerPage
+);
+
 
   return (
     <>
@@ -252,7 +281,8 @@ const handleOpenForm = (projectId) => {
         <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
   <Grid item xs={12}>
     
-    <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+   
+<Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
   <Typography variant="h6" gutterBottom>
     PROJECT RECORDS
   </Typography>
@@ -281,6 +311,7 @@ const handleOpenForm = (projectId) => {
     <TableBody>
       {projects
         .filter(proj => proj.project_id.toLowerCase().includes(searchTerm.toLowerCase()))
+        .slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
         .map((proj, i) => (
           <TableRow key={i}>
             <TableCell>{proj.project_id}</TableCell>
@@ -293,8 +324,32 @@ const handleOpenForm = (projectId) => {
         ))}
     </TableBody>
   </Table>
-</Paper>
 
+ {/* Pagination Icons */}
+<Box display="flex" justifyContent="flex-end" alignItems="center" mt={2} pr={2}>
+  <IconButton
+    disabled={currentPage === 1}
+    onClick={() => setCurrentPage(prev => prev - 1)}
+  >
+    <ArrowBackIos />
+  </IconButton>
+
+  <Typography variant="body2" sx={{ mx: 2 }}>
+    Page {currentPage} of {Math.ceil(projects.filter(proj => proj.project_id.toLowerCase().includes(searchTerm.toLowerCase())).length / rowsPerPage)}
+  </Typography>
+
+  <IconButton
+    disabled={
+      currentPage >=
+      Math.ceil(projects.filter(proj => proj.project_id.toLowerCase().includes(searchTerm.toLowerCase())).length / rowsPerPage)
+    }
+    onClick={() => setCurrentPage(prev => prev + 1)}
+  >
+    <ArrowForwardIos />
+  </IconButton>
+</Box>
+
+</Paper>
   </Grid>
 </Grid>
       <Grid container spacing={2}>
@@ -332,7 +387,7 @@ const handleOpenForm = (projectId) => {
             </TableRow>
           </TableHead>
           <TableBody>
-  {filteredDesigns.map((d, i) => (
+  {paginatedDesigns.map((d, i) => (
     <TableRow key={i}>
       <TableCell>{d.project}</TableCell>
       <TableCell>{d.design_id}</TableCell>
@@ -366,6 +421,26 @@ const handleOpenForm = (projectId) => {
 
         </Table>
       </TableContainer>
+     <Box display="flex" justifyContent="flex-end" alignItems="center" mt={2} pr={2}>
+  <IconButton
+    disabled={designsPage === 1}
+    onClick={() => setDesignsPage(prev => prev - 1)}
+  >
+    <ArrowBackIos />
+  </IconButton>
+
+  <Typography variant="body2" sx={{ mx: 2 }}>
+    Page {designsPage} of {designsTotalPages || 1}
+  </Typography>
+
+  <IconButton
+    disabled={designsPage >= designsTotalPages}
+    onClick={() => setDesignsPage(prev => prev + 1)}
+  >
+    <ArrowForwardIos />
+  </IconButton>
+</Box>
+
     </Paper>
   </Grid>
 </Grid>

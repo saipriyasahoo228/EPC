@@ -17,7 +17,7 @@ import {
   TableContainer,
   Paper,
 } from "@mui/material";
-import { AddCircle, Edit, Delete } from "@mui/icons-material";
+import { AddCircle, Edit, Delete,ArrowBackIos, ArrowForwardIos  } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import {getProjectsAccept } from '../../allapi/engineering';
 import {createMaterialProcurement, getMaterialProcurements,deleteProcurement,updateMaterialProcurement } from '../../allapi/procurement';
@@ -30,6 +30,10 @@ const MaterialForm = () => {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [mode, setMode] = useState('create'); // or 'update'
+  const rowsPerPage = 1;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [materialPage, setMaterialPage] = useState(1);
+  const materialRowsPerPage = 5;
 
 
   const [formData, setFormData] = useState({
@@ -51,6 +55,21 @@ const MaterialForm = () => {
   
   const [procurements, setProcurements] = useState([]);
   
+
+  
+  // ✅ Filtered projects based on search
+  const filteredProjects = projects.filter((proj) =>
+    proj.project_id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // ✅ Pagination Logic
+  const totalPages = Math.ceil(filteredProjects.length / rowsPerPage);
+  const paginatedProjects = filteredProjects.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+
+    
 
 
   //Fetch All Accepted Projects
@@ -253,6 +272,14 @@ const handleDelete = async (id) => {
     )
   );
 
+const materialTotalPages = Math.ceil(filteredProcurements.length / materialRowsPerPage);
+
+// Paginated designs
+const paginatedMaterial = filteredProcurements.slice(
+  (materialPage - 1) * materialRowsPerPage,
+  materialPage * materialRowsPerPage
+);
+
   return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Material Procurement</Typography>
@@ -286,7 +313,7 @@ const handleDelete = async (id) => {
       </TableRow>
     </TableHead>
     <TableBody>
-  {projects
+  {paginatedProjects
     .filter((proj) =>
       proj.project_id?.toLowerCase().includes(searchTerm.toLowerCase())
     )
@@ -303,6 +330,27 @@ const handleDelete = async (id) => {
 </TableBody>
 
   </Table>
+
+   {/* ✅ Pagination Icons */}
+           <Box display="flex" justifyContent="flex-end" alignItems="center" mt={2} pr={2}>
+             <IconButton
+               disabled={currentPage === 1}
+               onClick={() => setCurrentPage((prev) => prev - 1)}
+             >
+               <ArrowBackIos />
+             </IconButton>
+     
+             <Typography variant="body2" sx={{ mx: 2 }}>
+               Page {currentPage} of {totalPages || 1}
+             </Typography>
+     
+             <IconButton
+               disabled={currentPage >= totalPages}
+               onClick={() => setCurrentPage((prev) => prev + 1)}
+             >
+               <ArrowForwardIos />
+             </IconButton>
+           </Box>
 </Paper>
 
         </Grid>
@@ -340,7 +388,7 @@ const handleDelete = async (id) => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-  {filteredProcurements.map((p, i) => (
+  {paginatedMaterial.map((p, i) => (
     <TableRow key={i}>
       <TableCell>{p.project}</TableCell>
       <TableCell>{p.procurement_id}</TableCell>
@@ -369,6 +417,25 @@ const handleDelete = async (id) => {
 
               </Table>
             </TableContainer>
+             <Box display="flex" justifyContent="flex-end" alignItems="center" mt={2} pr={2}>
+                              <IconButton
+                                disabled={materialPage === 1}
+                                onClick={() => setMaterialPage(prev => prev - 1)}
+                              >
+                                <ArrowBackIos />
+                              </IconButton>
+                            
+                              <Typography variant="body2" sx={{ mx: 2 }}>
+                                Page {materialPage} of {materialTotalPages || 1}
+                              </Typography>
+                            
+                              <IconButton
+                                disabled={materialPage >= materialTotalPages}
+                                onClick={() => setMaterialPage(prev => prev + 1)}
+                              >
+                                <ArrowForwardIos />
+                              </IconButton>
+                            </Box>
           </Paper>
         </Grid>
       </Grid>

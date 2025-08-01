@@ -23,6 +23,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import HistoryIcon from '@mui/icons-material/History';
 import { v4 as uuidv4 } from 'uuid';
+import TablePagination from '@mui/material/TablePagination';
 import { getTenders,getTenderbyID,createProjectFromTender,cancelTender,getProjects } from '../../allapi/tenderAllocation'; // Adjust the path as needed
 
 
@@ -34,11 +35,12 @@ const ProjectCreation = () => {
   const [selectedTender, setSelectedTender] = useState(null);
   const [mode, setMode] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  //const [projects, setProjects] = useState([]);
   const [projectData, setProjectData] = useState([]);
   const [auditTrails, setAuditTrails] = useState([]);
   const [auditDialogOpen, setAuditDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5); // Default: 5 rows per page
   const [formData, setFormData] = useState({
     jobAllocationDate: '',
     govtProjectId: '',
@@ -60,6 +62,21 @@ const ProjectCreation = () => {
     tender.tenderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
     tender.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleChangePage = (event, newPage) => {
+  setPage(newPage);
+};
+
+const handleChangeRowsPerPage = (event) => {
+  setRowsPerPage(parseInt(event.target.value, 10));
+  setPage(0);
+};
+
+const paginatedData = projectData.slice(
+  page * rowsPerPage,
+  page * rowsPerPage + rowsPerPage
+);
+
 
 //Fetch Tender Details
 useEffect(() => {
@@ -336,7 +353,7 @@ const handleSubmit = async () => {
 
 
 {/* Project List Table */}
-<Box mt={4}>
+{/* <Box mt={4}>
   <Typography variant="h6" sx={{ color: '#7267ef', mb: 1 }}>
     PROJECT ALLOCATION REPORT
   </Typography>
@@ -388,7 +405,71 @@ const handleSubmit = async () => {
       </TableBody>
     </Table>
   </TableContainer>
+</Box> */}
+
+
+<Box mt={4}>
+  <Typography variant="h6" sx={{ color: '#7267ef', mb: 1 }}>
+    PROJECT ALLOCATION REPORT
+  </Typography>
+  <TableContainer component={Paper} sx={{ border: '1px solid #7267ef' }}>
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableCell sx={{ color: '#7267ef' }}>Tender ID</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Project ID</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Govt Project ID</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Job Allocation Date</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Allocation State</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Refund Date</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Cancellation Note</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Status</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {paginatedData.length > 0 ? (
+          paginatedData.map((proj) => (
+            <TableRow key={proj.id}>
+              <TableCell>{proj.tender}</TableCell>
+              <TableCell>{proj.project_id || '-'}</TableCell>
+              <TableCell>{proj.govt_project_id || '-'}</TableCell>
+              <TableCell>{proj.job_allocation_date || '-'}</TableCell>
+              <TableCell>{proj.allocation_state || '-'}</TableCell>
+              <TableCell>{proj.security_money_refund_date || '-'}</TableCell>
+              <TableCell>{proj.description || '-'}</TableCell>
+              <TableCell>
+                {proj.status === 'Accept' ? (
+                  <CheckCircleIcon color="success" />
+                ) : proj.status === 'Cancel' ? (
+                  <CancelIcon color="error" />
+                ) : (
+                  <HourglassEmptyIcon color="disabled" />
+                )}
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={8} align="center">
+              No project records found.
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+    {/* Pagination Component */}
+    <TablePagination
+      rowsPerPageOptions={[5, 10, 25]}
+      component="div"
+      count={projectData.length}
+      rowsPerPage={rowsPerPage}
+      page={page}
+      onPageChange={handleChangePage}
+      onRowsPerPageChange={handleChangeRowsPerPage}
+    />
+  </TableContainer>
 </Box>
+
 
 
       {/* Main Dialog for tender actions */}

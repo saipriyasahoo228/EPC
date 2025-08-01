@@ -91,3 +91,56 @@ export const deleteProcurement = async (procurementId) => {
     throw error;
   }
 };
+
+//POST API FOR PURCHASE ORDER
+
+export const createPurchaseOrder = async (formData) => {
+  try {
+    const response = await api.post('/procurement/purchase-order/', formData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error creating purchase order:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+//Get API to fetch purchase-order
+export const getPurchaseOrders = async () => {
+  try {
+    const response = await api.get('/procurement/purchase-order/');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching purchase orders:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+//Delete api for purchase order
+// src/api/purchaseOrder.js (or wherever your API utilities are defined)
+export const deletePurchaseOrder = async (purchaseOrderId) => {
+  try {
+    const response = await api.delete(`/procurement/purchase-order/${purchaseOrderId}/`);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Delete failed:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const updatePurchaseOrder = async (po_number, formData) => {
+  try {
+    const response = await api.patch(`/procurement/purchase-order/${po_number}/`, formData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error updating purchase order:', error.response?.data || error.message);
+    throw error;
+  }
+};
