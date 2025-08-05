@@ -1,0 +1,1 @@
+import{a as t,A as r,g as a,b as n}from"./auth-4s9nFscl.js";const o=t.create({baseURL:r});o.interceptors.request.use(e=>{const{accessToken:s}=a();return s&&(e.headers.Authorization=`Bearer ${s}`),e});o.interceptors.response.use(e=>e,e=>(e.response&&e.response.status===401&&(console.warn("Access token expired or invalid. Logging out..."),n()),Promise.reject(e)));export{o as a};
