@@ -1,0 +1,1 @@
+import{j as o}from"./main-DTv03d8r.js";import{c as r}from"./TableRow-DyRCyY9b.js";const h=r(o.jsx("path",{d:"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m5 11h-4v4h-2v-4H7v-2h4V7h2v4h4z"}));export{h as A};
