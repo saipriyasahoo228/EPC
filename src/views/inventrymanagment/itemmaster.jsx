@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import {
   Button,
   Dialog,
@@ -20,6 +20,7 @@ import { Edit, Delete } from '@mui/icons-material';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import CloseIcon from '@mui/icons-material/Close';
+import { createInventoryItem, getInventoryItems,deleteInventoryItem, updateInventoryItem } from '../../allapi/inventory';
 
 
 const ItemMaster = () => {
@@ -28,48 +29,98 @@ const ItemMaster = () => {
   const [editItem, setEditItem] = useState(null); // To track the item being edited
   const [items, setItems] = useState([]);
   const [formData, setFormData] = useState({
-    itemName: '',
-    category: '',
-    unitOfMeasure: '',
-    minStockLevel: '',
-    maxStockLevel: '',
-    reorderLevel: '',
-    storageLocation: '',
-    itemStatus: '',
-  });
+  itemName: '',
+  category: '',
+  netWeight: '',
+  unitOfMeasure: '',
+  minStockLevel: '',
+  maxStockLevel: '',
+  reorderLevel: '',
+  storageLocation: '',
+  itemStatus: 'Active',
+});
+
+
+const fetchItems = async () => {
+  try {
+    const res = await getInventoryItems();
+    setItems(res);
+  } catch (err) {
+    console.error('❌ Error fetching items:', err);
+  }
+};
+
+useEffect(() => {
+  fetchItems();
+}, []);
+
+
+
 
   // Pagination state
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
+  // const handleOpen = (item = null) => {
+  //   setEditItem(item); // Set the item to edit if passed
+  //   setOpen(true);
+  //   if (item) {
+  //     // Pre-fill the form with existing item data for editing
+  //     setFormData({
+  //       itemName: item.itemName,
+  //       category: item.category,
+  //       unitOfMeasure: item.unitOfMeasure,
+  //       minStockLevel: item.minStockLevel,
+  //       maxStockLevel: item.maxStockLevel,
+  //       reorderLevel: item.reorderLevel,
+  //       storageLocation: item.storageLocation,
+  //       itemStatus: item.itemStatus,
+  //     });
+  //   } else {
+  //     setFormData({
+  //       itemName: '',
+  //       category: '',
+  //       unitOfMeasure: '',
+  //       minStockLevel: '',
+  //       maxStockLevel: '',
+  //       reorderLevel: '',
+  //       storageLocation: '',
+  //       itemStatus: '',
+  //     });
+  //   }
+  // };
+
   const handleOpen = (item = null) => {
-    setEditItem(item); // Set the item to edit if passed
-    setOpen(true);
-    if (item) {
-      // Pre-fill the form with existing item data for editing
-      setFormData({
-        itemName: item.itemName,
-        category: item.category,
-        unitOfMeasure: item.unitOfMeasure,
-        minStockLevel: item.minStockLevel,
-        maxStockLevel: item.maxStockLevel,
-        reorderLevel: item.reorderLevel,
-        storageLocation: item.storageLocation,
-        itemStatus: item.itemStatus,
-      });
-    } else {
-      setFormData({
-        itemName: '',
-        category: '',
-        unitOfMeasure: '',
-        minStockLevel: '',
-        maxStockLevel: '',
-        reorderLevel: '',
-        storageLocation: '',
-        itemStatus: '',
-      });
-    }
-  };
+  setEditItem(item);
+  setOpen(true);
+  if (item) {
+    setFormData({
+      itemId:item.item_id || '',
+      itemName: item.item_name || '',
+      category: item.category || '',
+      netWeight: item.net_weight || '',
+      unitOfMeasure: item.unit_of_measure || '',
+      minStockLevel: item.minimum_stock_level || '',
+      maxStockLevel: item.maximum_stock_level || '',
+      reorderLevel: item.reorder_level || '',
+      storageLocation: item.storage_location || '',
+      itemStatus: item.item_status || '',
+    });
+  } else {
+    setFormData({
+      itemId: '',
+      itemName: '',
+      category: '',
+      netWeight: '',
+      unitOfMeasure: '',
+      minStockLevel: '',
+      maxStockLevel: '',
+      reorderLevel: '',
+      storageLocation: '',
+      itemStatus: '',
+    });
+  }
+};
 
   const handleClose = () => setOpen(false);
 
@@ -84,39 +135,181 @@ const ItemMaster = () => {
     return `ITM-${currentYear}-${String(nextId).padStart(3, '0')}`; // Return item ID with current year
   };
 
-  const handleSubmit = () => {
-    if (editItem) {
-      // If editing, update the existing item
-      const updatedItems = items.map((item) =>
-        item.itemId === editItem.itemId ? { ...item, ...formData } : item
-      );
-      setItems(updatedItems);
-    } else {
-      // If adding a new item, create a new item and add to the list
-      const newItem = {
-        itemId: generateItemId(),
-        ...formData,
-      };
-      setItems([...items, newItem]);
-    }
-    setFormData({
-      itemName: '',
-      category: '',
-      unitOfMeasure: '',
-      minStockLevel: '',
-      maxStockLevel: '',
-      reorderLevel: '',
-      storageLocation: '',
-      itemStatus: '',
-    });
-    setEditItem(null); // Clear edit state
-    handleClose();
-  };
+ 
 
-  const handleDelete = (itemId) => {
-    const updatedItems = items.filter((item) => item.itemId !== itemId);
-    setItems(updatedItems);
-  };
+ 
+
+
+// const handleSubmit = async () => {
+//   const form = new FormData();
+
+//   form.append('item_name', formData.itemName);
+//   form.append('category', formData.category);
+//   form.append('net_weight', formData.netWeight);
+//   form.append('unit_of_measure', formData.unitOfMeasure);
+//   form.append('minimum_stock_level', formData.minStockLevel);
+//   form.append('maximum_stock_level', formData.maxStockLevel);
+//   form.append('reorder_level', formData.reorderLevel);
+//   form.append('storage_location', formData.storageLocation);
+//   form.append('item_status', formData.itemStatus);
+
+//   try {
+//     const res = await createInventoryItem(form);
+
+//     // ✅ Success alert
+//     alert(`✅ Item Created Successfully!\nItem ID: ${res.item_id || 'N/A'}`);
+//     console.log('✅ Item Created:', res);
+
+//     // Close dialog
+//     handleClose();
+//   } catch (err) {
+//     console.error('❌ Error:', err);
+
+//     // ❌ Show backend error message if available
+//     if (err.response && err.response.data) {
+//       const errorMsg =
+//         typeof err.response.data === 'string'
+//           ? err.response.data
+//           : JSON.stringify(err.response.data);
+
+//       alert(`⚠️ Failed to create item:\n${errorMsg}`);
+//     } else {
+//       alert('⚠️ Failed to create item. Please try again.');
+//     }
+//   }
+// };
+
+
+
+// const handleSubmit = async () => {
+//   const form = new FormData();
+
+//   // Convert camelCase → snake_case for API
+//   form.append('item_name', formData.itemName);
+//   form.append('category', formData.category);
+//   form.append('net_weight', formData.netWeight || 0);
+//   form.append('unit_of_measure', formData.unitOfMeasure);
+//   form.append('minimum_stock_level', formData.minStockLevel || 0);
+//   form.append('maximum_stock_level', formData.maxStockLevel || 0);
+//   form.append('reorder_level', formData.reorderLevel || 0);
+//   form.append('storage_location', formData.storageLocation);
+//   form.append('item_status', formData.itemStatus);
+
+//   try {
+//     let res;
+
+//     if (editItem && editItem.item_id) {
+//       // ✅ Update existing item
+//       res = await updateInventoryItem(editItem.item_id, form);
+//       alert(`✅ Item ${editItem.item_id} updated successfully!`);
+//       console.log('✅ Item Updated:', res);
+//       await fetchItems();
+
+//       // Update table instantly
+//       setItems((prev) =>
+//         prev.map((it) => (it.item_id === editItem.item_id ? { ...it, ...res } : it))
+//       );
+
+//     } else {
+//       // ✅ Create new item
+//       res = await createInventoryItem(form);
+//       alert(`✅ Item Created Successfully!\nItem ID: ${res.item_id || 'N/A'}`);
+//       console.log('✅ Item Created:', res);
+
+//       // Add new item to table
+//       setItems((prev) => [...prev, res]);
+//     }
+
+//     // Close dialog
+//     handleClose();
+
+//   } catch (err) {
+//     console.error('❌ Error:', err);
+
+//     // ❌ Show backend error message if available
+//     if (err.response && err.response.data) {
+//       const errorMsg =
+//         typeof err.response.data === 'string'
+//           ? err.response.data
+//           : JSON.stringify(err.response.data);
+//       alert(`⚠️ Failed to save item:\n${errorMsg}`);
+//     } else {
+//       alert('⚠️ Failed to save item. Please try again.');
+//     }
+//   }
+// };
+
+const handleSubmit = async () => {
+  // ✅ Frontend Validation
+  if (!(Number(formData.minStockLevel) < Number(formData.reorderLevel) && Number(formData.reorderLevel) < Number(formData.maxStockLevel))) {
+    alert("⚠️ Validation Error:\nEnsure that: Minimum Stock Level < Reorder Level < Maximum Stock Level");
+    return; // Stop submission
+  }
+
+  const form = new FormData();
+  form.append('item_name', formData.itemName);
+  form.append('category', formData.category);
+  form.append('net_weight', formData.netWeight || 0);
+  form.append('unit_of_measure', formData.unitOfMeasure);
+  form.append('minimum_stock_level', formData.minStockLevel || 0);
+  form.append('maximum_stock_level', formData.maxStockLevel || 0);
+  form.append('reorder_level', formData.reorderLevel || 0);
+  form.append('storage_location', formData.storageLocation);
+  form.append('item_status', formData.itemStatus);
+
+  try {
+    let res;
+
+    if (editItem && editItem.item_id) {
+      // ✅ Update existing item
+      res = await updateInventoryItem(editItem.item_id, form);
+      alert(`✅ Item ${editItem.item_id} updated successfully!`);
+      await fetchItems(); // refresh data
+    } else {
+      // ✅ Create new item
+      res = await createInventoryItem(form);
+      alert(`✅ Item Created Successfully!\nItem ID: ${res.item_id || 'N/A'}`);
+      await fetchItems(); // refresh data
+    }
+
+    // ✅ Close dialog
+    handleClose();
+
+  } catch (err) {
+    console.error('❌ Error:', err);
+
+    if (err.response && err.response.data) {
+      let errorMsg =
+        typeof err.response.data === 'string'
+          ? err.response.data
+          : JSON.stringify(err.response.data);
+      alert(`⚠️ Failed to save item:\n${errorMsg}`);
+    } else {
+      alert('⚠️ Failed to save item. Please try again.');
+    }
+  }
+};
+
+
+  const handleDelete = async (itemId) => {
+  if (window.confirm(`Are you sure you want to delete item ${itemId}?`)) {
+    try {
+      const res = await deleteInventoryItem(itemId);
+      alert(`✅ Item ${itemId} deleted successfully!`);
+
+      // Refresh items list after delete
+      setItems((prev) => prev.filter((item) => item.item_id !== itemId));
+    } catch (err) {
+      console.error('❌ Error deleting item:', err);
+
+      if (err.response && err.response.data) {
+        alert(`⚠️ Failed to delete item:\n${JSON.stringify(err.response.data)}`);
+      } else {
+        alert('⚠️ Failed to delete item. Please try again.');
+      }
+    }
+  }
+};
 
   const filteredItems = items.filter((d) =>
     Object.values(d).some(
@@ -143,6 +336,7 @@ const ItemMaster = () => {
       item.itemId,
       item.itemName,
       item.category,
+      item.netWeight,
       item.unitOfMeasure,
       item.minStockLevel,
       item.maxStockLevel,
@@ -157,6 +351,7 @@ const ItemMaster = () => {
           'Item ID',
           'Name',
           'Category',
+          'Net Weight',
           'Unit',
           'Min Stock',
           'Max Stock',
@@ -188,10 +383,16 @@ const ItemMaster = () => {
 
         <DialogContent>
           <Grid container spacing={2} direction="column" sx={{ mt: 1 }}>
+            
             <Grid item xs={12}>
-              <label>Item ID (Auto)</label>
-              <input className="input" disabled value={editItem ? editItem.itemId : generateItemId()} />
-            </Grid>
+  <label>Item ID</label>
+  <input
+    className="input"
+    disabled
+    value={editItem ? editItem.item_id : generateItemId()}
+  />
+</Grid>
+
             <Grid item xs={12}>
               <label>Item Name</label>
               <input
@@ -210,6 +411,16 @@ const ItemMaster = () => {
                 value={formData.category}
                 onChange={handleChange}
                 placeholder="e.g., Raw Materials"
+              />
+            </Grid>
+             <Grid item xs={12}>
+              <label>Net Weight</label>
+              <input
+                className="input"
+                name="netWeight"
+                value={formData.netWeight}
+                onChange={handleChange}
+                placeholder="e.g., 70"
               />
             </Grid>
             <Grid item xs={12}>
@@ -283,7 +494,7 @@ const ItemMaster = () => {
             Cancel
           </Button>
           <Button variant="outlined" onClick={handleSubmit} sx={{ borderColor: '#7267ef', color: '#7267ef' }}>
-            Submit
+            {editItem ? 'Update' : 'Submit'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -315,6 +526,7 @@ const ItemMaster = () => {
               <TableCell sx={{ color: '#7267ef' }}><strong>Item ID</strong></TableCell>
               <TableCell sx={{ color: '#7267ef' }}><strong>Name</strong></TableCell>
               <TableCell sx={{ color: '#7267ef' }}><strong>Category</strong></TableCell>
+              <TableCell sx={{ color: '#7267ef' }}><strong>Net Weight</strong></TableCell>
               <TableCell sx={{ color: '#7267ef' }}><strong>Unit</strong></TableCell>
               <TableCell sx={{ color: '#7267ef' }}><strong>Min</strong></TableCell>
               <TableCell sx={{ color: '#7267ef' }}><strong>Max</strong></TableCell>
@@ -327,20 +539,21 @@ const ItemMaster = () => {
           <TableBody>
             {filteredItems.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((item, i) => (
               <TableRow key={i}>
-                <TableCell>{item.itemId}</TableCell>
-                <TableCell>{item.itemName}</TableCell>
+                <TableCell>{item.item_id}</TableCell>
+                <TableCell>{item.item_name}</TableCell>
                 <TableCell>{item.category}</TableCell>
-                <TableCell>{item.unitOfMeasure}</TableCell>
-                <TableCell>{item.minStockLevel}</TableCell>
-                <TableCell>{item.maxStockLevel}</TableCell>
-                <TableCell>{item.reorderLevel}</TableCell>
-                <TableCell>{item.storageLocation}</TableCell>
-                <TableCell>{item.itemStatus}</TableCell>
+                <TableCell>{item.net_weight}</TableCell>
+                <TableCell>{item.unit_of_measure}</TableCell>
+                <TableCell>{item.minimum_stock_level}</TableCell>
+                <TableCell>{item.maximum_stock_level}</TableCell>
+                <TableCell>{item.reorder_level}</TableCell>
+                <TableCell>{item.storage_location}</TableCell>
+                <TableCell>{item.item_status}</TableCell>
                 <TableCell>
                   <IconButton color="warning" onClick={() => handleOpen(item)}>
                     <Edit sx={{ color: "orange" }}/>
                   </IconButton>
-                  <IconButton color="error" onClick={() => handleDelete(item.itemId)}>
+                  <IconButton color="error" onClick={() => handleDelete(item.item_id)}>
                     <Delete sx={{ color: 'red' }} />
                   </IconButton>
                 </TableCell>

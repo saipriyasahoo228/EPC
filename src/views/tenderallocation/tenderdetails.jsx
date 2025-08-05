@@ -34,6 +34,27 @@ const TenderDetailsEntry = () => {
     status: ''
   });
 
+  const resetForm = () => {
+  setFormData({
+    refNo: '',
+    location: '',
+    releaseDate: '',
+    tenderValue: '',
+    emdAmount: '',
+    emdValidity: '',
+    emdConditions: '',
+    authority: '',
+    contact: '',
+    personnel: '',
+    startDate: '',
+    endDate: '',
+    description: '',
+    status: ''
+  });
+  setIsEditing(false);
+  setEditTenderId(null);
+};
+
   const inputRefs = useRef([]);
 
   // Styles
@@ -313,19 +334,23 @@ const currentTenders = filteredTenders.slice(startIndex, startIndex + rowsPerPag
   return (
     <div style={{ padding: '2rem', minHeight: '100vh' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+       
         <button 
-          onClick={() => setShowModal(true)} 
-          style={{ 
-            backgroundColor: '#7267ef', 
-            color: '#fff', 
-            padding: '0.75rem 1.5rem', 
-            borderRadius: '0.5rem', 
-            border: 'none', 
-            cursor: 'pointer' 
-          }}
-        >
-          Add Tender Details
-        </button>
+  onClick={() => {
+    resetForm();
+    setShowModal(true);
+  }} 
+  style={{ 
+    backgroundColor: '#7267ef', 
+    color: '#fff', 
+    padding: '0.75rem 1.5rem', 
+    borderRadius: '0.5rem', 
+    border: 'none', 
+    cursor: 'pointer' 
+  }}
+>
+  Add Tender Details
+</button>
 
         <Badge 
           badgeContent={auditTrail.length} 
