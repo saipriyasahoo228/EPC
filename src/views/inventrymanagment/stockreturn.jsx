@@ -1,7 +1,6 @@
-
-
 // StockMaster.jsx
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
+import axios from 'axios';
 import {
   Dialog,
   DialogTitle,
@@ -20,32 +19,121 @@ import {
   Paper,
   Button,
 } from "@mui/material";
-import { AddCircle, Edit, Delete } from "@mui/icons-material";
+import { AddCircle, Edit, Delete ,ArrowBackIos, ArrowForwardIos} from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
+import { getInventoryItems,createStockReturn,getStockReturns,deleteStockReturn,updateStockReturn } from "../../allapi/inventory";
 
-const dummyItems = [
-  { id: "ITM-2025-001" },
-  { id: "ITM-2025-002" },
-  { id: "ITM-2025-003" },
-];
 
 const StockReturn = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState("");
-  const [formData, setFormData] = useState({});
-  const [stockreturn, setStockReturn] = useState([]);
+  const [inventoryItems, setInventoryItems] = useState([]);
+  const [stockReturns, setStockReturns] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const rowsPerPage = 2;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [formData, setFormData] = useState({
+  itemId: "",
+  returnQuantity: "",
+  returnReason: "",
+  returnBy: "",
+  returnDate: "",
+  stockAdjustmentID: "",
+  adjustmentType: "",
+  wastageReason: "",
+});
+
+// Filter inventory items first
+const filteredInventoryItems = inventoryItems.filter((item) =>
+  item.item_id?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+);
+
+// Calculate total pages based on filtered data
+const totalPages = Math.ceil(filteredInventoryItems.length / rowsPerPage) || 1;
+
+// Slice data for the current page
+const paginatedInventoryItems = filteredInventoryItems.slice(
+  (currentPage - 1) * rowsPerPage,
+  currentPage * rowsPerPage
+);
+
+// Reset to page 1 when search term changes
+useEffect(() => {
+  setCurrentPage(1);
+}, [searchTerm]);
+
+
+
+  useEffect(() => {
+  const fetchItems = async () => {
+    try {
+      const data = await getInventoryItems();
+      setInventoryItems(data); // Make sure the backend returns items in expected structure
+    } catch (error) {
+      console.error("Failed to fetch inventory items:", error);
+    }
+  };
+
+  fetchItems();
+}, []);
+
+
+  // Fetch stock returns
+  const fetchStockReturns = async () => {
+    try {
+      const data = await getStockReturns();
+      setStockReturns(data);
+    } catch (err) {
+      console.error('Failed to load stock returns:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchStockReturns(); // Fetch on mount
+  }, []);
+
+
+//Delete api 
+const handleDelete = async (returnId) => {
+  const confirmed = window.confirm(`Are you sure you want to delete Return ID: ${returnId}?`);
+
+  if (!confirmed) return;
+
+  try {
+    await deleteStockReturn(returnId); // Call your delete API
+    alert(`✅ Return ${returnId} deleted successfully.`);
+    fetchStockReturns(); // Refresh the list
+  } catch (error) {
+    console.error('❌ Error deleting return:', error);
+    alert(`❌ Failed to delete return: ${error.message}`);
+  }
+};
+
+
+    const filteredStockReturn = stockReturns.filter((item) =>
+    Object.values(item).some(
+      (val) =>
+        val &&
+        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+
+
+ 
 
   const handleOpenForm = (itemId) => {
-    const currentYear = new Date().getFullYear();
-    setSelectedItemId(itemId);
-    setFormData({
-      itemId,
-      stockReturnId: `RET-${currentYear}-${stockreturn.length + 1}`,
-    });
-    setOpen(true);
-  };
+  const currentYear = new Date().getFullYear();
+  const paddedId = String(stockReturns.length + 1).padStart(4, '0'); // Pads to 4 digits
+  setSelectedItemId(itemId);
+  setFormData({
+    itemId,
+    stockReturnId: `RET-${currentYear}-${paddedId}`,
+  });
+  setOpen(true);
+};
 
   const handleClose = () => {
     setFormData({});
@@ -62,45 +150,79 @@ const StockReturn = () => {
 };
 
 
+// 🔹 Reset form helper
+const resetForm = () => {
+  setFormData({
+    itemId: "",
+    returnQuantity: "",
+    returnReason: "",
+    returnBy: "",
+    returnDate: "",
+    stockAdjustmentID: "",
+    adjustmentType: "",
+    wastageReason: "",
+  });
+  setEditingId(null);
+};
 
-  const handleSubmit = () => {
-    const newReturn = { ...formData, itemId: selectedItemId };
-    const exists = stockreturn.find(
-      (item) => item.stockReturnId === newReturn.stockReturnId
-    );
+// 🔹 Edit button click handler
+const handleEdit = (item) => {
+  setEditingId(item.return_id);
+  setFormData({
+    itemId: item.item,
+    returnQuantity: item.return_quantity,
+    returnReason: item.return_reason,
+    returnBy: item.returned_by,
+    returnDate: item.return_date,
+    stockAdjustmentID: item.stock_adjustment_id,
+    adjustmentType: item.adjustment_type,
+    wastageReason: item.wastage_reason || "",
+  });
+  setOpen(true);
+};
 
-    if (exists) {
-      const updated = stockreturn.map((item) =>
-        item.stockReturnId === newReturn.stockReturnId ? newReturn : item
+
+
+// 🔹 Submit form handler (Add + Edit)
+const handleSubmit = async () => {
+  const payload = {
+    item: formData.itemId,
+    return_quantity: formData.returnQuantity,
+    return_reason: formData.returnReason,
+    returned_by: formData.returnBy,
+    return_date: formData.returnDate,
+    stock_adjustment_id: formData.stockAdjustmentID,
+    adjustment_type: formData.adjustmentType.toLowerCase(), // Backend expects lowercase
+    wastage_reason: formData.wastageReason || "",
+  };
+
+  try {
+    if (editingId) {
+      // ✅ Update
+      await updateStockReturn(editingId, payload);
+      setStockReturns((prev) =>
+        prev.map((sr) =>
+          sr.return_id === editingId ? { ...sr, ...payload } : sr
+        )
       );
-      setStockReturn(updated);
+      alert(`✅ Stock return ${editingId} updated successfully!`);
     } else {
-      setStockReturn([...stockreturn, newReturn]);
+      // ✅ Create
+      const res = await createStockReturn(payload); // POST API
+      fetchStockReturns(); // refresh table
+      alert(`✅ Stock return ${res.return_id} created successfully!`);
     }
 
-    handleClose();
-  };
+    setOpen(false);
+    resetForm(); // clear form after submit
+  } catch (error) {
+    console.error("❌ Error submitting stock return:", error);
+  }
+};
 
-  const handleEdit = (item) => {
-    setFormData({ ...item });
-    setSelectedItemId(item.itemId);
-    setOpen(true);
-  };
 
-  const handleDelete = (stockReturnId) => {
-    const updatedItems = stockreturn.filter(
-      (item) => item.stockReturnId !== stockReturnId
-    );
-    setStockReturn(updatedItems);
-  };
 
-  const filteredStockReturn = stockreturn.filter((d) =>
-    Object.values(d).some(
-      (val) =>
-        val &&
-        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+ 
 
   return (
     <>
@@ -148,26 +270,43 @@ const StockReturn = () => {
                   </TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
-                {dummyItems
-                  .filter((proj) =>
-                    proj.id.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map((proj, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{proj.id}</TableCell>
-                      <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
-                        <IconButton
-                          onClick={() => handleOpenForm(proj.id)}
-                          color="primary"
-                        >
-                          <AddCircle sx={{ color: "#7267ef" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+             <TableBody>
+  {paginatedInventoryItems.map((item, i) => (
+    <TableRow key={i}>
+      <TableCell>{item.item_id}</TableCell>
+      <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <IconButton
+          onClick={() => handleOpenForm(item.item_id)}
+          color="primary"
+        >
+          <AddCircle sx={{ color: "#7267ef" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
             </Table>
+             <Box display="flex" justifyContent="flex-end" alignItems="center" mt={2} pr={2}>
+  <IconButton
+    disabled={currentPage === 1}
+    onClick={() => setCurrentPage((prev) => prev - 1)}
+  >
+    <ArrowBackIos />
+  </IconButton>
+
+  <Typography variant="body2" sx={{ mx: 2 }}>
+    Page {currentPage} of {totalPages}
+  </Typography>
+
+  <IconButton
+    disabled={currentPage >= totalPages}
+    onClick={() => setCurrentPage((prev) => prev + 1)}
+  >
+    <ArrowForwardIos />
+  </IconButton>
+</Box>
+
           </Paper>
         </Grid>
       </Grid>
@@ -209,28 +348,29 @@ const StockReturn = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredStockReturn.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{item.itemId}</TableCell>
-                      <TableCell>{item.stockReturnId}</TableCell>
-                      <TableCell>{item.returnQuantity}</TableCell>
-                      <TableCell>{item.returnReason}</TableCell>
-                      <TableCell>{item.returnBy}</TableCell>
-                      <TableCell>{item.returnDate}</TableCell>
-                      <TableCell>{item.stockAdjustmentID}</TableCell>
-                      <TableCell>{item.adjustmentType}</TableCell>
-                      <TableCell>{item.wastageReason}</TableCell>
-                      <TableCell>
-                        <IconButton color="warning" onClick={() => handleEdit(item)}>
-                          <Edit sx={{ color: "orange" }} />
-                        </IconButton>
-                        <IconButton color="error" onClick={() => handleDelete(item.stockReturnId)}>
-                          <Delete sx={{ color: "red" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+  {filteredStockReturn.map((item, index) => (
+    <TableRow key={index}>
+      <TableCell>{item.item}</TableCell>
+      <TableCell>{item.return_id}</TableCell>
+      <TableCell>{item.return_quantity}</TableCell>
+      <TableCell>{item.return_reason}</TableCell>
+      <TableCell>{item.returned_by}</TableCell>
+      <TableCell>{item.return_date}</TableCell>
+      <TableCell>{item.stock_adjustment_id}</TableCell>
+      <TableCell>{item.adjustment_type}</TableCell>
+      <TableCell>{item.wastage_reason}</TableCell>
+      <TableCell>
+        <IconButton color="warning" onClick={() => handleEdit(item)}>
+          <Edit sx={{ color: "orange" }} />
+        </IconButton>
+        <IconButton color="error" onClick={() => handleDelete(item.return_id)}>
+          <Delete sx={{ color: "red" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
               </Table>
             </TableContainer>
           </Paper>
@@ -406,7 +546,7 @@ const StockReturn = () => {
              }
            }}
          >
-           Submit
+            {editingId ? "Update Return" : "Submit Return"}
          </Button>
         </DialogActions>
       </Dialog>

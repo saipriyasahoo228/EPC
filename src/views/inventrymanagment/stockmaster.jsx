@@ -1,7 +1,7 @@
 
 
 // StockMaster.jsx
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -22,80 +22,124 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
+import { getInventoryItems,createStock,getStockManagement  } from "../../allapi/inventory";
 
-const dummyItems = [
-  { id: "ITM-2025-001" },
-  { id: "ITM-2025-002" },
-  { id: "ITM-2025-003" },
-];
+
 
 const StockMaster = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [items, setItems] = useState([]);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [formData, setFormData] = useState({});
   const [stockmanagement, setStockManagement] = useState([]);
+  const [stockList, setStockList] = useState([]);
 
+
+  
   const handleOpenForm = (itemId) => {
-    const currentYear = new Date().getFullYear();
-    setSelectedItemId(itemId);
-    setFormData({
-      itemId,
-      stockManagementId: `STK-${currentYear}-${stockmanagement.length + 1}`,
-    });
-    setOpen(true);
-  };
+  const currentYear = new Date().getFullYear();
+
+  // ✅ Calculate next stock number based on existing stock data
+  const nextStockNumber = (stockList.length + 1).toString().padStart(3, '0');
+
+  setFormData({
+    itemId,
+    stockManagementId: `STK-${currentYear}-${nextStockNumber}`,
+    openingStock: '',
+    stockIssued: '',
+    stockIssuedBy: '',
+    stockBalance: '',
+    stockValuation: '',
+    lastUpdated: new Date().toISOString().split("T")[0]
+  });
+  setOpen(true);
+};
+
 
   const handleClose = () => {
     setFormData({});
     setOpen(false);
   };
 
-  // const handleChange = (e) => {
-  //   const { name, value } = e.target;
-  //   setFormData((prev) => ({ ...prev, [name]: value }));
-  // };
-  const handleChange = (e) => {
-  const { name, value } = e.target;
+  // ✅ Fetch data from API on component mount
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const data = await getInventoryItems();
+        setItems(data);
+      } catch (error) {
+        console.error("Error loading inventory items:", error);
+      }
+    };
+    fetchItems();
+  }, []);
 
-  // Parse numbers safely
-  const updatedFormData = {
-    ...formData,
-    [name]: value,
+   useEffect(() => {
+    fetchStockManagement();
+  }, []);
+
+  const fetchStockManagement = async () => {
+    try {
+      const data = await getStockManagement();
+      setStockManagement(data);
+      setFilteredStockManagement(data); // Default without filter
+    } catch (err) {
+      console.error("Error loading stock management:", err);
+    }
   };
 
-  const openingStock = parseFloat(
-    name === "openingStock" ? value : formData.openingStock
-  ) || 0;
+ 
+const handleChange = (e) => {
+  const { name, value } = e.target;
+  setFormData((prev) => {
+    let updatedData = { ...prev, [name]: value };
 
-  const stockIssued = parseFloat(
-    name === "stockIssued" ? value : formData.stockIssued
-  ) || 0;
+    if (name === "openingStock" || name === "stockIssued") {
+      const opening = parseFloat(updatedData.openingStock) || 0;
+      const issued = parseFloat(updatedData.stockIssued) || 0;
+      updatedData.stockBalance = opening - issued;
+    }
 
-  updatedFormData.stockBalance = (openingStock - stockIssued).toString();
-
-  setFormData(updatedFormData);
+    return updatedData;
+  });
 };
 
 
-  const handleSubmit = () => {
-    const newStock = { ...formData, itemId: selectedItemId };
-    const exists = stockmanagement.find(
-      (item) => item.stockManagementId === newStock.stockManagementId
-    );
 
-    if (exists) {
-      const updated = stockmanagement.map((item) =>
-        item.stockManagementId === newStock.stockManagementId ? newStock : item
-      );
-      setStockManagement(updated);
-    } else {
-      setStockManagement([...stockmanagement, newStock]);
+const handleSubmit = async () => {
+  try {
+    const stockData = {
+      item: formData.itemId,
+      opening_stock: Number(formData.openingStock) || 0,
+      stock_issued: Number(formData.stockIssued) || 0,
+      stock_issued_by: formData.stockIssuedBy,
+      stock_valuation: Number(formData.stockValuation) || 0,
+      last_updated: formData.lastUpdated || new Date().toISOString().split("T")[0]
+    };
+
+    const res = await createStock(stockData);
+    console.log("✅ API Response:", res);
+
+    // ✅ Build alert message
+    let alertMsg = `✅ ${res.message}\nStock ID: ${res.data?.stock_id || "Not Available"}`;
+
+    if (res.alert) {
+      alertMsg += `\n\n⚠️ ${res.alert}`;
     }
 
+    alert(alertMsg);
+
+    //await fetchStockList(); // Refresh the table
+
     handleClose();
-  };
+
+  } catch (error) {
+    console.error("❌ Error creating stock:", error);
+    alert(`⚠️ Failed to create stock:\n${error.response?.data || error.message}`);
+  }
+};
 
   const handleEdit = (item) => {
     setFormData({ ...item });
@@ -164,25 +208,25 @@ const StockMaster = () => {
                   </TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
-                {dummyItems
-                  .filter((proj) =>
-                    proj.id.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map((proj, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{proj.id}</TableCell>
-                      <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
-                        <IconButton
-                          onClick={() => handleOpenForm(proj.id)}
-                          color="primary"
-                        >
-                          <AddCircle sx={{ color: "#7267ef" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+             <TableBody>
+              {items
+                .filter((item) =>
+                  item.item_id.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((item, i) => (
+                  <TableRow key={i}>
+                    <TableCell>{item.item_id}</TableCell>
+                    <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+                      <IconButton
+                        onClick={() => handleOpenForm(item.item_id)}
+                        color="primary"
+                      >
+                        <AddCircle sx={{ color: "#7267ef" }} />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
             </Table>
           </Paper>
         </Grid>
@@ -224,27 +268,31 @@ const StockMaster = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredStockManagement.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{item.itemId}</TableCell>
-                      <TableCell>{item.stockManagementId}</TableCell>
-                      <TableCell>{item.openingStock}</TableCell>
-                      <TableCell>{item.stockIssued}</TableCell>
-                      <TableCell>{item.stockIssuedBy}</TableCell>
-                      <TableCell>{item.stockBalance}</TableCell>
-                      <TableCell>{item.stockValuation}</TableCell>
-                      <TableCell>{item.lastUpdated}</TableCell>
-                      <TableCell>
-                        <IconButton color="warning" onClick={() => handleEdit(item)}>
-                          <Edit sx={{ color: "orange" }} />
-                        </IconButton>
-                        <IconButton color="error" onClick={() => handleDelete(item.stockManagementId)}>
-                          <Delete sx={{ color: "red" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+  {filteredStockManagement.map((item, index) => (
+    <TableRow key={index}>
+      <TableCell>{item.item}</TableCell> {/* Item ID */}
+      <TableCell>{item.stock_id}</TableCell> {/* Stock ID */}
+      <TableCell>{item.opening_stock}</TableCell>
+      <TableCell>{item.stock_issued}</TableCell>
+      <TableCell>{item.stock_issued_by}</TableCell>
+      <TableCell>{item.stock_balance}</TableCell>
+      <TableCell>{item.stock_valuation}</TableCell>
+      <TableCell>{item.last_updated}</TableCell>
+      <TableCell>
+        <IconButton color="warning" onClick={() => handleEdit(item)}>
+          <Edit sx={{ color: "orange" }} />
+        </IconButton>
+        <IconButton
+          color="error"
+          onClick={() => handleDelete(item.stock_id)}
+        >
+          <Delete sx={{ color: "red" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
               </Table>
             </TableContainer>
           </Paper>

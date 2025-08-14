@@ -49,3 +49,76 @@ export const deleteInventoryItem = async (itemId) => {
     throw error;
   }
 };
+
+//Create Stock Entry
+
+export const createStock = async (stockData) => {
+  try {
+    const response = await api.post("/inventory/stock/", stockData);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error creating stock:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+//Stock Returns post api
+export const createStockReturn = async (payload) => {
+  try {
+    const response = await api.post('/inventory/returns/', payload);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error creating stock return:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+//Stock Return get api
+export const getStockReturns = async () => {
+  try {
+    const response = await api.get('/inventory/returns/');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching stock returns:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+//get stock details
+export const getStockManagement  = async () => {
+  try {
+    const response = await api.get('/inventory/stock/');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching stock:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+// Delete Stock Return by ID
+export const deleteStockReturn = async (returnId) => {
+  try {
+    const response = await api.delete(`/inventory/returns/${returnId}/`);
+    return response.data;
+  } catch (error) {
+    console.error(`❌ Error deleting return ${returnId}:`, error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+// Update stock return
+export const updateStockReturn = async (returnId, formData) => {
+  try {
+    const response = await api.patch(`/inventory/returns/${returnId}/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error updating stock return:', error.response?.data || error.message);
+    throw error;
+  }
+};

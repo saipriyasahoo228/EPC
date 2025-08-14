@@ -61,34 +61,6 @@ useEffect(() => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // const handleOpen = (item = null) => {
-  //   setEditItem(item); // Set the item to edit if passed
-  //   setOpen(true);
-  //   if (item) {
-  //     // Pre-fill the form with existing item data for editing
-  //     setFormData({
-  //       itemName: item.itemName,
-  //       category: item.category,
-  //       unitOfMeasure: item.unitOfMeasure,
-  //       minStockLevel: item.minStockLevel,
-  //       maxStockLevel: item.maxStockLevel,
-  //       reorderLevel: item.reorderLevel,
-  //       storageLocation: item.storageLocation,
-  //       itemStatus: item.itemStatus,
-  //     });
-  //   } else {
-  //     setFormData({
-  //       itemName: '',
-  //       category: '',
-  //       unitOfMeasure: '',
-  //       minStockLevel: '',
-  //       maxStockLevel: '',
-  //       reorderLevel: '',
-  //       storageLocation: '',
-  //       itemStatus: '',
-  //     });
-  //   }
-  // };
 
   const handleOpen = (item = null) => {
   setEditItem(item);
@@ -132,112 +104,10 @@ useEffect(() => {
   const generateItemId = () => {
     const currentYear = new Date().getFullYear(); // Get the current year
     const nextId = items.length + 1; // Incremental ID based on current number of items
-    return `ITM-${currentYear}-${String(nextId).padStart(3, '0')}`; // Return item ID with current year
+    return `ITM-${currentYear}-${String(nextId).padStart(4, '0')}`; // Return item ID with current year
   };
 
  
-
- 
-
-
-// const handleSubmit = async () => {
-//   const form = new FormData();
-
-//   form.append('item_name', formData.itemName);
-//   form.append('category', formData.category);
-//   form.append('net_weight', formData.netWeight);
-//   form.append('unit_of_measure', formData.unitOfMeasure);
-//   form.append('minimum_stock_level', formData.minStockLevel);
-//   form.append('maximum_stock_level', formData.maxStockLevel);
-//   form.append('reorder_level', formData.reorderLevel);
-//   form.append('storage_location', formData.storageLocation);
-//   form.append('item_status', formData.itemStatus);
-
-//   try {
-//     const res = await createInventoryItem(form);
-
-//     // ✅ Success alert
-//     alert(`✅ Item Created Successfully!\nItem ID: ${res.item_id || 'N/A'}`);
-//     console.log('✅ Item Created:', res);
-
-//     // Close dialog
-//     handleClose();
-//   } catch (err) {
-//     console.error('❌ Error:', err);
-
-//     // ❌ Show backend error message if available
-//     if (err.response && err.response.data) {
-//       const errorMsg =
-//         typeof err.response.data === 'string'
-//           ? err.response.data
-//           : JSON.stringify(err.response.data);
-
-//       alert(`⚠️ Failed to create item:\n${errorMsg}`);
-//     } else {
-//       alert('⚠️ Failed to create item. Please try again.');
-//     }
-//   }
-// };
-
-
-
-// const handleSubmit = async () => {
-//   const form = new FormData();
-
-//   // Convert camelCase → snake_case for API
-//   form.append('item_name', formData.itemName);
-//   form.append('category', formData.category);
-//   form.append('net_weight', formData.netWeight || 0);
-//   form.append('unit_of_measure', formData.unitOfMeasure);
-//   form.append('minimum_stock_level', formData.minStockLevel || 0);
-//   form.append('maximum_stock_level', formData.maxStockLevel || 0);
-//   form.append('reorder_level', formData.reorderLevel || 0);
-//   form.append('storage_location', formData.storageLocation);
-//   form.append('item_status', formData.itemStatus);
-
-//   try {
-//     let res;
-
-//     if (editItem && editItem.item_id) {
-//       // ✅ Update existing item
-//       res = await updateInventoryItem(editItem.item_id, form);
-//       alert(`✅ Item ${editItem.item_id} updated successfully!`);
-//       console.log('✅ Item Updated:', res);
-//       await fetchItems();
-
-//       // Update table instantly
-//       setItems((prev) =>
-//         prev.map((it) => (it.item_id === editItem.item_id ? { ...it, ...res } : it))
-//       );
-
-//     } else {
-//       // ✅ Create new item
-//       res = await createInventoryItem(form);
-//       alert(`✅ Item Created Successfully!\nItem ID: ${res.item_id || 'N/A'}`);
-//       console.log('✅ Item Created:', res);
-
-//       // Add new item to table
-//       setItems((prev) => [...prev, res]);
-//     }
-
-//     // Close dialog
-//     handleClose();
-
-//   } catch (err) {
-//     console.error('❌ Error:', err);
-
-//     // ❌ Show backend error message if available
-//     if (err.response && err.response.data) {
-//       const errorMsg =
-//         typeof err.response.data === 'string'
-//           ? err.response.data
-//           : JSON.stringify(err.response.data);
-//       alert(`⚠️ Failed to save item:\n${errorMsg}`);
-//     } else {
-//       alert('⚠️ Failed to save item. Please try again.');
-//     }
-//   }
-// };
 
 const handleSubmit = async () => {
   // ✅ Frontend Validation

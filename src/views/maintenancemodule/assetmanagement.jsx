@@ -181,6 +181,7 @@ const AssetManagement = () => {
                     <TableCell sx={{color:'#7267ef'}}><strong>Asset ID</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Asset Name</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Asset Type</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Asset Value</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Model Number</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Serial Number</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Location</strong></TableCell>
@@ -200,6 +201,7 @@ const AssetManagement = () => {
                       <TableCell>{t.assetmanagementID}</TableCell>
                       <TableCell>{t.assetName}</TableCell>
                       <TableCell>{t.assetType}</TableCell>
+                      <TableCell>{t.assetValue}</TableCell>
                       <TableCell>{t.modelNumber}</TableCell>
                       <TableCell>{t.serialNumber}</TableCell>
                       <TableCell>{t.location}</TableCell>
@@ -291,6 +293,16 @@ const AssetManagement = () => {
             name="assetType"
             className="input"
             value={formData.assetType || ''}
+            onChange={handleChange}
+          />
+        </Grid>
+         <Grid item xs={6}>
+          <label htmlFor="assetValue">Asset Value</label>
+          <input
+            id="assetValue"
+            name="assetValue"
+            className="input"
+            value={formData.assetValue || ''}
             onChange={handleChange}
           />
         </Grid>
