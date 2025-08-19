@@ -22,7 +22,7 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
-import { getInventoryItems,createStock,getStockManagement  } from "../../allapi/inventory";
+import { getInventoryItems,createStock,getStockManagement ,deleteStock,updateStock } from "../../allapi/inventory";
 
 
 
@@ -34,19 +34,25 @@ const StockMaster = () => {
   const [selectedItemId, setSelectedItemId] = useState("");
   const [formData, setFormData] = useState({});
   const [stockmanagement, setStockManagement] = useState([]);
-  const [stockList, setStockList] = useState([]);
+  //const [stockList, setStockList] = useState([]);
+  
+
+
 
 
   
-  const handleOpenForm = (itemId) => {
+const handleOpenForm = (itemId) => {
   const currentYear = new Date().getFullYear();
 
-  // ✅ Calculate next stock number based on existing stock data
-  const nextStockNumber = (stockList.length + 1).toString().padStart(3, '0');
+  // Use stockManagement instead of stockList
+  const nextId = stockmanagement.length + 1; 
+  const newStockId = `STK-${currentYear}-${String(nextId).padStart(3, '0')}`;
+
+  setSelectedItemId(null);f
 
   setFormData({
     itemId,
-    stockManagementId: `STK-${currentYear}-${nextStockNumber}`,
+    stockManagementId: newStockId,
     openingStock: '',
     stockIssued: '',
     stockIssuedBy: '',
@@ -54,6 +60,7 @@ const StockMaster = () => {
     stockValuation: '',
     lastUpdated: new Date().toISOString().split("T")[0]
   });
+
   setOpen(true);
 };
 
@@ -108,6 +115,60 @@ const handleChange = (e) => {
 
 
 
+// const handleSubmit = async () => {
+//   try {
+//     const stockData = {
+//       item: formData.itemId,
+//       opening_stock: Number(formData.openingStock) || 0,
+//       stock_issued: Number(formData.stockIssued) || 0,
+//       stock_issued_by: formData.stockIssuedBy,
+//       stock_valuation: Number(formData.stockValuation) || 0,
+//       last_updated: formData.lastUpdated || new Date().toISOString().split("T")[0]
+//     };
+
+//     const res = await createStock(stockData);
+//     console.log("✅ API Response:", res);
+
+//     // ✅ Build alert message
+//     let alertMsg = `✅ ${res.message}\nStock ID: ${res.data?.stock_id || "Not Available"}`;
+
+//     if (res.alert) {
+//       alertMsg += `\n\n⚠️ ${res.alert}`;
+//     }
+
+//     alert(alertMsg);
+
+//     //await fetchStockList(); // Refresh the table
+
+//     handleClose();
+
+//   } catch (error) {
+//     console.error("❌ Error creating stock:", error);
+//     alert(`⚠️ Failed to create stock:\n${error.response?.data || error.message}`);
+//   }
+// };
+
+  // const handleEdit = (item) => {
+  //   setFormData({ ...item });
+  //   setSelectedItemId(item.itemId);
+  //   setOpen(true);
+  // };
+const handleEdit = (item) => {
+  setFormData({
+    stockManagementId:item.stock_id,
+    itemId: item.item, // or item.itemId depending on API response
+    openingStock: item.opening_stock,
+    stockIssued: item.stock_issued,
+    stockIssuedBy: item.stock_issued_by,
+    stockBalance:item.stock_balance,
+    stockValuation: item.stock_valuation,
+    lastUpdated: item.last_updated, // should be in YYYY-MM-DD format
+  });
+  setSelectedItemId(item.stock_id || item.stockManagementId); // store actual backend ID
+  setOpen(true);
+};
+
+
 const handleSubmit = async () => {
   try {
     const stockData = {
@@ -119,40 +180,61 @@ const handleSubmit = async () => {
       last_updated: formData.lastUpdated || new Date().toISOString().split("T")[0]
     };
 
-    const res = await createStock(stockData);
+    let res;
+    if (selectedItemId) {
+      // Update existing stock
+      res = await updateStock(selectedItemId, stockData);
+    } else {
+      // Create new stock
+      res = await createStock(stockData);
+    }
+
     console.log("✅ API Response:", res);
 
-    // ✅ Build alert message
-    let alertMsg = `✅ ${res.message}\nStock ID: ${res.data?.stock_id || "Not Available"}`;
-
+    let alertMsg = `✅ ${res.message || (selectedItemId ? "Stock updated" : "Stock created")}`;
+    if (res.data?.stock_id) {
+      alertMsg += `\nStock ID: ${res.data.stock_id}`;
+    }
     if (res.alert) {
       alertMsg += `\n\n⚠️ ${res.alert}`;
     }
 
     alert(alertMsg);
 
-    //await fetchStockList(); // Refresh the table
+    // Refresh table
+    await fetchStockManagement();
 
+    // Reset form & close dialog
+    setFormData({});
+    setSelectedItemId(null);
     handleClose();
 
   } catch (error) {
-    console.error("❌ Error creating stock:", error);
-    alert(`⚠️ Failed to create stock:\n${error.response?.data || error.message}`);
+    console.error(`❌ Error ${selectedItemId ? "updating" : "creating"} stock:`, error);
+    alert(`⚠️ Failed to ${selectedItemId ? "update" : "create"} stock:\n${error.response?.data || error.message}`);
   }
 };
 
-  const handleEdit = (item) => {
-    setFormData({ ...item });
-    setSelectedItemId(item.itemId);
-    setOpen(true);
-  };
+ 
 
-  const handleDelete = (stockManagementId) => {
-    const updatedItems = stockmanagement.filter(
-      (item) => item.stockManagementId !== stockManagementId
-    );
-    setStockManagement(updatedItems);
-  };
+const handleDelete = async (stockManagementId) => {
+  const isConfirmed = window.confirm(`Are you sure you want to delete stock ${stockManagementId}?`);
+  if (!isConfirmed) return;
+
+  try {
+    // 1️⃣ Delete from backend
+    await deleteStock(stockManagementId);
+
+    // 2️⃣ Refetch updated stock list
+    await fetchStockManagement();
+
+    alert(`✅ Stock ${stockManagementId} deleted successfully`);
+  } catch (error) {
+    alert(`❌ Failed to delete stock ${stockManagementId}`);
+    console.error(`Error deleting stock ${stockManagementId}:`, error);
+  }
+};
+
 
   const filteredStockManagement = stockmanagement.filter((d) =>
     Object.values(d).some(

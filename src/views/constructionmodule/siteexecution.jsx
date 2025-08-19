@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -20,7 +20,7 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
-
+import { getProjectsAccept } from "../../allapi/engineering"; 
 
 const dummyProjects = [
   { id: "PRJ-2025-001" },
@@ -35,6 +35,23 @@ const SiteExecution = () => {
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
   const [site, setSite] = useState([]);
+  const [project, setProject] = useState([]);
+
+
+  
+  //All accepted projects 
+      useEffect(() => {
+      const fetchProjects = async () => {
+        try {
+          const data = await getProjectsAccept();
+          setProject(data); // assuming API returns array of projects
+        } catch (error) {
+          console.error("Error fetching projects:", error);
+        }
+      };
+  
+      fetchProjects();
+    }, []);
 
   const handleOpenForm = (projectId) => {
   setSelectedProjectId(projectId);
@@ -60,6 +77,14 @@ const SiteExecution = () => {
     setSite([...site, newSite]);
     setOpen(false);
   };
+
+  const filteredProjects = project.filter((p) =>
+    Object.values(p).some(
+      (val) =>
+        val &&
+        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
 
   const filteredSite = site.filter((s) =>
     Object.values(s).some(
@@ -104,18 +129,16 @@ const SiteExecution = () => {
       </TableRow>
     </TableHead>
     <TableBody>
-      {dummyProjects
-        .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-        .map((proj, i) => (
-          <TableRow key={i}>
-            <TableCell>{proj.id}</TableCell>
-            <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                <AddCircle sx={{ color: "#7267ef" }} />
-              </IconButton>
-            </TableCell>
-          </TableRow>
-        ))}
+      {filteredProjects.map((proj, i) => (
+        <TableRow key={i}>
+          <TableCell>{proj.project_id}</TableCell>
+          <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
+              <AddCircle sx={{ color: "#7267ef" }} />
+            </IconButton>
+          </TableCell>
+        </TableRow>
+      ))}
     </TableBody>
   </Table>
 </Paper>

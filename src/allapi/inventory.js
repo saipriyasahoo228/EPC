@@ -95,6 +95,29 @@ export const getStockManagement  = async () => {
   }
 };
 
+//Delete stock details by stockId
+export const deleteStock = async (stockId) => {
+  try {
+    const response = await api.delete(`/inventory/stock/${stockId}/`);
+    return response.data;
+  } catch (error) {
+    console.error(`❌ Error deleting stock ${stockId}:`, error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// ✅ Update record by using Stock Management ID
+export const updateStock = async (stockManagementId, stockData) => {
+  try {
+    // Use PUT because PATCH is not allowed
+    const response = await api.put(`/inventory/stock/${stockManagementId}/`, stockData);
+    return response.data;
+  } catch (error) {
+    console.error(`❌ Error updating stock ${stockManagementId}:`, error.response?.data || error.message);
+    throw error;
+  }
+};
+
 
 // Delete Stock Return by ID
 export const deleteStockReturn = async (returnId) => {
@@ -119,6 +142,40 @@ export const updateStockReturn = async (returnId, formData) => {
     return response.data;
   } catch (error) {
     console.error('❌ Error updating stock return:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+//POST api for valuation report
+export const submitValuationReport = async (payload) => {
+  try {
+    const res = await api.post(`/inventory/valuation-reporting/`, payload);
+    return res.data;
+  } catch (err) {
+    console.error("❌ Error submitting valuation report:", err.response?.data || err.message);
+    throw err;
+  }
+};
+
+// Get valuation reports
+export const getValuationReports = async () => {
+  try {
+    const response = await api.get('/inventory/valuation-reporting/');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching valuation reports:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+//Delete api by using ID of stock valuation and reporting 
+// api/inventory.js
+export const deleteValuationReport = async (id) => {
+  try {
+    await api.delete(`/inventory/valuation-reporting/${id}/`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error deleting valuation report ${id}:`, error.response?.data || error.message);
     throw error;
   }
 };

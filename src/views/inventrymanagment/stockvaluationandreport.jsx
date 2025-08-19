@@ -18,8 +18,8 @@ import {
   IconButton,
 } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
-import { getStockManagement  } from "../../allapi/inventory";
-import { Autocomplete, TextField } from "@mui/material";
+import { getStockManagement ,submitValuationReport,getValuationReports,deleteValuationReport } from "../../allapi/inventory";
+
 
 
 const InventoryValuationForm = () => {
@@ -58,21 +58,33 @@ const InventoryValuationForm = () => {
   fetchStockIds();
 }, []);
 
+//Stock Valuation Report Details
+useEffect(() => {
+  const fetchReports = async () => {
+    try {
+      const data = await getValuationReports();
+      setReportData(data);
+    } catch (err) {
+      console.error("❌ Error fetching valuation reports:", err);
+    }
+  };
+
+  fetchReports();
+}, []);
+
+ 
 
   const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
-    const updatedValue =
-      type === 'checkbox'
-        ? checked
-        : type === 'file'
-        ? files[0]?.name
-        : value;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: updatedValue,
-    }));
-  };
+  const { name, type, value, checked, files } = e.target;
+  setFormData(prev => ({
+    ...prev,
+    [name]: type === 'checkbox'
+      ? checked
+      : type === 'file'
+        ? files[0]?.name || ''
+        : value
+  }));
+};
 
   const handleKeyDown = (e, nextFieldRef) => {
     if (e.key === 'Enter') {
@@ -83,27 +95,66 @@ const InventoryValuationForm = () => {
     }
   };
 
-  const handleSubmit = () => {
-    if (editIndex !== null) {
-      const updated = [...reportData];
-      updated[editIndex] = formData;
-      setReportData(updated);
-      setEditIndex(null);
-    } else {
-      setReportData((prev) => [...prev, formData]);
-    }
-
+  const handleOpen = (item = null) => {
+  if (item) {
+    setFormData({
+      valuationMethod: item.valuation_method || '',
+      stockId: item.stock || '',
+      stockValue: item.stock_value || '',
+      stockTurnoverRatio: item.stock_turnover_ratio || '',
+      lowStockAlerts: !!item.low_stock_alert,
+      excessStockAlerts: !!item.excess_stock_alert,
+      monthlyStockReport: item.monthly_stock_report || ''
+    });
+  } else {
     setFormData({
       valuationMethod: '',
-      stockId:'',
+      stockId: '',
       stockValue: '',
       stockTurnoverRatio: '',
       lowStockAlerts: false,
       excessStockAlerts: false,
-      monthlyStockReport: '',
+      monthlyStockReport: ''
     });
+  }
+  setOpen(true);
+};
+
+
+
+  const handleSubmit = async () => {
+  try {
+    const payload = {
+      stock: formData.stockId,
+      valuation_method: formData.valuationMethod
+    };
+
+    const res = await submitValuationReport(payload);
+
+    // ✅ Refresh report list
+    const updatedReports = await getValuationReports();
+    setReportData(updatedReports);
+
+    // ✅ Reset form
+    setFormData({
+      valuationMethod: '',
+      stockId: '',
+      stockValue: '',
+      stockTurnoverRatio: '',
+      lowStockAlerts: false,
+      excessStockAlerts: false,
+      monthlyStockReport: ''
+    });
+
+    // ✅ Close dialog
     setOpen(false);
-  };
+
+    alert("✅ Valuation report generated successfully!");
+
+  } catch (err) {
+    alert(`⚠️ Failed to submit valuation: ${err.response?.data || err.message}`);
+  }
+};
 
   const handleEdit = (index) => {
     setFormData(reportData[index]);
@@ -111,10 +162,20 @@ const InventoryValuationForm = () => {
     setOpen(true);
   };
 
-  const handleDelete = (index) => {
-    const filtered = reportData.filter((_, i) => i !== index);
-    setReportData(filtered);
-  };
+  const handleDelete = async (idx) => {
+  const reportId = reportData[idx].id; // ID from API
+  if (!window.confirm("Are you sure you want to delete this report?")) return;
+
+  try {
+    await deleteValuationReport(reportId);
+    setReportData((prev) => prev.filter((_, i) => i !== idx)); // Remove from UI
+    console.log(`✅ Report ${reportId} deleted`);
+    alert('Report Delete Successfully!!')
+  } catch (err) {
+    console.error("❌ Error deleting report:", err);
+    alert('Something Went Wrong!!!')
+  }
+};
 
   return (
     <>
@@ -142,41 +203,7 @@ const InventoryValuationForm = () => {
                 <option value="Weighted Average">Weighted Average</option>
               </select>
             </Grid>
-             {/* <Grid item>
-              <Typography variant="subtitle2">Stock ID</Typography>
-              <input
-                name="stockId"
-                type="text"
-                value={formData.stockId}
-                onChange={handleChange}
-                className="input"
-                onKeyDown={(e) => handleKeyDown(e, stockTurnoverRatioRef)}
-                ref={stockValueRef}
-              />
-            </Grid> */}
-            {/* <Grid item>
-  <Typography variant="subtitle2">Stock ID</Typography>
-  <Autocomplete
-    freeSolo // Allows typing any value
-    options={stockOptions}
-    value={formData.stockId || ""}
-    onChange={(e, newValue) =>
-      setFormData({ ...formData, stockId: newValue })
-    }
-    onInputChange={(e, newInputValue) =>
-      setFormData({ ...formData, stockId: newInputValue })
-    }
-    renderInput={(params) => (
-      <TextField
-        {...params}
-        placeholder="Search Stock ID"
-        className="input"
-        inputRef={stockValueRef}
-        onKeyDown={(e) => handleKeyDown(e, stockTurnoverRatioRef)}
-      />
-    )}
-  />
-</Grid> */}
+             
 <Grid item>
   <Typography variant="subtitle2">Stock ID</Typography>
   <input
@@ -322,7 +349,7 @@ const InventoryValuationForm = () => {
         <Table>
           <TableHead>
             <TableRow>
-              {['Valuation Method', 'Stock Value', 'Turnover Ratio', 'Monthly Report', 'Actions'].map(
+              {['Stock ID','Valuation Method', 'Stock Value', 'Turnover Ratio', 'Monthly Report', 'Actions'].map(
                 (header, idx) => (
                   <TableCell key={idx} sx={{ color: '#7267ef', fontWeight: 'bold' }}>
                     {header}
@@ -332,31 +359,33 @@ const InventoryValuationForm = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {reportData.length > 0 ? (
-              reportData.map((row, idx) => (
-                <TableRow key={idx}>
-                  <TableCell>{row.valuationMethod}</TableCell>
-                  <TableCell>{row.stockValue}</TableCell>
-                  <TableCell>{row.stockTurnoverRatio}</TableCell>
-                  <TableCell>{row.monthlyStockReport}</TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => handleEdit(idx)} sx={{ color: 'warning' }}>
-                      <Edit sx={{ color: "orange" }}/>
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(idx)} sx={{ color: 'error' }}>
-                      <Delete sx={{ color: "red" }}/>
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  No inventory reports added yet.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
+  {reportData.length > 0 ? (
+    reportData.map((row, idx) => (
+      <TableRow key={idx}>
+        <TableCell>{row.stock}</TableCell>
+        <TableCell>{row.valuation_method}</TableCell>
+        <TableCell>{row.stock_value}</TableCell>
+        <TableCell>{row.stock_turnover_ratio}</TableCell>
+        <TableCell>{row.monthly_stock_report || '—'}</TableCell>
+        <TableCell>
+          <IconButton onClick={() => handleEdit(idx)} sx={{ color: 'warning' }}>
+            <Edit sx={{ color: "orange" }}/>
+          </IconButton>
+          <IconButton onClick={() => handleDelete(idx)} sx={{ color: 'error' }}>
+            <Delete sx={{ color: "red" }}/>
+          </IconButton>
+        </TableCell>
+      </TableRow>
+    ))
+  ) : (
+    <TableRow>
+      <TableCell colSpan={5} align="center">
+        No inventory reports added yet.
+      </TableCell>
+    </TableRow>
+  )}
+</TableBody>
+
         </Table>
       </Box>
     </>

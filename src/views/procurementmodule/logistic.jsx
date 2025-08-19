@@ -19,31 +19,19 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
-
-const dummyProjects = [
-  {
-    projectId: "PRJ-2025-001",
-    procurementId: "PROC-2025-001",
-    purchaseOrderId: "PO-2025-001",
-  },
-  {
-    projectId: "PRJ-2025-002",
-    procurementId: "PROC-2025-002",
-    purchaseOrderId: "PO-2025-002",
-  },
-  {
-    projectId: "PRJ-2025-003",
-    procurementId: "PROC-2025-003",
-    purchaseOrderId: "PO-2025-003",
-  },
-];
+import { getMaterialProcurements , createLogistics,fetchLogistics,deleteLogistics,updateLogistics} from "../../allapi/procurement";
 
 
 const LogisticForm = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [logisticsList, setLogisticsList] = useState([]);
+  const [filteredLogistic, setFilteredLogistic] = useState([]);
+  const [materialProjects, setMaterialProjects] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(null);
   const [open, setOpen] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [procurements, setProcurements] = useState([]);
   const [formData, setFormData] = useState({
     projectId: '',
     purchaseOrderId:'',
@@ -61,29 +49,102 @@ const LogisticForm = () => {
     
   });
   
-  const [procurements, setProcurements] = useState([]);
-  const [selectedProcurementIndex, setSelectedProcurementIndex] = useState(null);
-  const [selectedProjectIndex, setSelectedProjectIndex] = useState(0); // Default to first project
-
-  // Set the formData to the selected project data from dummyProjects
-  useEffect(() => {
-    if (open) {
-      const selectedProject = dummyProjects[selectedProjectIndex];
-      setFormData({
-        ...formData,
-        projectId: selectedProject.projectId,
-        procurementId: selectedProject.procurementId,
-        purchaseOrderId: selectedProject.purchaseOrderId,
-      });
-    }
-  }, [open, selectedProjectIndex]); // Runs whenever open or selectedProjectIndex changes
-
+  
+  
 
   
 
-  const handleOpenForm = () => {
-    setOpen(true);
-  };
+   // Fetch data from API on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getMaterialProcurements();
+        setMaterialProjects(data);
+        console.log("✅ Material procurements:", data);
+      } catch (error) {
+        console.error("❌ Failed to fetch material procurements:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+
+  // Fetch logistics data
+const loadLogistics = async () => {
+  try {
+    const data = await fetchLogistics(); // GET API
+    setLogisticsList(data);
+
+    // Map API response to table-friendly format
+    const mappedData = data.map((item) => ({
+      logisticId: item.logistics_id,
+      transportId: item.transport_provider_id,
+      vehicleDetails: item.vehicle_details,
+      driverName: item.driver_name,
+      dispatchDate: item.dispatch_date,
+      expectedArrivalDate: item.expected_arrival_date,
+      actualArrivalDate: item.actual_arrival_date,
+      deliveryLocation: item.delivery_location,
+      shippingStatus: item.shipping_status,
+      damageReport: item.damage_report,
+    }));
+
+    setFilteredLogistic(mappedData);
+
+  } catch (error) {
+    console.error("Failed to load logistics:", error);
+  }
+};
+
+// Load on mount
+useEffect(() => {
+  loadLogistics();
+}, []);
+
+// Generate next Logistic ID based on existing logistics
+const generateLogisticId = () => {
+  const currentYear = new Date().getFullYear();
+
+  // Find the last numeric part from all existing logistics
+  const lastId = logisticsList?.reduce((max, item) => {
+    if (item.logistics_id?.startsWith(`LOG-${currentYear}-`)) {
+      const num = parseInt(item.logistics_id.split('-')[2], 10);
+      return num > max ? num : max;
+    }
+    return max;
+  }, 0) || 0;
+
+  const nextNumber = String(lastId + 1).padStart(3, '0');
+  return `LOG-${currentYear}-${nextNumber}`;
+};
+
+  
+
+// Open form
+const handleOpenForm = (index) => {
+  const selected = materialProjects?.[index];
+  if (!selected) return;
+
+  setSelectedIndex(index);
+  setFormData({
+    projectId: selected.project,
+    procurementId: selected.procurement_id,
+    purchaseOrderId: selected.purchase_order,
+    logisticId: generateLogisticId(), // auto-generate unique ID
+    transportId: '',
+    vehicleDetails: '',
+    driverName: '',
+    dispatchDate: '',
+    expectedArrivalDate: '',
+    actualArrivalDate: '',
+    deliveryLocation: '',
+    shippingStatus: '',
+    damageReport: '',
+  });
+
+  setOpen(true);
+};
 
   const handleClose = () => {
     setOpen(false);
@@ -113,49 +174,189 @@ const LogisticForm = () => {
   };
   
 
-  
-  // Submit form
-  
+ 
+  //HandleSubmit
+//   const handleSubmit = async () => {
+//   try {
+//     // Build payload for backend
+//     const payload = {
+//       logistics_id: formData.logisticId,         // auto-generated
+//       po_number: formData.purchaseOrderId,       // FK
+//       transport_provider_id: formData.transportId,
+//       vehicle_details: formData.vehicleDetails,
+//       driver_name: formData.driverName,
+//       dispatch_date: formData.dispatchDate,
+//       expected_arrival_date: formData.expectedArrivalDate,
+//       actual_arrival_date: formData.actualArrivalDate || null,
+//       delivery_location: formData.deliveryLocation,
+//       shipping_status: formData.shippingStatus || "In Transit",
+//       damage_report: formData.damageReport || "",
+//     };
 
-  const handleSubmit = () => {
-    if (selectedProcurementIndex !== null) {
-      // Editing existing procurement, retain the existing PO ID
-      const updatedProcurements = [...procurements];
-      updatedProcurements[selectedProcurementIndex] = {
-        ...formData,
-        poId: updatedProcurements[selectedProcurementIndex].poId, // Keep existing PO ID
-      };
-      setProcurements(updatedProcurements);
+//     const response = await createLogistics(payload);
+//     console.log("✅ Logistics created:", response);
+//     alert("Logistics details submitted successfully!");
+
+//     // Reset form
+//     setFormData({
+//       projectId: '',
+//       purchaseOrderId:'',
+//       logisticId: '', // will be regenerated next time
+//       transportId: '',
+//       vehicleDetails:'',
+//       driverName:'',
+//       dispatchDate:'',
+//       expectedArrivalDate:'',
+//       actualArrivalDate:'',
+//       deliveryLocation:'',
+//       shippingStatus:'In Transit',
+//       damageReport:'',
+//     });
+
+//     setOpen(false);
+//     // Optional: refresh logistics list if you have one
+//     loadLogistics();
+
+//   } catch (error) {
+//     console.error("❌ Error creating logistics:", error);
+//     alert(`Error: ${error.message}`);
+//   }
+// };
+
+const handleSubmit = async () => {
+  try {
+    const payload = {
+      po_number: formData.purchaseOrderId,
+      transport_provider_id: formData.transportId,
+      vehicle_details: formData.vehicleDetails,
+      driver_name: formData.driverName,
+      dispatch_date: formData.dispatchDate,
+      expected_arrival_date: formData.expectedArrivalDate,
+      actual_arrival_date: formData.actualArrivalDate || null,
+      delivery_location: formData.deliveryLocation,
+      shipping_status: formData.shippingStatus || "In Transit",
+      damage_report: formData.damageReport || "",
+    };
+
+    if (isEditing) {
+      // ✅ Update existing record
+      await updateLogistics(formData.logisticId, payload);
+      alert("Logistics details updated successfully!");
     } else {
-      // Adding new procurement, use the manually entered PO ID from formData
-      const updatedProcurement = {
-        ...formData,
-        projectId: selectedProjectId,
-      };
-      setProcurements((prev) => [...prev, updatedProcurement]);
+      // ✅ Create new record
+      await createLogistics({
+        ...payload,
+        logistics_id: formData.logisticId, // auto-generated
+      });
+      alert("Logistics details submitted successfully!");
     }
-  
-    // Reset form after submission
-    setFormData({});
-    setSelectedProjectId(null);
-    setSelectedProcurementIndex(null);
+
+    // Reset form
+    setFormData({
+      projectId: '',
+      procurementId: '',
+      purchaseOrderId: '',
+      logisticId: '',
+      transportId: '',
+      vehicleDetails: '',
+      driverName: '',
+      dispatchDate: '',
+      expectedArrivalDate: '',
+      actualArrivalDate: '',
+      deliveryLocation: '',
+      shippingStatus: 'In Transit',
+      damageReport: '',
+    });
+
+    setIsEditing(false);
     setOpen(false);
-  };
-  
+    loadLogistics(); // refresh the table
+
+  } catch (error) {
+    console.error("❌ Error submitting logistics:", error);
+    alert(`Error: ${error.message}`);
+  }
+};
+
+
+const handleDelete = async (logisticId, index) => {
+  const confirmDelete = window.confirm(`Are you sure you want to delete logistics ID: ${logisticId}?`);
+  if (!confirmDelete) return;
+
+  try {
+    await deleteLogistics(logisticId);
+
+    // Remove from state
+    const updatedList = [...logisticsList];
+    updatedList.splice(index, 1);
+    setLogisticsList(updatedList);
+
+    alert("✅ Logistics deleted successfully!");
+    loadLogistics();
+  } catch (error) {
+    console.error("❌ Error deleting logistics:", error);
+    alert("❌ Failed to delete logistics.");
+    
+  }
+};
 
 
 
-  const handleEdit = (index) => {
-    const procurementToEdit = procurements[index];
-    setFormData(procurementToEdit);
-    setSelectedProcurementIndex(index);
-    setOpen(true);
-  };
+  // const handleEdit = (index) => {
+  //   const procurementToEdit = procurements[index];
+  //   setFormData(procurementToEdit);
+  //   setSelectedProcurementIndex(index);
+  //   setOpen(true);
+  // };
 
-  const handleDelete = (index) => {
-    const updatedProcurements = procurements.filter((_, i) => i !== index);
-    setProcurements(updatedProcurements);
-  };
+//   const handleEdit = (index) => {
+//   const selected = logisticsList?.[index];
+//   if (!selected) return;
+
+//   setSelectedIndex(index);
+//   setIsEditing(true);
+//   setFormData({
+//     projectId: selected.projectId,
+//     procurementId: selected.procurementId,
+//     purchaseOrderId: selected.purchaseOrderId,
+//     logisticId: selected.logisticId, // non-editable
+//     transportId: selected.transportId,
+//     vehicleDetails: selected.vehicleDetails,
+//     driverName: selected.driverName,
+//     dispatchDate: selected.dispatchDate,
+//     expectedArrivalDate: selected.expectedArrivalDate,
+//     actualArrivalDate: selected.actualArrivalDate,
+//     deliveryLocation: selected.deliveryLocation,
+//     shippingStatus: selected.shippingStatus,
+//     damageReport: selected.damageReport,
+//   });
+
+//   setOpen(true);
+// };
+const handleEdit = (index) => {
+  const selected = logisticsList?.[index];
+  if (!selected) return;
+
+  setSelectedIndex(index);
+  setIsEditing(true);
+  setFormData({
+    
+    purchaseOrderId: selected.po_number || '',     // FK
+    logisticId: selected.logistics_id || '',       // non-editable
+    transportId: selected.transport_provider_id || '',
+    vehicleDetails: selected.vehicle_details || '',
+    driverName: selected.driver_name || '',
+    dispatchDate: selected.dispatch_date || '',
+    expectedArrivalDate: selected.expected_arrival_date || '',
+    actualArrivalDate: selected.actual_arrival_date || '',
+    deliveryLocation: selected.delivery_location || '',
+    shippingStatus: selected.shipping_status || 'In Transit',
+    damageReport: selected.damage_report || '',
+  });
+
+  setOpen(true);
+};
+
 
 
   const filteredProcurement =procurements.filter((d) =>
@@ -169,7 +370,7 @@ const LogisticForm = () => {
 
   return (
     <>
-      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Material Procurement</Typography>
+      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Logistic Management</Typography>
 
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
         <Grid item xs={12}>
@@ -200,26 +401,26 @@ const LogisticForm = () => {
         </TableCell>
       </TableRow>
     </TableHead>
-    <TableBody>
-      {dummyProjects
-        .filter((proj) =>
-          `${proj.projectId} ${proj.procurementId} ${proj.purchaseOrderId}`
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())
-        )
-        .map((proj, i) => (
-          <TableRow key={i}>
-            <TableCell>{proj.projectId}</TableCell>
-            <TableCell>{proj.procurementId}</TableCell>
-            <TableCell>{proj.purchaseOrderId}</TableCell>
-            <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <IconButton onClick={() => handleOpenForm(proj.projectId)} color="primary">
-                <AddCircle sx={{ color: "#7267ef" }} />
-              </IconButton>
-            </TableCell>
-          </TableRow>
-        ))}
-    </TableBody>
+     <TableBody>
+        {materialProjects
+          .filter((proj) =>
+            `${proj.project_id} ${proj.procurement_id} ${proj.purchase_order_id}`
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())
+          )
+          .map((proj, i) => (
+            <TableRow key={i}>
+              <TableCell>{proj.project}</TableCell>
+              <TableCell>{proj.procurement_id}</TableCell>
+              <TableCell>{proj.purchase_order}</TableCell>
+              <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <IconButton onClick={() => handleOpenForm(i)} color="primary">
+                  <AddCircle sx={{ color: "#7267ef" }} />
+                </IconButton>
+              </TableCell>
+            </TableRow>
+          ))}
+      </TableBody>
   </Table>
 </Paper>
 
@@ -241,9 +442,8 @@ const LogisticForm = () => {
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Project ID</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>Procurement ID</strong></TableCell>
-                    <TableCell sx={{ color: '#7267ef' }}><strong>PurchaseOrder ID</strong></TableCell>
+                  
+                    
                     <TableCell sx={{ color: '#7267ef' }}><strong>Logistic ID </strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Transport Provider Id </strong></TableCell>
                     <TableCell sx={{ color: '#7267ef' }}><strong>Vehicle Details</strong></TableCell>
@@ -258,11 +458,10 @@ const LogisticForm = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredProcurement.map((p, i) => (
+                  {filteredLogistic.map((p, i) => (
                     <TableRow key={i}>
-                      <TableCell>{p.projectId}</TableCell>
-                      <TableCell>{p.procurementId}</TableCell>
-                      <TableCell>{p.purchaseOrderId}</TableCell>
+                     
+                      
                       <TableCell>{p.logisticId}</TableCell>
                       <TableCell>{p.transportId}</TableCell>
                       <TableCell>{p.vehicleDetails}</TableCell>
@@ -278,7 +477,7 @@ const LogisticForm = () => {
                         <IconButton color="warning" onClick={() => handleEdit(i)}>
                           <Edit sx={{ color: "orange" }} />
                         </IconButton>
-                        <IconButton color="error" onClick={() => handleDelete(i)}>
+                         <IconButton color="error" onClick={() => handleDelete(p.logisticId, i)}>
                           <Delete sx={{ color: "red" }} />
                         </IconButton>
                       </TableCell>
@@ -346,6 +545,16 @@ const LogisticForm = () => {
       disabled // This makes it non-editable
     />
   </Grid>
+    <Grid item xs={6}>
+    <label htmlFor="logisticId">Logistic ID</label>
+    <input
+      id="logisticId"
+      name="logisticId"
+      className="input"
+      value={formData.logisticId || ''}
+      disabled // This makes it non-editable
+    />
+  </Grid>
 </Grid>
 
     </Grid>
@@ -398,6 +607,7 @@ const LogisticForm = () => {
       <Grid item xs={6}>
   <label htmlFor="dispatchDate">Dispatch Date</label>
   <input
+    type="date"
     id="dispatchDate"
     name="dispatchDate"
     className="input"
@@ -433,7 +643,7 @@ const LogisticForm = () => {
 <Grid item xs={6}>
   <label htmlFor="deliveryLocation">Delivery Location</label>
   <input
-    type="date"
+    
     id="deliveryLocation"
     name="deliveryLocation"
     className="input"
@@ -452,9 +662,9 @@ const LogisticForm = () => {
     onChange={handleChange}
   >
     <option value="">Select Status</option> {/* Default option */}
-    <option value="Issued">In Transit</option>
-    <option value="In Progress">Delivered </option>
-    <option value="Delivered">Delayed</option>
+    <option value="In Transit">In Transit</option>
+    <option value="Delivered">Delivered </option>
+    <option value="Delayed">Delayed</option>
     <option value="Canceled">Canceled</option>
   </select>
 </Grid>
@@ -509,7 +719,7 @@ const LogisticForm = () => {
                   }
                 }}
               >
-                Submit
+                {isEditing ? "Update Logistic Details" : "Submit Logistic Details"}
               </Button>
         </DialogActions>
       </Dialog>

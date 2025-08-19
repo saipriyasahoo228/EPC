@@ -50,7 +50,7 @@ const MaterialForm = () => {
     poId: '',
     expectedDeliveryDate: '',
     paymentStatus:'',
-    purchaseOrder:'',
+    //purchaseOrder:'',
   });
   
   const [procurements, setProcurements] = useState([]);
@@ -145,7 +145,7 @@ const handleOpenForm = (projectId) => {
     approvalStatus: 'Pending',
     paymentStatus: 'Pending',
     expectedDeliveryDate: '',
-    purchaseOrder: '',
+    //purchaseOrder: '',
   });
 
   setMode('create'); // ✅ Set mode
@@ -168,7 +168,7 @@ const handleSubmit = async () => {
   form.append('unit_price', formData.unitPrice);
   form.append('requested_by', formData.requestedBy);
   form.append('request_date', formData.requestDate);
-  form.append('purchase_order', formData.purchaseOrder || '');
+  //form.append('purchase_order', formData.purchaseOrder || '');
   form.append('approval_status', formData.approvalStatus || 'Pending');
   form.append('payment_status', formData.paymentStatus || 'Pending');
 
@@ -199,7 +199,7 @@ const handleSubmit = async () => {
       approvalStatus: '',
       paymentStatus: '',
       expectedDeliveryDate: '',
-      purchaseOrder: '',
+      //purchaseOrder: '',
     });
 
     setSelectedProjectId(null);
@@ -242,7 +242,7 @@ const handleSubmit = async () => {
     approvalStatus: procurement.approval_status,
     paymentStatus: procurement.payment_status,
     expectedDeliveryDate: procurement.expected_delivery_date,
-    purchaseOrder: procurement.purchase_order,
+    //purchaseOrder: procurement.purchase_order,
   });
 
   setMode('update'); // Use this instead of setIsEditing(true)
@@ -620,7 +620,7 @@ const paginatedMaterial = filteredProcurements.slice(
         <option value="Partially Paid">Partially Paid</option>
       </select>
     </Grid>
-     <Grid item xs={6}>
+     {/* <Grid item xs={6}>
           <label htmlFor="purchaseOrder">Purchase OrderId</label>
           <input
             id="purchaseOrder"
@@ -629,7 +629,7 @@ const paginatedMaterial = filteredProcurements.slice(
             value={formData.purchaseOrder || ''}
             onChange={handleChange}
           />
-        </Grid>
+        </Grid> */}
   </Grid>
 </Grid>
 </Grid>

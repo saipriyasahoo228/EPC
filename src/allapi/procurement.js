@@ -144,3 +144,49 @@ export const updatePurchaseOrder = async (po_number, formData) => {
     throw error;
   }
 };
+
+//POST api for logistic management
+// Create Logistics
+export const createLogistics = async (payload) => {
+  try {
+    const response = await api.post("/procurement/logistics/", payload, {
+      headers: { "Content-Type": "application/json" },
+    });
+    return response.data;
+  } catch (error) {
+    const backendMessage =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      Object.values(error.response?.data || {})[0] ||
+      "Error creating Logistics!";
+    throw new Error(backendMessage);
+  }
+};
+
+// ✅ Fetch all logistics records
+export const fetchLogistics = async () => {
+  try {
+    const response = await api.get("/procurement/logistics/");
+    return response.data;
+  } catch (error) {
+    console.error(
+      "❌ Error fetching logistics:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+// ✅ Delete logistics by ID
+export const deleteLogistics = (logisticId) => {
+  return api.delete(`/procurement/logistics/${logisticId}/`);
+};
+
+// ✅ Update logistics by ID
+export const updateLogistics = (logisticId, formData) => {
+  return api.patch(`/procurement/logistics/${logisticId}/`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};

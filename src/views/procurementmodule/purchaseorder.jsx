@@ -27,9 +27,8 @@ const PurchaseOrder = () => {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [open, setOpen] = useState(false);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
-  //const [selectedProjectId, setSelectedProjectId] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
-//const [editingId, setEditingId] = useState(null); // To track which PO you're editing
+
 
   const [formData, setFormData] = useState({
     projectId: '',
@@ -139,6 +138,7 @@ const handleSubmit = async (e) => {
   const payload = {
     vendor: formData.vendorId,
     procurement: formData.procurementId,
+    po_number:formData.purchaseOrderId,
     order_date: formData.orderDate,
     delivery_date: formData.deliveryDate,
     total_order_value: formData.totalOrderValue,
@@ -175,6 +175,7 @@ const handleEdit = (purchaseOrder) => {
     po_id: purchaseOrder.po_number,  // Required for PATCH
     vendorId: purchaseOrder.vendor,
     procurementId: purchaseOrder.procurement,
+    purchaseOrderId: purchaseOrder.po_number,
     orderDate: purchaseOrder.order_date,
     deliveryDate: purchaseOrder.delivery_date,
     totalOrderValue: purchaseOrder.total_order_value,
@@ -287,6 +288,7 @@ const handleDelete = async (po_id) => {
   <Table stickyHeader>
     <TableHead>
       <TableRow>
+        
         <TableCell sx={{ color: '#7267ef' }}><strong>PO Number</strong></TableCell>
         <TableCell sx={{ color: '#7267ef' }}><strong>Vendor</strong></TableCell>
         <TableCell sx={{ color: '#7267ef' }}><strong>Procurement</strong></TableCell>
