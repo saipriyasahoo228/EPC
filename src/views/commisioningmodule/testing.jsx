@@ -1,6 +1,6 @@
 
 
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -21,12 +21,10 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import { getProjectsAccept } from "../../allapi/engineering"; // adjust path
+import { createTesting , getTestingRecords,updateTesting,deleteTesting} from "../../allapi/commision";
 
-const dummyProjects = [
-  { id: "PRJ-2025-001" },
-  { id: "PRJ-2025-002" },
-  { id: "PRJ-2025-003" },
-];
+
 
 const Testing = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,6 +35,35 @@ const Testing = () => {
   const [testingmanagement, setTestingManagement] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditId, setCurrentEditId] = useState(null);
+  const [projects, setProjects] = useState([]); 
+  const [editingId, setEditingId] = useState(null);
+
+
+
+   useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const data = await getProjectsAccept();
+        setProjects(data); // API response
+      } catch (error) {
+        console.error("❌ Error fetching projects:", error);
+      }
+    };
+    fetchProjects();
+  }, []);
+
+  useEffect(() => {
+  fetchTestingRecords();
+}, []);
+
+const fetchTestingRecords = async () => {
+  try {
+    const data = await getTestingRecords();
+    setTestingManagement(data);
+  } catch (error) {
+    console.error("❌ Error fetching testing records:", error);
+  }
+};
 
   const handleOpenForm = (projectId) => {
     setSelectedProjectId(projectId);
@@ -53,19 +80,56 @@ const Testing = () => {
     setOpen(true);
   };
 
-  const handleEdit = (testingItem) => {
-    setFormData(testingItem);
-    setSelectedProjectId(testingItem.projectId);
-    setIsEditMode(true);
-    setCurrentEditId(testingItem.testingmanagementID);
-    setOpen(true);
-  };
+ const handleEdit = (record) => {
+  setFormData({
+    testingmanagementID: record.testing_id,
+    systemName: record.system_equipment_name,
+    testingDate: record.testing_date,
+    testingBy: record.test_conducted_by,
+    testProcedure: record.test_procedure,
+    performance: record.performance_parameters,
+    defect: record.defects_identified,
+    correction: record.correction_measures,
+    retestDate: record.retest_date,
+    testingStatus: record.testing_status,
+  });
+  setEditingId(record.testing_id); // store the testing_id for update
+  setSelectedProjectId(record.project_id); // keep project selected
+  setOpen(true);
+};
 
-  const handleDelete = (testingId) => {
-    if (window.confirm("Are you sure you want to delete testing management!")) {
-      setTestingManagement(testingmanagement.filter(item => item.testingmanagementID !== testingId));
+
+const handleDelete = async (testingId) => {
+  // Show confirmation with testing_id
+  const confirmDelete = window.confirm(
+    `Are you sure you want to delete the testing record with ID: ${testingId}?`
+  );
+  if (!confirmDelete) return;
+
+  try {
+    const res = await deleteTesting(testingId);
+
+    // ✅ show success message including testing_id
+    if (res.MSG) {
+      alert(`✅ ${res.MSG}\nDeleted Testing ID: ${testingId}`);
+    } else {
+      alert(`✅ Record deleted successfully!\nDeleted Testing ID: ${testingId}`);
     }
-  };
+
+    // remove the deleted record from state
+    setTestingManagement((prev) =>
+      prev.filter((t) => t.testing_id !== testingId)
+    );
+  } catch (err) {
+    console.error("❌ Delete failed:", err);
+    alert(
+      `❌ Failed to delete Testing ID: ${testingId}\n${
+        err.response?.data?.MSG || err.message || "Unknown error"
+      }`
+    );
+  }
+};
+
 
   const handleClose = () => {
     setOpen(false);
@@ -79,28 +143,136 @@ const Testing = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-    if (isEditMode) {
-      // Update existing record
-      setTestingManagement(testingmanagement.map(item => 
-        item.testingmanagementID === currentEditId ? formData : item
-      ));
-    } else {
-      // Add new record
-      const newTesting = { ...formData, projectId: selectedProjectId };
-      setTestingManagement([...testingmanagement, newTesting]);
-    }
-    handleClose();
-  };
+//HandleSubmit
+// const handleSubmit = async (e) => {
+//   e.preventDefault();
+//   try {
+//     const payload = {
+//       project_id: selectedProjectId,
+//       system_equipment_name: formData.systemName,
+//       testing_date: formData.testingDate,
+//       test_conducted_by: formData.testingBy,
+//       test_procedure: formData.testProcedure,
+//       performance_parameters: formData.performance,
+//       defects_identified: formData.defect || null,
+//       correction_measures: formData.correction || null,
+//       retest_date: formData.retestDate || null,
+//       testing_status: formData.testingStatus,
+//     };
 
-  const filteredTesting = testingmanagement.filter((t) =>
-    Object.values(t).some(
-      (val) =>
-        val &&
-        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
-  
+//     const res = await createTesting(payload);
+
+//     // ✅ Show success message with testing_id
+//     alert(`✅ Testing record created successfully!\nGenerated ID: ${res.Data.testing_id}`);
+
+//     // refresh list
+//     fetchTestingRecords();
+
+//     // reset form
+//     setFormData({});
+//     setOpen(false);
+//   } catch (err) {
+//     console.error("❌ Error saving testing record:", err);
+
+//     // extract backend error response if available
+//     if (err.response && err.response.data) {
+//       alert(`❌ Error: ${JSON.stringify(err.response.data)}`);
+//     } else {
+//       alert("❌ Something went wrong while saving the record.");
+//     }
+//   }
+// };
+
+// const handleSubmit = async (e) => {
+//   e.preventDefault();
+//   try {
+//     const payload = {
+//       project_id: selectedProjectId,
+//       system_equipment_name: formData.systemName,
+//       testing_date: formData.testingDate,
+//       test_conducted_by: formData.testingBy,
+//       test_procedure: formData.testProcedure,
+//       performance_parameters: formData.performance,
+//       defects_identified: formData.defect || null,
+//       correction_measures: formData.correction || null,
+//       retest_date: formData.retestDate || null,
+//       testing_status: formData.testingStatus,
+//     };
+
+//     if (editingId) {
+//       // ✅ Update existing record
+//       const res = await updateTesting(editingId, payload);
+//       alert(`✅ Record updated successfully!\nUpdated Testing ID: ${editingId}`);
+//     } else {
+//       // ✅ Create new record
+//       const res = await createTesting(payload);
+//       alert(`✅ Record created successfully!\nGenerated Testing ID: ${res.Data.testing_id}`);
+//     }
+
+//     // refresh list
+//     fetchTestingRecords();
+
+//     // reset form and close modal
+//     setFormData({});
+//     setEditingId(null);
+//     setOpen(false);
+//   } catch (err) {
+//     console.error("❌ Error saving testing record:", err);
+//     alert(
+//       `❌ Error: ${err.response?.data?.MSG || err.message || "Something went wrong"}`
+//     );
+//   }
+// };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const payload = {
+      project_id: selectedProjectId,
+      system_equipment_name: formData.systemName,
+      testing_date: formData.testingDate,
+      test_conducted_by: formData.testingBy,
+      test_procedure: formData.testProcedure,
+      performance_parameters: formData.performance,
+      defects_identified: formData.defect || null,
+      correction_measures: formData.correction || null,
+      retest_date: formData.retestDate || null,
+      testing_status: formData.testingStatus,
+    };
+
+    if (editingId) {
+      // ✅ Update existing record
+      const res = await updateTesting(editingId, payload);
+      alert(`✅ Record updated successfully!\nUpdated Testing ID: ${editingId}`);
+    } else {
+      // ✅ Create new record
+      const res = await createTesting(payload);
+      alert(`✅ Record created successfully!\nGenerated Testing ID: ${res.Data.testing_id}`);
+    }
+
+    // refresh list after create/update
+    fetchTestingRecords();
+
+    // reset form and close dialog
+    setFormData({});
+    setEditingId(null);
+    setOpen(false);
+  } catch (err) {
+    console.error("❌ Error saving testing record:", err);
+    alert(
+      `❌ Error: ${err.response?.data?.MSG || err.message || "Something went wrong"}`
+    );
+  }
+};
+
+
+const filteredTesting = testingmanagement.filter((t) =>
+  Object.values(t).some(
+    (val) =>
+      val &&
+      val.toString().toLowerCase().includes(searchQuery.toLowerCase())
+  )
+);
+
   return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Testing & Inspection</Typography>
@@ -134,19 +306,21 @@ const Testing = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {dummyProjects
-                  .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((proj, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{proj.id}</TableCell>
-                      <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                          <AddCircle sx={{ color: "#7267ef" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+      {projects
+        .filter(proj =>
+          proj.id?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .map((proj, i) => (
+          <TableRow key={i}>
+            <TableCell>{proj.project_id}</TableCell>
+            <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+              <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
+                <AddCircle sx={{ color: "#7267ef" }} />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+        ))}
+    </TableBody>
             </Table>
           </Paper>
         </Grid>
@@ -184,31 +358,33 @@ const Testing = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredTesting.map((t, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{t.projectId}</TableCell>
-                      <TableCell>{t.testingmanagementID}</TableCell>
-                      <TableCell>{t.systemName}</TableCell>
-                      <TableCell>{t.testingDate}</TableCell>
-                      <TableCell>{t.testingBy}</TableCell>
-                      <TableCell>{t.testProcedure}</TableCell>
-                      <TableCell>{t.performance}</TableCell>
-                      <TableCell>{t.defect}</TableCell>
-                      <TableCell>{t.correction}</TableCell>
-                      <TableCell>{t.retestDate}</TableCell>
-                      <TableCell>{t.testingStatus}</TableCell>
-                     
-                      <TableCell>
-                        <IconButton onClick={() => handleEdit(t)} color="warning">
-                          <Edit sx={{ color: "orange" }} />
-                        </IconButton>
-                        <IconButton onClick={() => handleDelete(t.testingmanagementID)} color="error">
-                          <Delete sx={{ color: "red" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+  {filteredTesting.map((t, i) => (
+    <TableRow key={i}>
+      <TableCell>{t.project_id}</TableCell>
+      <TableCell>{t.testing_id}</TableCell>
+      <TableCell>{t.system_equipment_name}</TableCell>
+      <TableCell>{t.testing_date}</TableCell>
+      <TableCell>{t.test_conducted_by}</TableCell>
+      <TableCell>{t.test_procedure}</TableCell>
+      <TableCell>{t.performance_parameters}</TableCell>
+      <TableCell>{t.defects_identified}</TableCell>
+      <TableCell>{t.correction_measures}</TableCell>
+      <TableCell>{t.retest_date || "-"}</TableCell>
+      <TableCell>{t.testing_status}</TableCell>
+      <TableCell>
+        <IconButton onClick={() => handleEdit(t)} color="warning">
+          <Edit sx={{ color: "orange" }} />
+        </IconButton>
+        {/* 👇 Here use `t.id` for delete */}
+        <IconButton onClick={() => handleDelete(t.testing_id)} color="error">
+          <Delete sx={{ color: "red" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
+
               </Table>
             </TableContainer>
           </Paper>
@@ -357,6 +533,7 @@ const Testing = () => {
                    <Grid item xs={6}>
                     <label htmlFor="retestDate">Retest Date</label>
                     <input 
+                      type="date"
                       id="retestDate" 
                       name="retestDate" 
                       className="input" 
@@ -368,19 +545,18 @@ const Testing = () => {
                    <Grid item xs={6}>
                     <label htmlFor="testingStatus">Testing Status</label>
                     <select
-                      id="testingStatus"
-                      name="testingStatus"
-                      className="input"
-                      value={formData.testingStatus || ''}
-                      onChange={handleChange}
-                      
-                    >
-                      <option value="">Select Status</option>
-                      <option value="Pass">Pass</option>
-                      <option value="Failed">Failed</option>
-                      <option value="Retest">Retest</option>
-                      <option value="Required">Required</option>
-                    </select>
+  id="testingStatus"
+  name="testingStatus"
+  className="input"
+  value={formData.testingStatus || ''}
+  onChange={handleChange}
+>
+  <option value="">Select Status</option>
+  <option value="Passed">Passed</option>
+  <option value="Failed">Failed</option>
+  <option value="Retest Required">Retest Required</option>
+</select>
+
                   </Grid>
                   </Grid>
                   </Grid>
@@ -419,7 +595,7 @@ const Testing = () => {
               }
             }}
           >
-            {isEditMode ? "Update" : "Submit"}
+          {editingId ? "Update" : "Submit"}
           </Button>
         </DialogActions>
       </Dialog>

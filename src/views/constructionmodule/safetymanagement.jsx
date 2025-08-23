@@ -1,6 +1,6 @@
 
 
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -21,12 +21,10 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import { getProjectsAccept } from "../../allapi/engineering";
+import { createSafetyManagement,getSafetyManagements,deleteSafetyManagement,updateSafetyManagement } from "../../allapi/construction";
 
-const dummyProjects = [
-  { id: "PRJ-2025-001" },
-  { id: "PRJ-2025-002" },
-  { id: "PRJ-2025-003" },
-];
+
 
 const SafetyManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,35 +35,120 @@ const SafetyManagement = () => {
   const [safetymanagement, setSafetyManagement] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditId, setCurrentEditId] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [safetyRecords, setSafetyRecords] = useState([]);
+  const [editingId, setEditingId] = useState(null);
 
-  const handleOpenForm = (projectId) => {
-    setSelectedProjectId(projectId);
-    const currentYear = new Date().getFullYear();
-    const newSafetyNumber = safetymanagement.length + 1;
-    const paddedNumber = newSafetyNumber.toString().padStart(3, '0');
-    
-    setFormData({ 
-      safetymanagementID: `SAF-${currentYear}-${paddedNumber}`,
-      projectId: projectId
-    });
-    setIsEditMode(false);
-    setCurrentEditId(null);
-    setOpen(true);
-  };
+  
 
-  const handleEdit = (safetyItem) => {
-    setFormData(safetyItem);
-    setSelectedProjectId(safetyItem.projectId);
-    setIsEditMode(true);
-    setCurrentEditId(safetyItem.safetymanagementID);
-    setOpen(true);
-  };
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const data = await getProjectsAccept();
+        setProjects(data); // store API data in state
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      }
+    };
 
-  const handleDelete = (safetyId) => {
-    if (window.confirm("Are you sure you want to delete safety management!")) {
-      setSafetyManagement(safetymanagement.filter(item => item.safetymanagementID !== safetyId));
-    }
-  };
+    fetchProjects();
+  }, []);
+
+useEffect(() => {
+  fetchSafety(); // call on mount
+}, []);
+
+const fetchSafety = async () => {
+  try {
+    const data = await getSafetyManagements();
+    setSafetyRecords(data);
+  } catch (error) {
+    console.error("❌ Error fetching safety records:", error);
+  }
+};
+ 
+ 
+
+ const handleOpenForm = (projectId) => {
+  console.log("handleOpenForm called with projectId:", projectId);
+  console.log("Current safetyRecords data:", safetyRecords); // Check this instead
+  
+  setSelectedProjectId(projectId);
+  const currentYear = new Date().getFullYear();
+
+  // Use safetyRecords instead of safetymanagement
+  const currentYearIDs = safetyRecords
+    .filter(item => item.safety_report_id && item.safety_report_id.includes(`-${currentYear}-`))
+    .map(item => {
+      const parts = item.safety_report_id.split("-");
+      const numPart = parts[parts.length - 1];
+      return parseInt(numPart, 10);
+    })
+    .filter(num => !isNaN(num));
+
+  console.log("Filtered currentYearIDs:", currentYearIDs);
+
+  // Find the maximum number
+  const maxNumber = currentYearIDs.length > 0 ? Math.max(...currentYearIDs) : 0;
+  console.log("Max number found:", maxNumber);
+
+  // Generate preview ID
+  const previewNumber = maxNumber + 1;
+  const paddedNumber = previewNumber.toString().padStart(4, "0");
+  const previewId = `SAF-${currentYear}-${paddedNumber}`;
+
+  setFormData({
+    safetymanagementID: previewId,
+    projectId: projectId,
+  });
+
+  setIsEditMode(false);
+  setCurrentEditId(null);
+  setOpen(true);
+};
+
+
+// HandleEdit logic for Safety Management
+const handleEdit = (safety) => {
+  setFormData({
+    safetymanagementID:safety.safety_report_id,
+    incidentDate: safety.incident_date,
+    incidentDescription: safety.incident_description,
+    affectedpersonnelID: safety.affected_personnel_id,
+    injurySeverity: safety.injury_severity,
+    correctiveMeasures: safety.corrective_measure,
+    safetyTraining: safety.safety_training_conducted,
+  });
+
+  setSelectedProjectId(safety.project);   // ✅ if you’re showing project in a disabled field
+  setEditingId(safety.safety_report_id);  // ✅ this tells handleSubmit to PATCH instead of POST
+  setOpen(true);                          // open dialog
+};
+
+
+//HandleDelete Logic
+const handleDelete = async (safetyId) => {
+  if (
+    !window.confirm(`Are you sure you want to delete Safety ID: ${safetyId}?`)
+  )
+    return;
+
+  console.log("🆔 Safety ID to delete:", safetyId); // for debugging
+
+  try {
+    await deleteSafetyManagement(safetyId);
+    alert("✅ Record deleted successfully");
+    fetchSafety();
+
+    // Update local state to remove deleted record
+    setSafetyRecords((prev) =>
+      prev.filter((item) => item.safetyId !== safetyId)
+    );
+  } catch (error) {
+    console.error("❌ Error deleting safety record:", error);
+    alert("❌ Failed to delete record");
+  }
+};
 
   const handleClose = () => {
     setOpen(false);
@@ -79,19 +162,65 @@ const SafetyManagement = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-    if (isEditMode) {
+// const handleSubmit = async () => {
+//   try {
+//     const payload = {
+//       project: selectedProjectId,
+//       incident_date: formData.incidentDate,
+//       incident_description: formData.incidentDescription,
+//       affected_personnel_id: formData.affectedpersonnelID,
+//       injury_severity: formData.injurySeverity.toLowerCase(),
+//       corrective_measure: formData.correctiveMeasures,
+//       safety_training_conducted: formData.safetyTraining,
+//     };
+
+//     const response = await createSafetyManagement(payload);
+
+//     alert(`✅ Safety Management created! Report ID: ${response.safety_report_id}`);
+//     handleClose();
+//   } catch (error) {
+//     alert("❌ Failed to create Safety Management record. Check console for details.");
+//     console.error("Error:", error);
+//   }
+// };
+const handleSubmit = async () => {
+  try {
+    const payload = {
+      project: selectedProjectId,
+      incident_date: formData.incidentDate,
+      incident_description: formData.incidentDescription,
+      affected_personnel_id: formData.affectedpersonnelID,
+      injury_severity: formData.injurySeverity?.toLowerCase(),
+      corrective_measure: formData.correctiveMeasures,
+      safety_training_conducted: formData.safetyTraining,
+    };
+
+    let response;
+
+    if (editingId) {
       // Update existing record
-      setSafetyManagement(safetymanagement.map(item => 
-        item.safetymanagementID === currentEditId ? formData : item
-      ));
+      response = await updateSafetyManagement(editingId, payload);
+      alert(`✏️ Safety Management updated! Report ID: ${response.safety_report_id}`);
     } else {
-      // Add new record
-      const newSafety = { ...formData, projectId: selectedProjectId };
-      setSafetyManagement([...safetymanagement, newSafety]);
+      // Create new record
+      response = await createSafetyManagement(payload);
+      alert(`✅ Safety Management created! Report ID: ${response.safety_report_id}`);
     }
-    handleClose();
-  };
+
+    handleClose(); // close the form
+  } catch (error) {
+    // Only show backend error message
+    const backendMessage =
+      error.response?.data?.message ||
+      error.response?.data?.detail ||
+      "Something went wrong on the server.";
+
+    alert(`❌ Failed to save Safety Management record.\n\nError: ${backendMessage}`);
+    console.error("❌ Error saving Safety Management record:", error.response?.data || error.message);
+  }
+};
+
+
 
   const filteredSafety = safetymanagement.filter((s) =>
     Object.values(s).some(
@@ -103,7 +232,7 @@ const SafetyManagement = () => {
   
   return (
     <>
-      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Quality Control & Assurance</Typography>
+      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Safety Management</Typography>
       
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
         <Grid item xs={12}>
@@ -133,20 +262,21 @@ const SafetyManagement = () => {
                   </TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
-                {dummyProjects
-                  .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((proj, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{proj.id}</TableCell>
-                      <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                          <AddCircle sx={{ color: "#7267ef" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+              {projects
+  .filter(proj =>
+    String(proj.id).toLowerCase().includes(searchTerm.toLowerCase())
+  )
+  .map((proj, i) => (
+    <TableRow key={i}>
+      <TableCell>{proj.project_id}</TableCell>
+      <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
+          <AddCircle sx={{ color: "#7267ef" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+
             </Table>
           </Paper>
         </Grid>
@@ -181,29 +311,28 @@ const SafetyManagement = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredSafety.map((s, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{s.projectId}</TableCell>
-                      <TableCell>{s.safetymanagementID}</TableCell>
-                      <TableCell>{s.incidentDate}</TableCell>
-                      <TableCell>{s.incidentDescription}</TableCell>
-                      <TableCell>{s.affectedpersonnelID}</TableCell>
-                      <TableCell>{s.injurySeverity}</TableCell>
-                      <TableCell>{s.correctiveMeasures}</TableCell>
-                      <TableCell>{s.injurySeverity}</TableCell>
-                      <TableCell>{s.safetyTraining}</TableCell>
-                     
-                      <TableCell>
-                        <IconButton onClick={() => handleEdit(s)} color="warning">
-                          <Edit sx={{ color: "orange" }} />
-                        </IconButton>
-                        <IconButton onClick={() => handleDelete(s.safetymanagementID)} color="error">
-                          <Delete sx={{ color: "red" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+      {safetyRecords.map((s, i) => (
+        <TableRow key={i}>
+          <TableCell>{s.project}</TableCell>
+          <TableCell>{s.safety_report_id}</TableCell>
+          <TableCell>{s.incident_date}</TableCell>
+          <TableCell>{s.incident_description}</TableCell>
+          <TableCell>{s.affected_personnel_id}</TableCell>
+          <TableCell>{s.injury_severity}</TableCell>
+          <TableCell>{s.corrective_measure}</TableCell>
+          <TableCell>{s.safety_training_conducted ? "Yes" : "No"}</TableCell>
+
+          <TableCell>
+            <IconButton onClick={() => handleEdit(s)} color="warning">
+              <Edit sx={{ color: "orange" }} />
+            </IconButton>
+            <IconButton onClick={() => handleDelete(s.safety_report_id)} color="error">
+              <Delete sx={{ color: "red" }} />
+            </IconButton>
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
               </Table>
             </TableContainer>
           </Paper>
@@ -299,7 +428,7 @@ const SafetyManagement = () => {
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="injurySeverity">Approval Status</label>
+                    <label htmlFor="injurySeverity">Injury Severity</label>
                     <select
                       id="injurySeverity"
                       name="injurySeverity"
@@ -310,7 +439,7 @@ const SafetyManagement = () => {
                     >
                       <option value="">Select Severity</option>
                       <option value="Minor">Minor</option>
-                      <option value="Moderate">Moderate</option>
+                      <option value="moerate">Moderate</option>
                       <option value="Severe">Severe</option>
                       <option value="Fatal">Fatal</option>
                     </select>
@@ -374,7 +503,7 @@ const SafetyManagement = () => {
               }
             }}
           >
-            {isEditMode ? "Update" : "Submit"}
+            {editingId ? "Update" : "Submit"}
           </Button>
         </DialogActions>
       </Dialog>

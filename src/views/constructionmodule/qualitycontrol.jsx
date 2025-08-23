@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -20,28 +20,71 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import { getProjectsAccept } from "../../allapi/engineering";
+import {createQualityControl,getQualityControls,updateQualityControl,deleteQualityControl} from "../../allapi/construction";
 
-const dummyProjects = [
-  { id: "PRJ-2025-001" },
-  { id: "PRJ-2025-002" },
-  { id: "PRJ-2025-003" },
-];
 
 const QualityControl = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [formData, setFormData] = useState({});
   const [qualitycontrol, setQualityControl] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditId, setCurrentEditId] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [filteredQuality, setFilteredQuality] = useState([]); 
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState({
+  qcId: "",
+  projectId: "",
+  inspectionDate: "",
+  inspectionType: "",
+  inspectorID: "",
+  testResult: "",
+  complianceStandards: "",
+  defectIdentified: "",
+  correctiveAction: "",
+  approvalStatus: "",
+  nextInspectionDate: "",
+});
+
+
+
+  //To fetch accepted projects
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const data = await getProjectsAccept();
+        setProjects(data); // assuming API returns an array
+      } catch (err) {
+        console.error("Error fetching accepted projects:", err);
+      }
+    };
+    fetchProjects();
+  }, []);
+
+  // 🔹 Fetch function
+const fetchQualityControls = async () => {
+  try {
+    const data = await getQualityControls();
+    setQualityControl(data);
+    console.log("✅ Quality Control records:", data);
+  } catch (err) {
+    console.error("❌ Failed to fetch quality control records:", err);
+  }
+};
+
+// 🔹 useEffect for initial mount
+useEffect(() => {
+  fetchQualityControls();
+}, []);
 
   const handleOpenForm = (projectId) => {
     setSelectedProjectId(projectId);
     const currentYear = new Date().getFullYear();
     const newQualityNumber = qualitycontrol.length + 1;
-    const paddedNumber = newQualityNumber.toString().padStart(3, '0');
+    const paddedNumber = newQualityNumber.toString().padStart(4, '0');
     
     setFormData({ 
       qualitycontrolID: `QC-${currentYear}-${paddedNumber}`,
@@ -52,19 +95,66 @@ const QualityControl = () => {
     setOpen(true);
   };
 
-  const handleEdit = (qualityItem) => {
-    setFormData(qualityItem);
-    setSelectedProjectId(qualityItem.projectId);
-    setIsEditMode(true);
-    setCurrentEditId(qualityItem.qualitycontrolID);
-    setOpen(true);
-  };
+ // HandleEdit logic for QualityControl
+// const handleEdit = (qc) => {
+//   setFormData({
+//     qualitycontrolID: qc.qc_id,
+//     projectId: qc.project,
+//     inspectionDate: qc.inspection_date,
+//     inspectionType: qc.inspection_type,
+//     inspectorID: qc.inspector_id,
+//     testResult: qc.test_results,
+//     complianceStandards: qc.compliance_standard,
+//     defectIdentified: qc.defects_identified,
+//     correctiveAction: qc.corrective_actions,
+//     approvalStatus: qc.approval_status,
+//     nextInspectionDate: qc.next_inspection_date,
+//   });
 
-  const handleDelete = (qualityId) => {
-    if (window.confirm("Are you sure you want to delete this quality control record?")) {
-      setQualityControl(qualitycontrol.filter(item => item.qualitycontrolID !== qualityId));
-    }
-  };
+//   setEditingId(qc.qc_id);   // ✅ store qc_id instead of true
+//   setOpen(true);
+// };
+
+const handleEdit = (qc) => {
+  setFormData({
+    qualitycontrolID: qc.qc_id,
+    projectId: qc.project,
+    inspectionDate: qc.inspection_date,
+    inspectionType: qc.inspection_type,
+    inspectorID: qc.inspector_id,
+    testResult: qc.test_results,
+    complianceStandards: qc.compliance_standard,
+    defectIdentified: qc.defects_identified,
+    correctiveAction: qc.corrective_actions,
+    approvalStatus: qc.approval_status,
+    nextInspectionDate: qc.next_inspection_date,
+  });
+
+  setSelectedProjectId(qc.project);  // ✅ add this
+  setEditingId(qc.qc_id);
+  setOpen(true);
+};
+
+
+
+  const handleDelete = async (qc_id) => {
+  const confirmDelete = window.confirm("Are you sure you want to delete this record?");
+  if (!confirmDelete) return;
+
+  try {
+    await deleteQualityControl(qc_id);
+    alert("✅ Record deleted successfully");
+
+    // 🔄 Re-fetch records from API to stay in sync
+    await fetchQualityControls();
+
+  } catch (error) {
+    console.error("❌ Failed to delete record:", error);
+    alert("❌ Failed to delete record");
+  }
+};
+
+
 
   const handleClose = () => {
     setOpen(false);
@@ -78,27 +168,60 @@ const QualityControl = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-    if (isEditMode) {
-      // Update existing record
-      setQualityControl(qualitycontrol.map(item => 
-        item.qualitycontrolID === currentEditId ? formData : item
-      ));
-    } else {
-      // Add new record
-      const newQuality = { ...formData, projectId: selectedProjectId };
-      setQualityControl([...qualitycontrol, newQuality]);
-    }
-    handleClose();
-  };
 
-  const filteredQuality = qualitycontrol.filter((q) =>
+
+// ✅ Handle Submit Logic (Create or Update)
+const handleSubmit = async () => {
+  try {
+    const payload = {
+      project: selectedProjectId,          // project ID from your form
+      inspection_date: formData.inspectionDate,
+      inspection_type: formData.inspectionType,
+      inspector_id: formData.inspectorID,
+      test_results: formData.testResult,
+      compliance_standard: formData.complianceStandards,
+      defects_identified: formData.defectIdentified || "",
+      corrective_actions: formData.correctiveAction || "",
+      approval_status: formData.approvalStatus || "pending",
+      next_inspection_date: formData.nextInspectionDate || null,
+    };
+
+    let data;
+    if (editingId) {
+      // ✅ Update existing record
+      data = await updateQualityControl(editingId, payload);
+      alert(`✏️ Quality Control updated!\nQC ID: ${data.qc_id}`);
+    } else {
+      // ✅ Create new record
+      data = await createQualityControl(payload);
+      alert(`✅ Quality Control saved!\nQC ID: ${data.qc_id}`);
+    }
+
+    // Reset form + close modal
+    setFormData({});
+    setEditingId(null);  // clear edit state
+    handleClose();
+
+    // Refresh table
+    fetchQualityControls();
+  } catch (err) {
+    console.error("❌ Failed to submit Quality Control:", err);
+    alert(`❌ Failed to submit. ${err.response?.data || err.message}`);
+  }
+};
+
+  
+// 🔹 Filter based on search
+useEffect(() => {
+  const filtered = qualitycontrol.filter((q) =>
     Object.values(q).some(
       (val) =>
         val &&
         val.toString().toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
+  setFilteredQuality(filtered);
+}, [searchQuery, qualitycontrol]);
   
   return (
     <>
@@ -133,19 +256,24 @@ const QualityControl = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {dummyProjects
-                  .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((proj, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{proj.id}</TableCell>
-                      <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                          <AddCircle sx={{ color: "#7267ef" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+      {projects
+        .filter(proj =>
+          proj.id.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .map((proj, i) => (
+          <TableRow key={i}>
+            <TableCell>{proj.project_id}</TableCell>
+            <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+              <IconButton
+                onClick={() => handleOpenForm(proj.project_id)} // ✅ passing project id
+                color="primary"
+              >
+                <AddCircle sx={{ color: "#7267ef" }} />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+        ))}
+    </TableBody>
             </Table>
           </Paper>
         </Grid>
@@ -185,22 +313,22 @@ const QualityControl = () => {
                 <TableBody>
                   {filteredQuality.map((q, i) => (
                     <TableRow key={i}>
-                      <TableCell>{q.projectId}</TableCell>
-                      <TableCell>{q.qualitycontrolID}</TableCell>
-                      <TableCell>{q.inspectionDate}</TableCell>
-                      <TableCell>{q.inspectionType}</TableCell>
-                      <TableCell>{q.inspectorID}</TableCell>
-                      <TableCell>{q.testResult}</TableCell>
-                      <TableCell>{q.complianceStandards}</TableCell>
-                      <TableCell>{q.defectIdentified}</TableCell>
-                      <TableCell>{q.correctiveAction}</TableCell>
-                      <TableCell>{q.approvalStatus}</TableCell>
-                      <TableCell>{q.nextInspectionDate}</TableCell>
+                      <TableCell>{q.project}</TableCell>
+                      <TableCell>{q.qc_id}</TableCell>
+                      <TableCell>{q.inspection_date}</TableCell>
+                      <TableCell>{q.inspection_type}</TableCell>
+                      <TableCell>{q.inspector_id}</TableCell>
+                      <TableCell>{q.test_results}</TableCell>
+                      <TableCell>{q.compliance_standard}</TableCell>
+                      <TableCell>{q.defects_identified}</TableCell>
+                      <TableCell>{q.corrective_actions}</TableCell>
+                      <TableCell>{q.approval_status}</TableCell>
+                      <TableCell>{q.next_inspection_date}</TableCell>
                       <TableCell>
                         <IconButton onClick={() => handleEdit(q)} color="warning">
                           <Edit sx={{ color: "orange" }} />
                         </IconButton>
-                        <IconButton onClick={() => handleDelete(q.qualitycontrolID)} color="error">
+                        <IconButton onClick={() => handleDelete(q.qc_id)} color="error">
                           <Delete sx={{ color: "red" }} />
                         </IconButton>
                       </TableCell>
@@ -354,21 +482,22 @@ const QualityControl = () => {
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="approvalStatus">Approval Status</label>
-                    <select
-                      id="approvalStatus"
-                      name="approvalStatus"
-                      className="input"
-                      value={formData.approvalStatus || ''}
-                      onChange={handleChange}
-                      
-                    >
-                      <option value="">Select Status</option>
-                      <option value="Approved">Approved</option>
-                      <option value="Rework Required">Rework Required</option>
-                      <option value="Rejected">Rejected</option>
-                    </select>
-                  </Grid>
+  <label htmlFor="approvalStatus">Approval Status</label>
+  <select
+    id="approvalStatus"
+    name="approvalStatus"
+    className="input"
+    value={formData.approvalStatus || ""}
+    onChange={handleChange}
+  >
+    <option value="">Select Status</option>
+    <option value="pending">Pending</option>
+    <option value="approved">Approved</option>
+    <option value="rejected">Rejected</option>
+    <option value="rework required">Rework Required</option>
+  </select>
+</Grid>
+
                   <Grid item xs={6}>
                     <label htmlFor="nextInspectionDate">Next Inspection Date</label>
                     <input 

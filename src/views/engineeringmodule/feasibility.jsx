@@ -31,7 +31,7 @@ const FeasibilityForm = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [formData, setFormData] = useState({});
+ // const [formData, setFormData] = useState({});
   const [feasibilityStudies, setFeasibilityStudies] = useState([]);
   const [mode, setMode] = useState('create'); // or 'edit'
   const rowsPerPage = 4;
@@ -40,6 +40,21 @@ const FeasibilityForm = () => {
 
   const [feasibilityPage, setFeasibilityPage] = useState(1);
   const feasibilityRowsPerPage = 5;
+  const [formData, setFormData] = useState({
+  feasibilityStudyId: null,   // will be used only in edit mode
+  studyTitle: "",
+  preparedBy: "",
+  studyType: "",
+  reports: null,               // file upload
+  riskAssessment: "",
+  regulatoryCompliance: "",
+  projectedROI: "",
+  estimatedCompletionTime: "",
+  recommendations: "",
+  approvalStatus: "Pending",   // default
+  approvalDate: "",
+  status: "Draft",             // default
+});
 
 
 

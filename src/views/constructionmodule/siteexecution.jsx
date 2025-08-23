@@ -21,14 +21,11 @@ import {
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering"; 
+import {createSiteExecution,getSiteExecutions,deleteSiteExecution ,updateSiteExecution} from "../../allapi/construction";
 
-const dummyProjects = [
-  { id: "PRJ-2025-001" },
-  { id: "PRJ-2025-002" },
-  { id: "PRJ-2025-003" },
-];
 
 const SiteExecution = () => {
+  const [siteCounter, setSiteCounter] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -36,6 +33,9 @@ const SiteExecution = () => {
   const [formData, setFormData] = useState({});
   const [site, setSite] = useState([]);
   const [project, setProject] = useState([]);
+  const [siteExecutions, setSiteExecutions] = useState([]);
+  const [filteredSite, setFilteredSite] = useState([]);
+  const [editingId, setEditingId] = useState(null);
 
 
   
@@ -53,30 +53,184 @@ const SiteExecution = () => {
       fetchProjects();
     }, []);
 
-  const handleOpenForm = (projectId) => {
+    //Get api for site-execution
+   const fetchSiteExecutions = async () => {
+  try {
+    const data = await getSiteExecutions();
+    console.log("✅ Site Executions:", data);
+    setSiteExecutions(data);
+    setFilteredSite(data);
+  } catch (err) {
+    console.error("❌ Failed to fetch site executions:", err);
+  }
+};
+
+// 🔹 run once on mount
+useEffect(() => {
+  fetchSiteExecutions();
+}, []);
+
+
+
+const handleOpenForm = (projectId) => {
   setSelectedProjectId(projectId);
 
-  const currentYear = new Date().getFullYear(); // Get system year dynamically
-  const newSiteNumber = site.length + 1;
-  const paddedNumber = newSiteNumber.toString().padStart(3, '0'); // e.g., "001"
+  const currentYear = new Date().getFullYear();
+  
+  // Find the highest site number for the current year
+  const currentYearSites = siteExecutions.filter(s => s.site_id?.startsWith(`SIT-${currentYear}-`));
+  
+  let maxNumber = 0;
+  if (currentYearSites.length > 0) {
+    currentYearSites.forEach(s => {
+      const parts = s.site_id?.split('-');
+      if (parts && parts.length === 3) {
+        const num = parseInt(parts[2]);
+        if (num > maxNumber) maxNumber = num;
+      }
+    });
+  }
 
-  setFormData({ siteId: `SIT-${currentYear}-${paddedNumber}` });
+  const newSiteNumber = maxNumber + 1;
+  const paddedNumber = String(newSiteNumber).padStart(4, '0');
+
+  setFormData({
+    siteId: `SIT-${currentYear}-${paddedNumber}`,
+    project: projectId,
+  });
 
   setOpen(true);
 };
-
-  const handleClose = () => setOpen(false);
+const handleClose = () => setOpen(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-    const newSite = { ...formData, projectId: selectedProjectId };
-    setSite([...site, newSite]);
-    setOpen(false);
-  };
+
+// const handleSubmit = async () => {
+//   try {
+//     const payload = {
+//       project: selectedProjectId,
+//       site_supervisor_id: formData.siteSupervisorID,
+//       daily_progress_report_id: formData.dailyProgressReportID,
+//       work_completed: formData.workCompleted,
+//       manpower_utilized: formData.manpowerUtilize,
+//       equipment_used: formData.equipmentUsed,
+//       weather_conditions: formData.wetherCondition,
+//       safety_compliance_report: formData.safetyCompliance,
+//       material_consumption: formData.materialConsumption,
+//       site_issues: formData.siteIssues,
+//       site_execution_status: formData.siteStatus || "on track",
+//     };
+
+//     if (editingId) {
+//       // 🔹 PATCH (edit mode)
+//       await updateSiteExecution(editingId, payload);
+//       alert("✅ Site Execution updated successfully!");
+//     } else {
+//       // 🔹 POST (create mode)
+//       const data = await createSiteExecution(payload);
+//       alert(`✅ Site Execution saved!\nSite ID: ${data.site_id}`);
+//     }
+
+//     // Reset form & close dialog
+//     setFormData({});
+//     setEditingId(null);
+//     handleClose();
+
+//     // 🔹 Refresh table
+//     fetchSiteExecutions();
+//   } catch (err) {
+//     console.error("❌ Failed to save site execution:", err);
+//   }
+// };
+const handleSubmit = async () => {
+  try {
+    const payload = {
+      project: selectedProjectId,
+      site_supervisor_id: formData.siteSupervisorID,
+      daily_progress_report_id: formData.dailyProgressReportID,
+      work_completed: formData.workCompleted,
+      manpower_utilized: formData.manpowerUtilize,
+      equipment_used: formData.equipmentUsed,
+      weather_conditions: formData.wetherCondition,
+      safety_compliance_report: formData.safetyCompliance,
+      material_consumption: formData.materialConsumption,
+      site_issues: formData.siteIssues,
+      site_execution_status: formData.siteStatus || "on track",
+    };
+
+    if (editingId) {
+      // 🔹 PATCH (edit mode)
+      await updateSiteExecution(editingId, payload);
+      alert("✅ Site Execution updated successfully!");
+    } else {
+      // 🔹 POST (create mode)
+      const data = await createSiteExecution(payload);
+      alert(`✅ Site Execution saved!\nSite ID: ${data.site_id}`);
+    }
+
+    // Reset form & close dialog
+    setFormData({});
+    setEditingId(null);
+    handleClose();
+
+    // 🔹 Refresh table
+    fetchSiteExecutions();
+  } catch (err) {
+    console.error("❌ Failed to save site execution:", err);
+
+    // Show backend error response if available
+    if (err.response && err.response.data) {
+      const errorMsg = err.response.data.detail || JSON.stringify(err.response.data);
+      alert(`❌ Error: ${errorMsg}`);
+    } else {
+      alert("❌ An unexpected error occurred. Please try again.");
+    }
+  }
+};
+
+// 🔹 In your component
+const handleDelete = async (project) => {
+  if (!window.confirm(`Are you sure you want to delete this site execution with projectID: ${project  }?`)) {
+    return;
+  }
+
+  try {
+    await deleteSiteExecution(project);
+    alert(`✅ Site execution with projectID: ${project} deleted successfully!`);
+
+    // 🔹 Refresh the table after delete
+    fetchSiteExecutions();
+  } catch (err) {
+    console.error("❌ Failed to delete site execution:", err);
+    alert("❌ Failed to delete site execution. Please try again.");
+  }
+};
+
+const handleEdit = (s) => {
+  setFormData({
+    siteId:s.site_id,
+    siteSupervisorID: s.site_supervisor_id,
+    dailyProgressReportID: s.daily_progress_report_id,
+    workCompleted: s.work_completed,
+    manpowerUtilize: s.manpower_utilized,
+    equipmentUsed: s.equipment_used,
+    wetherCondition: s.weather_conditions,
+    safetyCompliance: s.safety_compliance_report,
+    materialConsumption: s.material_consumption,
+    siteIssues: s.site_issues,
+    siteStatus: s.site_execution_status,
+  });
+
+  setSelectedProjectId(s.project);
+  setEditingId(s.project);   // ✅ use `s.id` instead of `s.project` for PATCH
+  setOpen(true);        // open the form dialog for editing
+};
+
+
 
   const filteredProjects = project.filter((p) =>
     Object.values(p).some(
@@ -86,13 +240,7 @@ const SiteExecution = () => {
     )
   );
 
-  const filteredSite = site.filter((s) =>
-    Object.values(s).some(
-      (val) =>
-        val &&
-        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+ 
   
 
   return (
@@ -161,7 +309,7 @@ const SiteExecution = () => {
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell sx={{color:'#7267ef'}}><strong>Project ID</strong></TableCell>
+              <TableCell sx={{color:'#7267ef'}}><strong>ProjectID</strong></TableCell>
               <TableCell sx={{color:'#7267ef'}}><strong>Site ID</strong></TableCell>
               <TableCell sx={{color:'#7267ef'}}><strong>Site Supervisor ID</strong></TableCell>
               <TableCell sx={{color:'#7267ef'}}><strong>Daily Progress Report ID</strong></TableCell>
@@ -176,34 +324,34 @@ const SiteExecution = () => {
               <TableCell sx={{color:'#660000'}}><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
-            {filteredSite.map((s, i) => (
-              <TableRow key={i}>
-                <TableCell>{s.projectId}</TableCell>
-                <TableCell>{s.siteId}</TableCell>
-                <TableCell>{s.siteSupervisorID}</TableCell>
-                <TableCell>{s.dailyProgressReportID}</TableCell>
-                <TableCell>{s.workCompleted}</TableCell>
-                <TableCell>{s.manpowerUtilize}</TableCell>
-                <TableCell>{s.equipmentUsed}</TableCell>
-                <TableCell>{s.wetherCondition}</TableCell>
-                <TableCell>{s.safetyCompliance}</TableCell>
-                <TableCell>{s.materialConsumption}</TableCell>
-                <TableCell>{s.siteIssues}</TableCell>
-                <TableCell>{s.SiteExecution}</TableCell>
-                
-              
-                <TableCell>
-                <IconButton color="warning">
-                  <Edit sx={{ color: "orange" }} />
-                </IconButton>
-                <IconButton color="error">
-                  <Delete sx={{ color: "red" }} />
-                </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+        <TableBody>
+  {filteredSite.map((s, i) => (
+    <TableRow key={i}>
+      <TableCell>{s.project}</TableCell>
+      <TableCell>{s.site_id}</TableCell>
+      <TableCell>{s.site_supervisor_id}</TableCell>
+      <TableCell>{s.daily_progress_report_id}</TableCell>
+      <TableCell>{s.work_completed}</TableCell>
+      <TableCell>{s.manpower_utilized}</TableCell>
+      <TableCell>{s.equipment_used}</TableCell>
+      <TableCell>{s.weather_conditions}</TableCell>
+      <TableCell>{s.safety_compliance_report}</TableCell>
+      <TableCell>{s.material_consumption}</TableCell>
+      <TableCell>{s.site_issues}</TableCell>
+      <TableCell>{s.site_execution_status}</TableCell>
+
+      <TableCell>
+        <IconButton color="warning">
+          <Edit sx={{ color: "orange" }}  onClick={() => handleEdit(s)} />
+        </IconButton>
+        <IconButton color="error">
+          <Delete sx={{ color: "red" }}  onClick={() => handleDelete(s.project)}/>
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
         </Table>
       </TableContainer>
     </Paper>
@@ -305,9 +453,20 @@ const SiteExecution = () => {
             <textarea id="siteIssues" name="siteIssues" className="input" rows={3} value={formData.siteIssues || ''} onChange={handleChange} />
           </Grid>
           <Grid item xs={6}>
-            <label htmlFor="siteStatus">Site Execution Status</label>
-            <input id="siteStatus" name="siteStatus" className="input" value={formData.siteStatus || ''} onChange={handleChange} />
-          </Grid>
+  <label htmlFor="siteStatus">Site Execution Status</label>
+  <select
+    id="siteStatus"
+    name="siteStatus"
+    className="input"
+    value={formData.siteStatus || "on track"}
+    onChange={handleChange}
+  >
+    <option value="on track">On Track</option>
+    <option value="delayed">Delayed</option>
+    <option value="halted">Halted</option>
+  </select>
+</Grid>
+
           
         </Grid>
       </Grid>

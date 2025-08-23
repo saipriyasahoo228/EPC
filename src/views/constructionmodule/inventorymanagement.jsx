@@ -1,5 +1,5 @@
 // DesignForm.jsx
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -20,13 +20,12 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import { getProjectsAccept } from "../../allapi/engineering"; 
+import { getInventoryItems } from "../../allapi/inventory";
+import { createMaterialInventory,getMaterialInventory,updateMaterialInventory,deleteMaterialInventory } from "../../allapi/construction";
+import {getVendors} from "../../allapi/procurement";
 
 
-const dummyProjects = [
-  { id: "PRJ-2025-001" },
-  { id: "PRJ-2025-002" },
-  { id: "PRJ-2025-003" },
-];
 
 const InventoryManagement = () => {
   const [editingIndex, setEditingIndex] = useState(null);
@@ -34,8 +33,96 @@ const InventoryManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [formData, setFormData] = useState({});
   const [inventorymanagement, setInventoryManagement] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [inventoryItems, setInventoryItems] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+
+  const [formData, setFormData] = useState({
+  materialID: "",       // material (FK → item_id)
+  materialName: "",     // material_name
+  quantityUsed: "",     // quantity_used
+  reorderLevel: "",     // reorder_level
+  supplierID: "",       // supplier (FK → vendor_id)
+  deliveryDate: "",     // delivery_date
+});
+
+  
+  // Fetch accepted projects from API
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const data = await getProjectsAccept();
+        setProjects(data); // assuming API returns array of projects
+      } catch (error) {
+        console.error("❌ Error fetching projects:", error);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+   // Fetch inventory items on mount
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const data = await getInventoryItems();
+        setInventoryItems(data);
+      } catch (error) {
+        console.error("❌ Error loading inventory items:", error);
+      }
+    };
+
+    fetchItems();
+  }, []);
+
+  useEffect(() => {
+  const fetchVendors = async () => {
+    try {
+      const data = await getVendors();
+      setVendors(data);
+    } catch (error) {
+      console.error("❌ Error fetching vendors:", error);
+    }
+  };
+
+  fetchVendors();
+}, []);
+
+const fetchInventory = async () => {
+  try {
+    const data = await getMaterialInventory();
+    setInventory(data);
+  } catch (error) {
+    console.error("❌ Error loading inventory:", error);
+  }
+};
+
+// 🔄 Fetch when component mounts
+useEffect(() => {
+  fetchInventory();
+}, []);
+
+
+
+    // Handle selection of material
+  const handleMaterialSelect = (e) => {
+    const selectedId = e.target.value;
+    const selectedItem = inventoryItems.find((item) => item.item_id === selectedId);
+
+    if (selectedItem) {
+      setFormData((prev) => ({
+        ...prev,
+        materialID: selectedItem.item_id,
+        materialName: selectedItem.item_name,
+      }));
+    }
+  };
+
+
+
 
   
   const handleOpenForm = (projectId, index = null) => {
@@ -70,46 +157,137 @@ const InventoryManagement = () => {
 };
 
 
-  const handleSubmit = () => {
-  const newInventory = { ...formData, projectId: selectedProjectId };
+//  const handleSubmit = async () => {
+//   try {
+//     const payload = {
+//       material: formData.materialID,          // FK to ItemMaster (item_id)
+//       project: selectedProjectId,             // FK to Project (project_id)
+//       material_name: formData.materialName,   // material_name
+//       quantity_used: formData.quantityUsed,   // quantity_used
+//       reorder_level: formData.reorderLevel,   // reorder_level
+//       supplier: formData.supplierID,          // FK to Vendor (vendor_id)
+//       delivery_date: formData.deliveryDate,   // delivery_date
+//     };
 
-  if (editingIndex !== null) {
-    const updatedProjects = [...inventorymanagement];
-    updatedProjects[editingIndex] = newInventory;
-    setInventoryManagement(updatedProjects);
-  } else {
-    setInventoryManagement([...inventorymanagement, newInventory]);
+//     const response = await createMaterialInventory(payload);
+//     alert(`✅ Material inventory created!\nID: ${response.id}`);
+
+//     handleClose(); // close dialog
+//     setFormData({
+//       materialID: "",
+//       materialName: "",
+//       quantityUsed: "",
+//       reorderLevel: "",
+//       supplierID: "",
+//       deliveryDate: "",
+//     });
+//      fetchInventory();
+//   } catch (error) {
+//     const msg = error.response?.data
+//       ? JSON.stringify(error.response.data, null, 2)
+//       : error.message;
+//     alert(`❌ Failed to save:\n${msg}`);
+//   }
+// };
+
+const handleSubmit = async () => {
+  try {
+    const payload = {
+      material: formData.materialID,          // FK to ItemMaster
+      project: selectedProjectId,             // FK to Project
+      material_name: formData.materialName,
+      quantity_used: formData.quantityUsed,
+      reorder_level: formData.reorderLevel,
+      supplier: formData.supplierID,          // FK to Vendor
+      delivery_date: formData.deliveryDate,
+    };
+
+    let response;
+
+    if (editingId) {
+      // ✅ UPDATE
+      response = await updateMaterialInventory(editingId, payload);
+      alert(`✏️ Updated successfully!`);
+    } else {
+      // ✅ CREATE
+      response = await createMaterialInventory(payload);
+      alert(`✅ Material inventory created!`);
+    }
+
+    // Reset form & refresh
+    handleClose();
+    setFormData({
+      materialID: "",
+      materialName: "",
+      quantityUsed: "",
+      reorderLevel: "",
+      supplierID: "",
+      deliveryDate: "",
+    });
+    setEditingId(null); // reset edit mode
+    fetchInventory();
+  } catch (error) {
+    const msg = error.response?.data
+      ? JSON.stringify(error.response.data, null, 2)
+      : error.message;
+    alert(`❌ Failed to save:\n${msg}`);
   }
+};
 
-  setFormData({});
-  setEditingIndex(null);
-  setOpen(false);
+const handleDelete = async (id) => {
+  if (!window.confirm("Are you sure you want to delete this record?")) return;
+
+  try {
+    await deleteMaterialInventory(id);
+    alert("🗑️ Record deleted successfully!");
+
+    // Update the inventory state directly
+    setInventory((prev) => prev.filter((rec) => rec.id !== id));
+
+  } catch (error) {
+    const msg = error.response?.data
+      ? JSON.stringify(error.response.data, null, 2)
+      : error.message;
+    alert(`❌ Failed to delete:\n${msg}`);
+  }
+};
+
+const handleEdit = (record) => {
+  // Set projectId separately for your disabled input
+  setSelectedProjectId(record.project);
+
+  // Fill other form fields
+  setFormData({
+    materialID: record.material,
+    materialName: record.material_name,
+    quantityUsed: record.quantity_used,
+    reorderLevel: record.reorder_level,
+    supplierID: record.supplier,
+    deliveryDate: record.delivery_date,
+  });
+
+  // Store record ID for PATCH operation
+  setEditingId(record.id);
+
+  // Open dialog for editing
+  setOpen(true);
 };
 
 
-const handleDelete = (index) => {
-  const confirmDelete = window.confirm("Are you sure you want to delete this record?");
-  if (confirmDelete) {
-    const updatedProjects = [...inventorymanagement];
-    updatedProjects.splice(index, 1);
-    setInventoryManagement(updatedProjects);
-  }
-};
+
+const filteredInventory = inventory.filter((m) =>
+  Object.values(m).some(
+    (val) =>
+      val &&
+      val.toString().toLowerCase().includes(searchQuery.toLowerCase())
+  )
+);
 
 
-
-  const filteredInventory = inventorymanagement.filter((m) =>
-    Object.values(m).some(
-      (val) =>
-        val &&
-        val.toString().toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
-  
 
   return (
     <>
-      <Typography variant="h5"  gutterBottom sx={{ mt: 5 }} >Project Management</Typography>
+      <Typography variant="h5"  gutterBottom sx={{ mt: 5 }} >Material & InventoryManagement</Typography>
       
         <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
   <Grid item xs={12}>
@@ -141,13 +319,16 @@ const handleDelete = (index) => {
       </TableRow>
     </TableHead>
     <TableBody>
-      {dummyProjects
-        .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
+      {projects
+        .filter((proj) =>
+          proj.project_id?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
         .map((proj, i) => (
           <TableRow key={i}>
-            <TableCell>{proj.id}</TableCell>
-            <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
+            {/* Adjust key names as per your API response */}
+            <TableCell>{proj.project_id}</TableCell>
+            <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+              <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
                 <AddCircle sx={{ color: "#7267ef" }} />
               </IconButton>
             </TableCell>
@@ -186,27 +367,28 @@ const handleDelete = (index) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredInventory.map((m, i) => (
-              <TableRow key={i}>
-                <TableCell>{m.projectId}</TableCell>
-                <TableCell>{m.materialID}</TableCell>
-                <TableCell>{m.materialName}</TableCell>
-                <TableCell>{m.quantityUsed}</TableCell>
-                <TableCell>{m.reorderLevel}</TableCell>
-                <TableCell>{m.supplierID}</TableCell>
-                <TableCell>{m.deliveryDate}</TableCell>
-                
-                <TableCell>
-                <IconButton color="warning" onClick={() => handleOpenForm(m.projectId, i)}>
-                  <Edit sx={{ color: "orange" }} />
-                </IconButton>
-                <IconButton color="error" onClick={() => handleDelete(i)}>
-                  <Delete sx={{ color: "red" }} />
-                </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+  {filteredInventory.map((m, i) => (
+    <TableRow key={m.id}>
+      <TableCell>{m.project}</TableCell>
+      <TableCell>{m.material}</TableCell>
+      <TableCell>{m.material_name}</TableCell>
+      <TableCell>{m.quantity_used}</TableCell>
+      <TableCell>{m.reorder_level}</TableCell>
+      <TableCell>{m.supplier}</TableCell>
+      <TableCell>{m.delivery_date}</TableCell>
+
+      <TableCell>
+        <IconButton color="warning" onClick={() => handleEdit(m, i)}>
+          <Edit sx={{ color: "orange" }} />
+        </IconButton>
+        <IconButton color="error" onClick={() => handleDelete(m.id)}>
+          <Delete sx={{ color: "red" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
         </Table>
       </TableContainer>
     </Paper>
@@ -250,14 +432,36 @@ const handleDelete = (index) => {
         <h3 style={{ color: '#7267ef' }}>Material Information</h3>
         <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
         <Grid container spacing={2}>
-          <Grid item xs={6}>
-            <label htmlFor="materialID">Material ID</label>
-            <input id="materialID" name="materialID" className="input" value={formData.materialID || ''} onChange={handleChange} />
-          </Grid>
-          <Grid item xs={6}>
-            <label htmlFor="materialName">Material Name</label>
-            <input id="materialName" name="materialName" className="input" value={formData.materialName || ''} onChange={handleChange} />
-          </Grid>
+        
+           <Grid item xs={6}>
+        <label htmlFor="materialID">Material ID</label>
+        <select
+          id="materialID"
+          name="materialID"
+          className="input"
+          value={formData.materialID || ""}
+          onChange={handleMaterialSelect}
+        >
+          <option value="">-- Select Material ID --</option>
+          {inventoryItems.map((item) => (
+            <option key={item.id} value={item.item_id}>
+              {item.item_id}
+            </option>
+          ))}
+        </select>
+      </Grid>
+
+      <Grid item xs={6}>
+        <label htmlFor="materialName">Material Name</label>
+        <input
+          id="materialName"
+          name="materialName"
+          className="input"
+          value={formData.materialName || ""}
+          onChange={handleChange}
+          disabled
+        />
+      </Grid>
            <Grid item xs={6}>
             <label htmlFor="quantityUsed">Quantity Used</label>
             <input id="quantityUsed" name="quantityUsed" className="input" value={formData.quantityUsed || ''} onChange={handleChange} />
@@ -280,7 +484,7 @@ const handleDelete = (index) => {
             value={formData.reorderLevel || ''} 
             onChange={handleChange} />
           </Grid>
-          <Grid item xs={6}>
+          {/* <Grid item xs={6}>
             <label htmlFor="supplierID">Supplier ID</label>
             <input 
             id="supplierID" 
@@ -288,7 +492,30 @@ const handleDelete = (index) => {
             className="input" 
             value={formData.supplierID || ''} 
             onChange={handleChange} />
-          </Grid>
+          </Grid> */}
+          <Grid item xs={6}>
+  <label htmlFor="supplierID">Supplier</label>
+  <select
+    id="supplierID"
+    name="supplierID"
+    className="input"
+    value={formData.supplierID || ''}
+    onChange={(e) =>
+      setFormData((prev) => ({
+        ...prev,
+        supplierID: e.target.value, // save only vendor_id
+      }))
+    }
+  >
+    <option value="">-- Select Supplier --</option>
+    {vendors.map((vendor) => (
+      <option key={vendor.id} value={vendor.vendor_id}>
+        {vendor.vendor_id} - {vendor.vendor_name}
+      </option>
+    ))}
+  </select>
+</Grid>
+
           <Grid item xs={6}>
             <label htmlFor="deliveryDate">Delivery Date</label>
             <input 
@@ -337,7 +564,7 @@ const handleDelete = (index) => {
     }
   }}
 >
-  Submit
+  {editingId ? "Update" : "Submit"}
 </Button>
 
 

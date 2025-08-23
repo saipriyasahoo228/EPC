@@ -523,6 +523,7 @@ const paginatedDesigns = filteredDesigns.slice(
           <Grid item xs={6}>
             <label htmlFor="approvalStatus">Approval Status</label>
             <select id="approvalStatus" name="approvalStatus" className="input" value={formData.approvalStatus || ''} onChange={handleChange}>
+              <option value="">Select Status</option>
               <option value="Pending">Pending</option>
               <option value="Approved">Approved</option>
               <option value="Rejected">Rejected</option>

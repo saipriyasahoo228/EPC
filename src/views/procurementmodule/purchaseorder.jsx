@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
-import { getMaterialProcurements ,createPurchaseOrder, getPurchaseOrders, deletePurchaseOrder,updatePurchaseOrder} from '../../allapi/procurement';
+import { getMaterialProcurements ,createPurchaseOrder, getPurchaseOrders, deletePurchaseOrder,updatePurchaseOrder,getVendors } from '../../allapi/procurement';
 
 const PurchaseOrder = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,6 +28,8 @@ const PurchaseOrder = () => {
   const [open, setOpen] = useState(false);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [vendors, setVendors] = useState([]);
+
 
 
   const [formData, setFormData] = useState({
@@ -63,6 +65,27 @@ const PurchaseOrder = () => {
 
     fetchData();
   }, []);
+
+  //Fetch Vendor_id and name
+
+useEffect(() => {
+  getVendors()
+    .then((res) => {
+      console.log("Full API response:", res); // First log the complete response
+      
+      // Handle different response structures
+      const vendorsData = res.data || res; // Try res.data first, fall back to res
+      console.log("Vendors data to set:", vendorsData);
+      
+      if (Array.isArray(vendorsData)) {
+        setVendors(vendorsData);
+      } else {
+        console.error("Received data is not an array:", vendorsData);
+        setVendors([]); // Fallback to empty array
+      }
+    })
+    .catch((err) => console.error("Error fetching vendors:", err));
+}, []);
 
   
   const handleOpen = (index) => {
@@ -129,8 +152,6 @@ useEffect(() => {
 }, []);
 
   
-
-
 //HandleSubmit Logic
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -138,7 +159,7 @@ const handleSubmit = async (e) => {
   const payload = {
     vendor: formData.vendorId,
     procurement: formData.procurementId,
-    po_number:formData.purchaseOrderId,
+    po_number: formData.purchaseOrderId,
     order_date: formData.orderDate,
     delivery_date: formData.deliveryDate,
     total_order_value: formData.totalOrderValue,
@@ -150,23 +171,22 @@ const handleSubmit = async (e) => {
 
   try {
     if (isEditMode) {
-      await updatePurchaseOrder(formData.po_id, payload); // PATCH
+      await updatePurchaseOrder(formData.po_id, payload);
       alert(`✅ Purchase Order Updated: ${formData.po_id}`);
     } else {
-      const data = await createPurchaseOrder(payload); // POST
+      const data = await createPurchaseOrder(payload);
       alert(`✅ Purchase Order Created: ${data.po_number}`);
     }
 
     setFormData({});
     setOpen(false);
     setIsEditMode(false);
-    fetchPurchaseOrders(); // Refresh table
+    fetchPurchaseOrders();
   } catch (err) {
-    console.error('❌ Submission failed:', err);
-    alert('❌ Submission failed');
+    const errorMessage = err.response?.data?.po_number?.[0] || 'Operation failed';
+    alert(`❌ ${errorMessage}`);
   }
 };
-
 
 
 //HandleEdit Logic
@@ -380,17 +400,28 @@ const handleDelete = async (po_id) => {
     />
   </Grid>
 
-   <Grid item xs={6}>
-    <label htmlFor="vendorId">Vendor ID</label>
-    <input
-      id="vendorId"
-      name="vendorId"
-      className="input"
-      value={formData.vendorId || ''}
-      onChange={handleChange}
-     
-    />
-  </Grid>
+
+<Grid item xs={6}>
+  <label htmlFor="vendorId">Vendor ID</label>
+ <select
+  id="vendorId"
+  name="vendorId"
+  className="input"
+  value={formData.vendorId || ""}
+  onChange={(e) => setFormData({ ...formData, vendorId: e.target.value })}
+>
+  <option value="">-- Select Vendor --</option>
+  {Array.isArray(vendors) &&
+    vendors.map((vendor) => (
+      <option key={vendor.id} value={vendor.vendor_id}>
+        {vendor.vendor_id} - {vendor.vendor_name}
+      </option>
+    ))}
+</select>
+</Grid>
+
+
+
 
   <Grid item xs={6}>
     <label htmlFor="procurementId">Procurement ID</label>

@@ -48,7 +48,7 @@ const handleOpenForm = (itemId) => {
   const nextId = stockmanagement.length + 1; 
   const newStockId = `STK-${currentYear}-${String(nextId).padStart(3, '0')}`;
 
-  setSelectedItemId(null);f
+  setSelectedItemId(null);
 
   setFormData({
     itemId,
