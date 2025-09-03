@@ -208,7 +208,7 @@ const handleSubmit = async () => {
 
     setIsEditing(false);
     setEditTenderId(null);
-    setShowModal(false);
+    //setShowModal(false);
   } catch (error) {
     console.error('Error saving tender:', error);
     alert('Failed to save tender. Please try again.');

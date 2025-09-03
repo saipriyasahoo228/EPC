@@ -1,6 +1,6 @@
 
 
-import React, { useState } from "react";
+import React, { useState ,useEffect} from "react";
 import {
   Dialog,
   DialogTitle,
@@ -21,14 +21,14 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import { getPurchaseOrders } from "../../allapi/procurement"; 
+import { createAsset ,getAssets,deleteAsset,updateAsset} from "../../allapi/maintenance";
 
-const dummyProjects = [
-  { id: "2025-VND-001" },
-  { id: "2025-VND-002" },
-  { id: "2025-VND-003" },
-];
+
 
 const AssetManagement = () => {
+  const [editingId, setEditingId] = useState(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -37,35 +37,92 @@ const AssetManagement = () => {
   const [assetmanagement, setAssetManagement] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditId, setCurrentEditId] = useState(null);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
 
-  const handleOpenForm = (projectId) => {
-    setSelectedProjectId(projectId);
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getPurchaseOrders();
+        // 🟢 adapt response to match table structure
+        const formatted = data.map((item) => ({
+          poId: item.po_number,          // <-- backend PO field
+          procurementId: item.procurement, // <-- backend Procurement ID
+        }));
+        setPurchaseOrders(formatted);
+      } catch (error) {
+        console.error("❌ Error fetching purchase orders:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+   // ✅ Fetch assets on component mount
+  useEffect(() => {
+    const fetchAssets = async () => {
+      try {
+        const data = await getAssets();
+        setAssetManagement(data);
+      } catch (error) {
+        console.error("❌ Failed to load assets:", error);
+      }
+    };
+
+    fetchAssets();
+  }, []);
+  
+
+  const handleOpenForm = (poId,procurementId) => {
+    setSelectedProjectId(poId,procurementId);
     const currentYear = new Date().getFullYear();
     const newSystemNumber = assetmanagement.length + 1;
     const paddedNumber = newSystemNumber.toString().padStart(3, '0');
     
     setFormData({ 
       assetmanagementID: `AST-${currentYear}-${paddedNumber}`,
-      projectId: projectId
+      poId: poId,
+      procurementId:procurementId
     });
     setIsEditMode(false);
     setCurrentEditId(null);
     setOpen(true);
   };
 
-  const handleEdit = (assetItem) => {
-    setFormData(assetItem);
-    setSelectedProjectId(assetItem.projectId);
-    setIsEditMode(true);
-    setCurrentEditId(assetItem.assetmanagementID);
-    setOpen(true);
-  };
+  const handleEdit = (record) => {
+  setFormData({
+    assetId:record.asset_id || "",
+    assetName: record.asset_name || "",
+    assetType: record.asset_type || "",
+    modelNumber: record.model_number || "",
+    serialNumber: record.serial_number || "",
+    location: record.location || "",
+    purchaseDate: record.purchase_date || "",
+    warrantyExpiryDate: record.warranty_expiry_date || "",
+    procurementId: record.procurement_id || "",
+    maintenanceRequirement: record.maintenance_requirement || "",
+    currentCondition: record.current_condition || "",
+    usefullLife: record.useful_life_years || "",
+    poId: record.purchase_order || "",
+  });
 
-  const handleDelete = (assetId) => {
-    if (window.confirm("Are you sure you want to delete asset management report!")) {
-      setAssetManagement(assetmanagement.filter(item => item.assetmanagementID !== assetId));
-    }
-  };
+  setEditingId(record.asset_id); // ⚡ Use asset_id for PATCH
+  setOpen(true); // open the form dialog
+};
+
+  // delete handler
+const handleDelete = async (assetId) => {
+  if (!window.confirm(`Are you sure you want to delete asset ${assetId}?`)) return;
+  try {
+    await deleteAsset(assetId);
+    alert(`✅ Asset ${assetId} deleted successfully`);
+    setAssetManagement((prev) => prev.filter((a) => a.asset_id !== assetId));
+  } catch (error) {
+    alert(`❌ Failed to delete asset ${assetId}`);
+  }
+};
+
 
   const handleClose = () => {
     setOpen(false);
@@ -79,25 +136,97 @@ const AssetManagement = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-  // Convert boolean fields to "T" or "F"
-  const updatedFormData = {
-    ...formData,
-  
-  };
+//HandleSubmit
 
-  if (isEditMode) {
-    // Update existing record
-    setAssetManagement(assetmanagement.map(item => 
-      item.assetmanagementID === currentEditId ? updatedFormData : item
-    ));
-  } else {
-    // Add new record
-    const newSystem = { ...updatedFormData, projectId: selectedProjectId };
-    setAssetManagement([...assetmanagement, newSystem]);
+
+// const handleSubmit = async () => {
+//   try {
+//     const payload = {
+//       asset_name: formData.assetName || "",
+//       asset_type: formData.assetType || "",
+//       model_number: formData.modelNumber || "",
+//       serial_number: formData.serialNumber || "",
+//       location: formData.location || "",
+//       purchase_date: formData.purchaseDate || "",
+//       warranty_expiry_date: formData.warrantyExpiryDate || "",
+//       procurement_id: formData.procurementId || "",
+//       maintenance_requirement: formData.maintenanceRequirement || "",
+//       current_condition: formData.currentCondition || "",
+//       useful_life_years: formData.usefullLife || 5,
+//       purchase_order: formData.poId || "",
+//     };
+
+//     let res;
+//     if (editingId) {
+//       // 🔹 Update existing asset
+//       res = await updateAsset(editingId, payload);
+//       alert(`✏️ Asset updated successfully! (ID: ${editingId})`);
+//     } else {
+//       // 🔹 Create new asset
+//       res = await createAsset(payload);
+//       alert(`✅ Asset created successfully!\nGenerated Asset ID: ${res.asset_id}`);
+//     }
+
+//     // 🔄 Refresh list
+//     const updatedAssets = await getAssets();
+//     setAssetManagement(updatedAssets);
+
+//     // 🔄 Reset form
+//     setFormData({});
+//     setEditingId(null); // reset editing mode
+//     handleClose();
+
+//   } catch (error) {
+//     // ✅ Show exact backend error in alert
+//     const message = error.response?.data?.detail || error.response?.data || error.message;
+//     alert(`❌ Failed to submit asset:\n${JSON.stringify(message, null, 2)}`);
+//     console.error("❌ Error submitting asset:", error);
+//   }
+// };
+
+const handleSubmit = async () => {
+  try {
+    const payload = {
+      asset_name: formData.assetName || "",
+      asset_type: formData.assetType || "",
+      model_number: formData.modelNumber || "",
+      serial_number: formData.serialNumber || "",
+      location: formData.location || "",
+      purchase_date: formData.purchaseDate || "",
+      warranty_expiry_date: formData.warrantyExpiryDate || "",
+      procurement_id: formData.procurementId || "",
+      maintenance_requirement: formData.maintenanceRequirement || "",
+      current_condition: formData.currentCondition || "",
+      useful_life_years: formData.usefullLife || 5,
+      purchase_order: formData.poId || "",
+    };
+
+    let res;
+
+    if (editingId) {
+      // 🔹 Update existing asset (PATCH)
+      res = await updateAsset(editingId, payload);
+      alert(`✏️ Asset updated successfully! (${editingId})`);
+    } else {
+      // 🔹 Create new asset (POST)
+      res = await createAsset(payload);
+      alert(`✅ Asset created successfully!\nGenerated Asset ID: ${res.asset_id}`);
+    }
+
+    // 🔹 Refresh list after submit/update
+    const updatedAssets = await getAssets();
+    setAssetManagement(updatedAssets);
+
+    // Reset state
+    setFormData({});
+    setEditingId(null);
+    handleClose();
+  } catch (error) {
+    // ✅ Show exact backend error in alert
+    const message = error.response?.data?.detail || error.response?.data || error.message;
+    alert(`❌ Failed to submit asset:\n${JSON.stringify(message, null, 2)}`);
+    console.error("❌ Error submitting asset:", error);
   }
-
-  handleClose();
 };
 
 
@@ -117,14 +246,14 @@ const AssetManagement = () => {
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
             <Typography variant="h6" gutterBottom>
-              VENDOR RECORDS
+              Purchase & Procurement Details
             </Typography>
 
             {/* Search Input */}
             <Box sx={{ my: 2, mx: 1 }}>
               <input
                 type="text"
-                placeholder="Search Vendor ID"
+                placeholder="Search Purchase & Procurement"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="input"
@@ -135,26 +264,32 @@ const AssetManagement = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ color: '#7267ef' }}><strong>Vendor ID</strong></TableCell>
+                  <TableCell sx={{ color: '#7267ef' }}><strong>PurchaseOrder ID</strong></TableCell>
+                  <TableCell sx={{ color: '#7267ef' }}><strong>Procurement ID</strong></TableCell>
                   <TableCell sx={{ display: 'flex', justifyContent: 'flex-end', color: '#660000' }}>
                     <strong>Action</strong>
                   </TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
-                {dummyProjects
-                  .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((proj, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{proj.id}</TableCell>
-                      <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                          <AddCircle sx={{ color: "#7267ef" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+            <TableBody>
+      {purchaseOrders
+        .filter(
+          (proj) =>
+            proj.poId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            proj.procurementId.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .map((proj, i) => (
+          <TableRow key={i}>
+            <TableCell>{proj.poId}</TableCell>
+            <TableCell>{proj.procurementId}</TableCell>
+            <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+              <IconButton onClick={() => handleOpenForm(proj.poId,proj.procurementId)} color="primary">
+                <AddCircle sx={{ color: "#7267ef" }} />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+        ))}
+    </TableBody>
             </Table>
           </Paper>
         </Grid>
@@ -177,11 +312,12 @@ const AssetManagement = () => {
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Project ID</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Purchase Order</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>ProcurementId</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Asset ID</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Asset Name</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Asset Type</strong></TableCell>
-                    <TableCell sx={{color:'#7267ef'}}><strong>Asset Value</strong></TableCell>
+                    
                     <TableCell sx={{color:'#7267ef'}}><strong>Model Number</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Serial Number</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Location</strong></TableCell>
@@ -190,40 +326,42 @@ const AssetManagement = () => {
                     
                     <TableCell sx={{color:'#7267ef'}}><strong>Maintenance Requirment</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Current Condition</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Usefull Life</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Depreciation Value</strong></TableCell>
                     <TableCell sx={{color:'#660000'}}><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
-                <TableBody>
-                  {filteredAsset.map((t, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{t.projectId}</TableCell>
-                      <TableCell>{t.assetmanagementID}</TableCell>
-                      <TableCell>{t.assetName}</TableCell>
-                      <TableCell>{t.assetType}</TableCell>
-                      <TableCell>{t.assetValue}</TableCell>
-                      <TableCell>{t.modelNumber}</TableCell>
-                      <TableCell>{t.serialNumber}</TableCell>
-                      <TableCell>{t.location}</TableCell>
-                      <TableCell>{t.purchaseDate}</TableCell>
-                      <TableCell>{t.warrantyExpiryDate}</TableCell>
-                      <TableCell>{t.maintenanceRequirement}</TableCell>
-                      <TableCell>{t.currentCondition}</TableCell>
-                      <TableCell>{t.depreciationValue}</TableCell>
+               <TableBody>
+  {filteredAsset.map((t, i) => (
+    <TableRow key={i}>
+       <TableCell>{t.purchase_order}</TableCell>   
+      <TableCell>{t.procurement_id}</TableCell>   
+      <TableCell>{t.asset_id}</TableCell>
+      <TableCell>{t.asset_name}</TableCell>
+      <TableCell>{t.asset_type}</TableCell>
+      <TableCell>{t.model_number}</TableCell>
+      <TableCell>{t.serial_number}</TableCell>
+      <TableCell>{t.location}</TableCell>
+      <TableCell>{t.purchase_date}</TableCell>
+      <TableCell>{t.warranty_expiry_date}</TableCell>
+      <TableCell>{t.maintenance_requirement}</TableCell>
+      <TableCell>{t.current_condition}</TableCell>
+      <TableCell>{t.useful_life_years}</TableCell>
+      <TableCell>{t.depreciation_value}</TableCell>
+     
 
-                     
-                     
-                      <TableCell>
-                        <IconButton onClick={() => handleEdit(t)} color="warning">
-                          <Edit sx={{ color: "orange" }} />
-                        </IconButton>
-                        <IconButton onClick={() => handleDelete(t.assetmanagementID)} color="error">
-                          <Delete sx={{ color: "red" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+      <TableCell>
+        <IconButton onClick={() => handleEdit(t)} color="warning">
+          <Edit sx={{ color: "orange" }} />
+        </IconButton>
+        <IconButton onClick={() => handleDelete(t.asset_id)} color="error">
+          <Delete sx={{ color: "red" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
               </Table>
             </TableContainer>
           </Paper>
@@ -260,18 +398,29 @@ const AssetManagement = () => {
             id="assetmanagementID"
             name="assetmanagementID"
             className="input"
-            value={formData.assetmanagementID || ''}
+            value={formData.assetId || ''}
+            onChange={handleChange}
+            disabled
+          />
+        </Grid>
+         <Grid item xs={6}>
+          <label htmlFor="procurementId">procurement ID</label>
+          <input
+            id="procurementId"
+            name="procurementId"
+            className="input"
+            value={formData.procurementId || ''}
             onChange={handleChange}
             disabled
           />
         </Grid>
         <Grid item xs={6}>
-          <label htmlFor="projectId">Vendor ID</label>
+          <label htmlFor="poId">PurchaseOrder ID</label>
           <input
-            id="projectId"
-            name="projectId"
+            id="poId"
+            name="poId"
             className="input"
-            value={formData.projectId || ''}
+            value={formData.poId || ''}
             onChange={handleChange}
             disabled
           />
@@ -289,6 +438,7 @@ const AssetManagement = () => {
         <Grid item xs={6}>
           <label htmlFor="assetType">Asset Type</label>
           <input
+            
             id="assetType"
             name="assetType"
             className="input"
@@ -296,16 +446,7 @@ const AssetManagement = () => {
             onChange={handleChange}
           />
         </Grid>
-         <Grid item xs={6}>
-          <label htmlFor="assetValue">Asset Value</label>
-          <input
-            id="assetValue"
-            name="assetValue"
-            className="input"
-            value={formData.assetValue || ''}
-            onChange={handleChange}
-          />
-        </Grid>
+         
         <Grid item xs={6}>
           <label htmlFor="modelNumber">Model Number</label>
           <input
@@ -360,34 +501,45 @@ const AssetManagement = () => {
         </Grid>
         
         <Grid item xs={6}>
-          <label htmlFor="maintenanceRequirement">Maintenance Requirement</label>
-          <input
-            id="maintenanceRequirement"
-            name="maintenanceRequirement"
-            className="input"
-            value={formData.maintenanceRequirement || ''}
-            onChange={handleChange}
-          />
-        </Grid>
+  <label htmlFor="maintenanceRequirement">Maintenance Requirement</label>
+  <select
+    id="maintenanceRequirement"
+    name="maintenanceRequirement"
+    className="input"
+    value={formData.maintenanceRequirement || ''}
+    onChange={handleChange}
+  >
+    <option value="">-- Select Maintenance Requirement --</option>
+    <option value="Regular">Regular</option>
+    <option value="Preventive">Preventive</option>
+    <option value="Emergency">Emergency</option>
+  </select>
+</Grid>
+
+       <Grid item xs={6}>
+  <label htmlFor="currentCondition">Current Condition</label>
+  <select
+    id="currentCondition"
+    name="currentCondition"
+    className="input"
+    value={formData.currentCondition || ''}
+    onChange={handleChange}
+  >
+    <option value="">-- Select Current Condition --</option>
+    <option value="Operational">Operational</option>
+    <option value="Needs Repair">Needs Repair</option>
+    <option value="Decommissioned">Decommissioned</option>
+  </select>
+</Grid>
+
         <Grid item xs={6}>
-          <label htmlFor="currentCondition">Current Condition</label>
-          <input
-            id="currentCondition"
-            name="currentCondition"
-            className="input"
-            value={formData.currentCondition || ''}
-            onChange={handleChange}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <label htmlFor="depreciationValue">Depreciation Value</label>
+          <label htmlFor="usefullLife">Usefull Life</label>
           <input
             type="number"
-            step="0.01"
-            id="depreciationValue"
-            name="depreciationValue"
+            id="usefullLife"
+            name="usefullLife"
             className="input"
-            value={formData.depreciationValue || ''}
+            value={formData.usefullLife || ''}
             onChange={handleChange}
           />
         </Grid>
@@ -425,7 +577,7 @@ const AssetManagement = () => {
               }
             }}
           >
-            {isEditMode ? "Update" : "Submit"}
+           {editingId ? "Update" : "Submit"}
           </Button>
         </DialogActions>
       </Dialog>

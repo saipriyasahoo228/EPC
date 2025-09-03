@@ -1,6 +1,6 @@
 
 
-import React, { useState } from "react";
+import React, { useState , useEffect} from "react";
 import {
   Dialog,
   DialogTitle,
@@ -21,51 +21,103 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import { getAssets ,createMaintenanceSchedule,getMaintenanceSchedules,deleteMaintenanceSchedule,updateMaintenanceSchedule} from "../../allapi/maintenance";
 
-const dummyProjects = [
-  { id: "2025-AST-001" },
-  { id: "2025-AST-002" },
-  { id: "2025-AST-003" },
-];
+
 
 const AssetScheduling = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [selectedAssetId, setSelectedAssetId] = useState("");
   const [formData, setFormData] = useState({});
   const [maintenance, setMaintenance] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditId, setCurrentEditId] = useState(null);
+  const [assets, setAssets] = useState([]);
+  const [editingId, setEditingId] = useState(null);
 
-  const handleOpenForm = (projectId) => {
-    setSelectedProjectId(projectId);
+
+
+
+  useEffect(() => {
+    const fetchAssets = async () => {
+      try {
+        const data = await getAssets();
+        setAssets(data); // API should return a list of assets
+      } catch (error) {
+        console.error("❌ Failed to fetch assets:", error);
+      }
+    };
+    fetchAssets();
+  }, []);
+
+//Get all maintenance schedules
+  const fetchSchedules = async () => {
+  try {
+    const data = await getMaintenanceSchedules();
+    setMaintenance(data);
+  } catch (error) {
+    console.error("❌ Error loading schedules:", error);
+  }
+};
+
+// ✅ run fetchSchedules on mount
+useEffect(() => {
+  fetchSchedules();
+}, []);
+
+
+  const handleOpenForm = (assetId) => {
+    setSelectedAssetId(assetId);
     const currentYear = new Date().getFullYear();
     const newSystemNumber = maintenance.length + 1;
     const paddedNumber = newSystemNumber.toString().padStart(3, '0');
     
     setFormData({ 
       maintenanceID: `MNT-${currentYear}-${paddedNumber}`,
-      projectId: projectId
+      assetId: assetId
     });
     setIsEditMode(false);
     setCurrentEditId(null);
     setOpen(true);
   };
 
-  const handleEdit = (maintenanceItem) => {
-    setFormData(maintenanceItem);
-    setSelectedProjectId(maintenanceItem.projectId);
-    setIsEditMode(true);
-    setCurrentEditId(maintenanceItem.maintenanceID);
-    setOpen(true);
-  };
+  const handleEdit = (record) => {
+  setFormData({
+    assetId: record.asset_id || "",
+    maintenanceID: record.maintenance_id || "",
+    maintenanceType: record.maintenance_type || "",
+    scheduledDate: record.scheduled_date || "",
+    frequency: record.frequency || "",
+    technicianId: record.assigned_technician_id || "",
+    taskDescription: record.task_description || "",
+    sparePart: record.spare_parts_required || "",
+    EstimatedDowntime: record.estimated_downtime || "",
+    approvalStatus: record.approval_status || "Pending",
+  });
 
-  const handleDelete = (maintenanceId) => {
-    if (window.confirm("Are you sure you want to delete maintenance scheduling report!")) {
-      setMaintenance(maintenance.filter(item => item.maintenanceID !== maintenanceId));
-    }
-  };
+  setEditingId(record.maintenance_id); // ⚡ store ID for PATCH
+  setOpen(true); // open the form dialog
+};
+
+
+  const handleDelete = async (maintenanceId) => {
+  if (!window.confirm(`Are you sure you want to delete schedule ${maintenanceId}?`)) return;
+
+  try {
+    await deleteMaintenanceSchedule(maintenanceId);
+    alert(`✅ Schedule ${maintenanceId} deleted successfully!`);
+    
+    // refresh the list
+    const updatedSchedules = await getMaintenanceSchedules();
+    setMaintenance(updatedSchedules);
+  } catch (error) {
+    alert(`❌ Failed to delete schedule:\n${JSON.stringify(error.response?.data || error.message, null, 2)}`);
+    console.error("❌ Delete error:", error);
+  }
+};
+
 
   const handleClose = () => {
     setOpen(false);
@@ -79,25 +131,77 @@ const AssetScheduling = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-  // Convert boolean fields to "T" or "F"
-  const updatedFormData = {
-    ...formData,
-  
-  };
 
-  if (isEditMode) {
-    // Update existing record
-    setMaintenance(maintenance.map(item => 
-      item.maintenanceID === currentEditId ? updatedFormData : item
-    ));
-  } else {
-    // Add new record
-    const newMaintenance = { ...updatedFormData, projectId: selectedProjectId };
-    setMaintenance([...maintenance, newMaintenance]);
+
+// 🔹 Handle submit
+// const handleSubmit = async () => {
+//   try {
+//     const payload = {
+//       asset_id: formData.assetId || "",
+//       maintenance_type: formData.maintenanceType || "",
+//       scheduled_date: formData.scheduledDate || "",
+//       frequency: formData.frequency || "",
+//       assigned_technician_id: formData.technicianId || "",
+//       task_description: formData.taskDescription || "",
+//       spare_parts_required: formData.sparePart || "",
+//       estimated_downtime: formData.EstimatedDowntime || null,
+//       approval_status: formData.approvalStatus || "Pending",
+//     };
+
+//     const res = await createMaintenanceSchedule(payload);
+
+//     alert(`✅ Maintenance Schedule created!\nGenerated ID: ${res.data.maintenance_id}`);
+
+//     // 🔹 Refresh schedules list after submit
+//     fetchSchedules();
+
+//     // 🔹 Reset + Close
+//     setFormData({});
+//     handleClose();
+//   } catch (error) {
+//     const message = error.response?.data?.detail || error.response?.data || error.message;
+//     alert(`❌ Failed to create schedule:\n${JSON.stringify(message, null, 2)}`);
+//   }
+// };
+const handleSubmit = async () => {
+  try {
+    const payload = {
+      asset_id: formData.assetId || "",
+      maintenance_type: formData.maintenanceType || "",
+      scheduled_date: formData.scheduledDate || "",
+      frequency: formData.frequency || "",
+      assigned_technician_id: formData.technicianId || "",
+      task_description: formData.taskDescription || "",
+      spare_parts_required: formData.sparePart || "",
+      estimated_downtime: formData.EstimatedDowntime || null,
+      approval_status: formData.approvalStatus || "Pending",
+    };
+
+    let res;
+
+    if (editingId) {
+      // 🔹 Update
+      res = await updateMaintenanceSchedule(editingId, payload);
+      alert(`✅ Maintenance Schedule updated!\nID: ${res.data.maintenance_id}`);
+    } else {
+      // 🔹 Create
+      res = await createMaintenanceSchedule(payload);
+      alert(`✅ Maintenance Schedule created!\nID: ${res.data.maintenance_id}`);
+    }
+
+    // 🔹 Refresh schedules
+    const updatedSchedules = await getMaintenanceSchedules();
+    setMaintenance(updatedSchedules);
+
+    // 🔹 Reset + Close
+    setFormData({});
+    setEditingId(null);
+    handleClose();
+  } catch (error) {
+    const message = error.response?.data?.detail || error.response?.data || error.message;
+    alert(`❌ Failed to submit schedule:\n${JSON.stringify(message, null, 2)}`);
+    console.error("❌ HandleSubmit error:", error);
   }
-
-  handleClose();
 };
 
 
@@ -142,19 +246,24 @@ const AssetScheduling = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {dummyProjects
-                  .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((proj, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{proj.id}</TableCell>
-                      <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                          <AddCircle sx={{ color: "#7267ef" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+      {assets
+        .filter(asset =>
+          asset.asset_id.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .map((asset, i) => (
+          <TableRow key={i}>
+            <TableCell>{asset.asset_id}</TableCell>
+            <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+              <IconButton
+                onClick={() => handleOpenForm(asset.asset_id)}
+                color="primary"
+              >
+                <AddCircle sx={{ color: "#7267ef" }} />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+        ))}
+    </TableBody>
             </Table>
           </Paper>
         </Grid>
@@ -190,30 +299,31 @@ const AssetScheduling = () => {
                     <TableCell sx={{color:'#660000'}}><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
-                <TableBody>
-                  {filteredMaintenance.map((t, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{t.projectId}</TableCell>
-                      <TableCell>{t.maintenanceID}</TableCell>
-                      <TableCell>{t.maintenanceType}</TableCell>
-                      <TableCell>{t.scheduledDate}</TableCell>
-                      <TableCell>{t.frequency}</TableCell>
-                      <TableCell>{t.technicianId}</TableCell>
-                      <TableCell>{t.taskDescription}</TableCell>
-                      <TableCell>{t.sparePart}</TableCell>
-                      <TableCell>{t.EstimatedDowntime}</TableCell>
-                      <TableCell>{t.approvalStatus}</TableCell>
-                      <TableCell>
-                        <IconButton onClick={() => handleEdit(t)} color="warning">
-                          <Edit sx={{ color: "orange" }} />
-                        </IconButton>
-                        <IconButton onClick={() => handleDelete(t.maintenanceID)} color="error">
-                          <Delete sx={{ color: "red" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+               <TableBody>
+  {filteredMaintenance.map((t, i) => (
+    <TableRow key={i}>
+      <TableCell>{t.asset_id}</TableCell>
+      <TableCell>{t.maintenance_id}</TableCell>
+      <TableCell>{t.maintenance_type}</TableCell>
+      <TableCell>{t.scheduled_date}</TableCell>
+      <TableCell>{t.frequency}</TableCell>
+      <TableCell>{t.assigned_technician_id}</TableCell>
+      <TableCell>{t.task_description}</TableCell>
+      <TableCell>{t.spare_parts_required}</TableCell>
+      <TableCell>{t.estimated_downtime}</TableCell>
+      <TableCell>{t.approval_status}</TableCell>
+      <TableCell>
+        <IconButton onClick={() => handleEdit(t)} color="warning">
+          <Edit sx={{ color: "orange" }} />
+        </IconButton>
+        <IconButton onClick={() => handleDelete(t.maintenance_id)} color="error">
+          <Delete sx={{ color: "red" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
               </Table>
             </TableContainer>
           </Paper>
@@ -245,12 +355,12 @@ const AssetScheduling = () => {
       <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
       <Grid container spacing={2}>
         <Grid item xs={6}>
-          <label htmlFor="projectId">Asset ID</label>
+          <label htmlFor="assetId">Asset ID</label>
           <input
-            id="projectId"
-            name="projectId"
+            id="assetId"
+            name="assetId"
             className="input"
-            value={formData.projectId || ''}
+            value={formData.assetId || ''}
             onChange={handleChange}
             disabled
           />
@@ -294,16 +404,24 @@ const AssetScheduling = () => {
             onChange={handleChange}
           />
         </Grid>
-        <Grid item xs={6}>
-          <label htmlFor="frequency">Frequency</label>
-          <input
-            id="frequency"
-            name="frequency"
-            className="input"
-            value={formData.frequency || ''}
-            onChange={handleChange}
-          />
-        </Grid>
+       <Grid item xs={6}>
+  <label htmlFor="frequency">Frequency</label>
+  <select
+    id="frequency"
+    name="frequency"
+    className="input"
+    value={formData.frequency || ""}
+    onChange={handleChange}
+  >
+    <option value="">-- Select Frequency --</option>
+    <option value="Daily">Daily</option>
+    <option value="Weekly">Weekly</option>
+    <option value="Monthly">Monthly</option>
+    <option value="Quarterly">Quarterly</option>
+    <option value="Annually">Annually</option>
+  </select>
+</Grid>
+
         <Grid item xs={6}>
           <label htmlFor="technicianId">Technician ID</label>
           <input
@@ -350,6 +468,7 @@ const AssetScheduling = () => {
         <Grid item xs={6}>
           <label htmlFor="EstimatedDowntime">Estimated Downtime</label>
           <input
+            type="number"
             id="EstimatedDowntime"
             name="EstimatedDowntime"
             className="input"
@@ -408,7 +527,7 @@ const AssetScheduling = () => {
               }
             }}
           >
-            {isEditMode ? "Update" : "Submit"}
+             {editingId ? "Update" : "Submit"}
           </Button>
         </DialogActions>
       </Dialog>

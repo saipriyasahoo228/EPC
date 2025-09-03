@@ -1,6 +1,6 @@
 
 
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -21,12 +21,10 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import { getProjectsAccept } from "../../allapi/engineering";
+import { createCompliance, updateCompliance, getComplianceList,deleteCompliance} from "../../allapi/commision";
 
-const dummyProjects = [
-  { id: "PRJ-2025-001" },
-  { id: "PRJ-2025-002" },
-  { id: "PRJ-2025-003" },
-];
+
 
 const ComplianceForm = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,15 +32,46 @@ const ComplianceForm = () => {
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
-  const [complianceprocess, setComplianceProcess] = useState([]);
+  const [complianceList, setComplianceList] = useState([]);
+
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditId, setCurrentEditId] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+
+
+  // ✅ Fetch accepted projects on mount
+useEffect(() => {
+  const fetchProjects = async () => {
+    try {
+      const data = await getProjectsAccept();
+      setProjects(data); // store API projects
+    } catch (err) {
+      console.error("❌ Error fetching projects:", err);
+    }
+  };
+  fetchProjects();
+}, []);
+
+ // 🔹 Fetch compliance list on load
+  useEffect(() => {
+    fetchCompliance();
+  }, []);
+
+  const fetchCompliance = async () => {
+    try {
+      const data = await getComplianceList();
+      setComplianceList(data);
+    } catch (error) {
+      console.error("❌ Error fetching compliance:", error);
+    }
+  };
 
   const handleOpenForm = (projectId) => {
     setSelectedProjectId(projectId);
     const currentYear = new Date().getFullYear();
-    const newComplianceNumber = complianceprocess.length + 1;
-    const paddedNumber = newComplianceNumber.toString().padStart(3, '0');
+    const newComplianceNumber = complianceList.length + 1;
+    const paddedNumber = newComplianceNumber.toString().padStart(4, '0');
     
     setFormData({ 
       complianceprocessID: `CMP-${currentYear}-${paddedNumber}`,
@@ -53,19 +82,40 @@ const ComplianceForm = () => {
     setOpen(true);
   };
 
-  const handleEdit = (complianceItem) => {
-    setFormData(complianceItem);
-    setSelectedProjectId(complianceItem.projectId);
-    setIsEditMode(true);
-    setCurrentEditId(complianceItem.complianceprocessID);
-    setOpen(true);
-  };
+ const handleEdit = (record) => {
+  setFormData({
+    complianceprocessID: record.compliance_id,
+    regulatoryBody: record.regulatory_body,
+    inspectionDate: record.inspection_date,
+    inspectorName: record.inspector_name,
+    checkListID: record.compliance_checklist_id,
+    complianceStatus: record.compliance_status,
+    issues: record.non_compliance_issues,
+    actionplan: record.corrective_action_plan,
+    certificationID: record.certification_id,
+    expiryDate: record.certification_expiry_date,
+  });
+  setSelectedProjectId(record.project);   // project_id
+  setEditingId(record.compliance_id);     // store ID for PATCH
+  setIsEditMode(true);
+  setOpen(true);
+};
 
-  const handleDelete = (complianceId) => {
-    if (window.confirm("Are you sure you want to delete this compliance process!")) {
-      setComplianceProcess(complianceprocess.filter(item => item.complianceprocessID !== complianceId));
-    }
-  };
+
+  const handleDelete = async (complianceId) => {
+  const confirmDelete = window.confirm("⚠️ Are you sure you want to delete this compliance?");
+  if (!confirmDelete) return;
+
+  try {
+    await deleteCompliance(complianceId);
+    alert(`🗑️ Compliance ${complianceId} deleted successfully`);
+    fetchCompliance(); // ✅ Refresh the list after delete
+  } catch (error) {
+    console.error("❌ Error deleting compliance:", error);
+    alert("Error while deleting compliance. Please try again.");
+  }
+};
+
 
   const handleClose = () => {
     setOpen(false);
@@ -80,21 +130,83 @@ const ComplianceForm = () => {
   };
 
 
+//HandleSubmit Logic
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-const handleSubmit = () => {
-    if (isEditMode) {
-      // Update existing record
-      setComplianceProcess(complianceprocess.map(item => 
-        item.complianceprocessID === currentEditId ? formData : item
-      ));
-    } else {
-      // Add new record
-      const newCompliance = { ...formData, projectId: selectedProjectId };
-      setComplianceProcess([...complianceprocess, newCompliance]);
-    }
-    handleClose();
+  const payload = {
+    project: selectedProjectId,
+    regulatory_body: formData.regulatoryBody || "",
+    inspection_date: formData.inspectionDate || "",
+    inspector_name: formData.inspectorName || "",
+    compliance_checklist_id: formData.checkListID || "",
+    compliance_status: formData.complianceStatus || "",
+    non_compliance_issues: formData.issues || "",
+    corrective_action_plan: formData.actionplan || "",
+    certification_id: formData.certificationID || "",
+    certification_expiry_date: formData.expiryDate || "",
   };
-  const filteredCompliance = complianceprocess.filter((c) =>
+
+  try {
+    let response;
+
+    if (isEditMode && editingId) {
+      // ✅ PUT existing compliance
+      response = await updateCompliance(editingId, payload);
+      alert(`✅ Compliance updated successfully. Compliance ID: ${response.data.compliance_id}`);
+    } else {
+      // ✅ POST new compliance
+      response = await createCompliance(payload);
+      alert(`✅ Compliance submitted successfully. Compliance ID: ${response.data.compliance_id}`);
+    }
+
+    // Refresh compliance list
+    fetchCompliance();
+
+    // Reset after success
+    setFormData({
+      complianceprocessID: "",
+      regulatoryBody: "",
+      inspectionDate: "",
+      inspectorName: "",
+      checkListID: "",
+      complianceStatus: "",
+      issues: "",
+      actionplan: "",
+      certificationID: "",
+      expiryDate: "",
+    });
+    setSelectedProjectId("");
+    setEditingId(null);
+    setIsEditMode(false);
+    handleClose();
+
+  } catch (error) {
+    console.error("❌ Error saving compliance:", error);
+
+    // ✅ Show backend validation error if available
+    if (error.response && error.response.data) {
+      const backendErrors = error.response.data;
+
+      // If backend sends an object of validation errors
+      if (typeof backendErrors === "object") {
+        let errorMessages = [];
+        for (let key in backendErrors) {
+          errorMessages.push(`${key}: ${backendErrors[key]}`);
+        }
+        alert("❌ Validation Errors:\n" + errorMessages.join("\n"));
+      } else {
+        // If backend sends a single error string
+        alert(`❌ Error: ${backendErrors}`);
+      }
+    } else {
+      alert("❌ Error while saving compliance. Please try again.");
+    }
+  }
+};
+
+
+  const filteredCompliance = complianceList.filter((c) =>
     Object.values(c).some(
       (val) =>
         val &&
@@ -134,20 +246,23 @@ const handleSubmit = () => {
                   </TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
-                {dummyProjects
-                  .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((proj, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{proj.id}</TableCell>
-                      <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                          <AddCircle sx={{ color: "#7267ef" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+            <TableBody>
+  {projects
+    .filter(proj =>
+      proj.project_id.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .map((proj, i) => (
+      <TableRow key={i}>
+        <TableCell>{proj.project_id}</TableCell>
+        <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
+            <AddCircle sx={{ color: "#7267ef" }} />
+          </IconButton>
+        </TableCell>
+      </TableRow>
+    ))}
+</TableBody>
+
             </Table>
           </Paper>
         </Grid>
@@ -186,32 +301,32 @@ const handleSubmit = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredCompliance.map((c, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{c.projectId}</TableCell>
-                      <TableCell>{c.complianceprocessID}</TableCell>
-                      <TableCell>{c.regulatoryBody}</TableCell>
-                      <TableCell>{c.inspectionDate}</TableCell>
-                      <TableCell>{c.inspectorName}</TableCell>
-                      <TableCell>{c.checkListID}</TableCell>
-                      <TableCell>{c.complianceStatus}</TableCell>
-                      <TableCell>{c.issues}</TableCell>
-                      <TableCell>{c.actionplan}</TableCell>
-                      <TableCell>{c.certificationID}</TableCell>
-                      <TableCell>{c.expiryDate}</TableCell>
-                     
-                     
-                      <TableCell>
-                        <IconButton onClick={() => handleEdit(c)} color="warning">
-                          <Edit sx={{ color: "orange" }} />
-                        </IconButton>
-                        <IconButton onClick={() => handleDelete(c.complianceprocessID)} color="error">
-                          <Delete sx={{ color: "red" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+  {filteredCompliance.map((c, i) => (
+    <TableRow key={i}>
+      <TableCell>{c.project}</TableCell>
+      <TableCell>{c.compliance_id}</TableCell>
+      <TableCell>{c.regulatory_body}</TableCell>
+      <TableCell>{c.inspection_date}</TableCell>
+      <TableCell>{c.inspector_name}</TableCell>
+      <TableCell>{c.compliance_checklist_id}</TableCell>
+      <TableCell>{c.compliance_status}</TableCell>
+      <TableCell>{c.non_compliance_issues}</TableCell>
+      <TableCell>{c.corrective_action_plan}</TableCell>
+      <TableCell>{c.certification_id}</TableCell>
+      <TableCell>{c.certification_expiry_date}</TableCell>
+
+      <TableCell>
+        <IconButton onClick={() => handleEdit(c)} color="warning">
+          <Edit sx={{ color: "orange" }} />
+        </IconButton>
+        <IconButton onClick={() => handleDelete(c.compliance_id)} color="error">
+          <Delete sx={{ color: "red" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
               </Table>
             </TableContainer>
           </Paper>

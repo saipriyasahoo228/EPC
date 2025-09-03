@@ -120,7 +120,7 @@ export const getPurchaseOrders = async () => {
 };
 
 //Delete api for purchase order
-// src/api/purchaseOrder.js (or wherever your API utilities are defined)
+
 export const deletePurchaseOrder = async (purchaseOrderId) => {
   try {
     const response = await api.delete(`/procurement/purchase-order/${purchaseOrderId}/`);

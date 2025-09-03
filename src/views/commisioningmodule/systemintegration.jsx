@@ -1,6 +1,6 @@
 
 
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -21,51 +21,90 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import { getProjectsAccept } from "../../allapi/engineering"; // adjust path as needed
+import { getSystemIntegrations,createSystemIntegration,deleteSystemIntegration,updateSystemIntegration } from "../../allapi/commision";
 
-const dummyProjects = [
-  { id: "PRJ-2025-001" },
-  { id: "PRJ-2025-002" },
-  { id: "PRJ-2025-003" },
-];
+
+
 
 const SystemIntegration = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [formData, setFormData] = useState({});
+  //const [formData, setFormData] = useState({});
   const [systemmanagement, setSystemManagement] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditId, setCurrentEditId] = useState(null);
+  const [projects, setProjects] = useState([]);
+    const [editingId, setEditingId] = useState(null);
+   const [formData, setFormData] = useState({
+    finalReportId: "",
+    project: "",
+    regulatory_body: "",
+    inspection_date: "",
+    inspector_name: "",
+    compliance_checklist_id: "",
+    compliance_status: "",
+    non_compliance_issues: "",
+    corrective_action: "",
+  });
 
-  const handleOpenForm = (projectId) => {
-    setSelectedProjectId(projectId);
-    const currentYear = new Date().getFullYear();
-    const newSystemNumber = systemmanagement.length + 1;
-    const paddedNumber = newSystemNumber.toString().padStart(3, '0');
-    
-    setFormData({ 
-      systemmanagementID: `FIN-${currentYear}-${paddedNumber}`,
-      projectId: projectId
-    });
-    setIsEditMode(false);
-    setCurrentEditId(null);
-    setOpen(true);
-  };
-
-  const handleEdit = (systemItem) => {
-    setFormData(systemItem);
-    setSelectedProjectId(systemItem.projectId);
-    setIsEditMode(true);
-    setCurrentEditId(systemItem.systemmanagementID);
-    setOpen(true);
-  };
-
-  const handleDelete = (systemId) => {
-    if (window.confirm("Are you sure you want to delete system integration and final report!")) {
-      setSystemManagement(systemmanagement.filter(item => item.systemmanagementID !== systemId));
+//Fetch all accepted project
+useEffect(() => {
+  const fetchProjects = async () => {
+    try {
+      const data = await getProjectsAccept();
+      setProjects(data); // assuming API already returns an array
+    } catch (error) {
+      console.error("❌ Error fetching projects:", error);
     }
   };
+  fetchProjects();
+}, []);
+
+//fetch all system integration
+useEffect(() => {
+  fetchReports();
+}, []);
+
+const fetchReports = async () => {
+  try {
+    const data = await getSystemIntegrations();
+    setSystemManagement(data);
+  } catch (error) {
+    console.error("❌ Error fetching reports:", error);
+  }
+};
+const handleOpenForm = (projectId) => {
+  setSelectedProjectId(projectId);
+  const currentYear = new Date().getFullYear();
+  const newSystemNumber = systemmanagement.length + 1;
+  const paddedNumber = newSystemNumber.toString().padStart(4, '0');
+  
+  setFormData({ 
+    systemmanagementID: `FIN-${currentYear}-${paddedNumber}`,
+    projectId: projectId
+  });
+  
+  setEditingId(null);   // ✅ reset properly
+  setOpen(true);
+};
+
+  
+
+  const handleDelete = async (finalReportId) => {
+  if (!window.confirm("Are you sure you want to delete this report?")) return;
+
+  try {
+    await deleteSystemIntegration(finalReportId);
+    await fetchReports(); // refresh list
+    alert("Report deleted successfully!");
+  } catch (error) {
+    console.error("❌ Error deleting report:", error);
+    alert("Failed to delete report. Please try again.");
+  }
+};
 
   const handleClose = () => {
     setOpen(false);
@@ -79,26 +118,62 @@ const SystemIntegration = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-  // Convert boolean fields to "T" or "F"
-  const updatedFormData = {
-    ...formData,
-    handoverConfirmation: formData.handoverConfirmation ? 'T' : 'F',
-    complianceConfirmation: formData.complianceConfirmation ? 'T' : 'F',
+ const handleEdit = (record) => {
+  setFormData({
+    systemmanagementID: record.final_report_id,
+    projectId: record.project_id,
+    testingInfo: record.summary_of_testing,
+    defectRectification: record.defect_rectification_report,
+    handoverConfirmation: record.handover_confirmation,
+    complianceConfirmation: record.compliance_confirmation,
+    documentLink: record.archival_document_link,
+  });
+  
+  setEditingId(record.final_report_id);  // ✅ set for update
+  setOpen(true);
+};
+
+
+//HandleSubmit
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  const payload = {
+    project_id: selectedProjectId,
+    summary_of_testing: formData.testingInfo || "",
+    defect_rectification_report: formData.defectRectification || "",
+    handover_confirmation: formData.handoverConfirmation || false,
+    compliance_confirmation: formData.complianceConfirmation || false,
+    archival_document_link: formData.documentLink || "",
   };
 
-  if (isEditMode) {
-    // Update existing record
-    setSystemManagement(systemmanagement.map(item => 
-      item.systemmanagementID === currentEditId ? updatedFormData : item
-    ));
-  } else {
-    // Add new record
-    const newSystem = { ...updatedFormData, projectId: selectedProjectId };
-    setSystemManagement([...systemmanagement, newSystem]);
-  }
+  try {
+    if (editingId) {
+      // 🔄 Update existing report
+      const res = await updateSystemIntegration(editingId, payload);
+      await fetchReports(); // refresh table
+      setFormData({});
+      setEditingId(null);
+      setOpen(false);
 
-  handleClose();
+      alert(
+        `System Integration Report updated successfully!\nFinal Report ID: ${res.data.final_report_id}`
+      );
+    } else {
+      // ➕ Create new report
+      const res = await createSystemIntegration(payload);
+      await fetchReports(); // refresh table
+      setFormData({});
+      setOpen(false);
+
+      alert(
+        `System Integration Report submitted successfully!\nFinal Report ID: ${res.data.final_report_id}`
+      );
+    }
+  } catch (error) {
+    console.error("❌ Error submitting system integration:", error);
+    alert("Failed to submit System Integration Report. Please try again.");
+  }
 };
 
 
@@ -110,6 +185,7 @@ const SystemIntegration = () => {
     )
   );
   
+
   return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>System Integration & Certification</Typography>
@@ -143,19 +219,22 @@ const SystemIntegration = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {dummyProjects
-                  .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((proj, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{proj.id}</TableCell>
-                      <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                          <AddCircle sx={{ color: "#7267ef" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+  {projects
+    .filter(proj =>
+      proj.project_id?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .map((proj, i) => (
+      <TableRow key={i}>
+        <TableCell>{proj.project_id}</TableCell>
+        <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
+            <AddCircle sx={{ color: "#7267ef" }} />
+          </IconButton>
+        </TableCell>
+      </TableRow>
+    ))}
+</TableBody>
+
             </Table>
           </Paper>
         </Grid>
@@ -188,29 +267,36 @@ const SystemIntegration = () => {
                     <TableCell sx={{color:'#660000'}}><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
-                <TableBody>
-                  {filteredSystem.map((t, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{t.projectId}</TableCell>
-                      <TableCell>{t.systemmanagementID}</TableCell>
-                      <TableCell>{t.testingInfo}</TableCell>
-                      <TableCell>{t.defectRectification}</TableCell>
-                      <TableCell>{t.handoverConfirmation}</TableCell>
-                      <TableCell>{t.complianceConfirmation}</TableCell>
-                      <TableCell>{t.documentLink}</TableCell>
-                     
-                     
-                      <TableCell>
-                        <IconButton onClick={() => handleEdit(t)} color="warning">
-                          <Edit sx={{ color: "orange" }} />
-                        </IconButton>
-                        <IconButton onClick={() => handleDelete(t.systemmanagementID)} color="error">
-                          <Delete sx={{ color: "red" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+               <TableBody>
+  {filteredSystem.map((t, i) => (
+    <TableRow key={i}>
+      <TableCell>{t.project_id}</TableCell>
+      <TableCell>{t.final_report_id}</TableCell>
+      <TableCell>{t.summary_of_testing}</TableCell>
+      <TableCell>{t.defect_rectification_report}</TableCell>
+      <TableCell>{t.handover_confirmation ? "✅" : "❌"}</TableCell>
+      <TableCell>{t.compliance_confirmation ? "✅" : "❌"}</TableCell>
+      <TableCell>
+        {t.archival_document_link ? (
+          <a href={t.archival_document_link} target="_blank" rel="noreferrer">
+            View Doc
+          </a>
+        ) : (
+          "-"
+        )}
+      </TableCell>
+      <TableCell>
+        <IconButton onClick={() => handleEdit(t)} color="warning">
+          <Edit sx={{ color: "orange" }} />
+        </IconButton>
+        <IconButton onClick={() => handleDelete(t.final_report_id)} color="error">
+          <Delete sx={{ color: "red" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
               </Table>
             </TableContainer>
           </Paper>
@@ -383,7 +469,7 @@ const SystemIntegration = () => {
               }
             }}
           >
-            {isEditMode ? "Update" : "Submit"}
+             {editingId ? "Update" : "Submit"}
           </Button>
         </DialogActions>
       </Dialog>
