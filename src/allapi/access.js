@@ -23,3 +23,9 @@ export const updateUserModulePermissions = async (userId, moduleId, payload) => 
     const response = await api.patch(`/user/users/${userId}/module/${moduleId}/`, payload);
     return response.data;
 };
+
+// Fetch effective permissions for the current authenticated user
+export const getMyPermissions = async () => {
+    const response = await api.get('/user/me/permissions/');
+    return response.data;
+};
