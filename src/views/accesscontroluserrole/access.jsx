@@ -237,6 +237,7 @@ const UserRoleAccessControl = () => {
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
               >
+                <MenuItem value="">Select User</MenuItem> {/* blank option to clear selection */}
                 {users.map((u) => (
                   <MenuItem key={u.user_id} value={u.user_id}>
                     {u.user_id} - {u.full_name || u.email || u.mobile_number}

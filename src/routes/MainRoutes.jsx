@@ -5,6 +5,8 @@ import { Navigate } from 'react-router-dom';
 
 import AdminLayout from 'layouts/AdminLayout';
 import GuestLayout from 'layouts/GuestLayout';
+import RequirePermission from 'components/auth/RequirePermission';
+import AdminOnly from 'components/auth/AdminOnly';
 
 
  
@@ -81,112 +83,220 @@ const MainRoutes = {
         },
         {
           path: '/design',
-          element: <DesignForm />
+          element: (
+            <RequirePermission slug="engineering" action="can_read">
+              <DesignForm />
+            </RequirePermission>
+          )
         },
 
         {
           path: '/feasibilitystudies',
-          element:<FeasibilityForm />
+          element:(
+            <RequirePermission slug="engineering" action="can_read">
+              <FeasibilityForm />
+            </RequirePermission>
+          )
         },
         {
           path: '/vendor details',
-          element: <VendorForm />
+          element: (
+            <RequirePermission slug="procurement" action="can_read">
+              <VendorForm />
+            </RequirePermission>
+          )
         },
         {
           path: '/materialprocurement',
-          element: <MaterialForm />
+          element: (
+            <RequirePermission slug="procurement" action="can_read">
+              <MaterialForm />
+            </RequirePermission>
+          )
         },
         {
           path: '/purchaseorder',
-          element: <PurchaseOrder />
+          element: (
+            <RequirePermission slug="procurement" action="can_read">
+              <PurchaseOrder />
+            </RequirePermission>
+          )
         },
         {
           path: '/logistic',
-          element: <LogisticForm />
+          element: (
+            <RequirePermission slug="procurement" action="can_read">
+              <LogisticForm />
+            </RequirePermission>
+          )
         },
         {
           path: '/itemmaster',
-          element:<ItemMaster/>
+          element:(
+            <RequirePermission slug="inventory" action="can_read">
+              <ItemMaster/>
+            </RequirePermission>
+          )
         },
         {
           path: '/stockmanagement',
-          element:<StockMaster/>
+          element:(
+            <RequirePermission slug="inventory" action="can_read">
+              <StockMaster/>
+            </RequirePermission>
+          )
         },
         {
           path: '/stockreturns',
-          element:<StockReturn/>
+          element:(
+            <RequirePermission slug="inventory" action="can_read">
+              <StockReturn/>
+            </RequirePermission>
+          )
         },
         {
           path: '/stock valuation and report',
-          element:<InventoryValuationForm/>
+          element:(
+            <RequirePermission slug="inventory" action="can_read">
+              <InventoryValuationForm/>
+            </RequirePermission>
+          )
         },
         {
           path: '/projectmanagement',
-          element:<ProjectManagement/>
+          element:(
+            <RequirePermission slug="construction" action="can_read">
+              <ProjectManagement/>
+            </RequirePermission>
+          )
         },
         {
           path: '/site execution',
-          element:<SiteExecution/>
+          element:(
+            <RequirePermission slug="construction" action="can_read">
+              <SiteExecution/>
+            </RequirePermission>
+          )
         },
         {
           path: 'qualitycontrol',
-          element:<QualityControl/>
+          element:(
+            <RequirePermission slug="construction" action="can_read">
+              <QualityControl/>
+            </RequirePermission>
+          )
         },
         {
           path: '/safetymanagement',
-          element:<SafetyManagement/>
+          element:(
+            <RequirePermission slug="construction" action="can_read">
+              <SafetyManagement/>
+            </RequirePermission>
+          )
         },
         {
           path: '/materials & inventorymanagement',
-          element:<InventoryManagement/>
+          element:(
+            <RequirePermission slug="construction" action="can_read">
+              <InventoryManagement/>
+            </RequirePermission>
+          )
         },
         {
           path:'/testing',
-          element:<Testing/>
+          element:(
+            <RequirePermission slug="commissioning" action="can_read">
+              <Testing/>
+            </RequirePermission>
+          )
         },
         {
           path:'/handoverprocess',
-          element:<HandoverProcess/>
+          element:(
+            <RequirePermission slug="commissioning" action="can_read">
+              <HandoverProcess/>
+            </RequirePermission>
+          )
         },
         {
-        path:'/compliance',
-        element:<ComplianceForm/>
+          path:'/compliance',
+          element:(
+            <RequirePermission slug="commissioning" action="can_read">
+              <ComplianceForm/>
+            </RequirePermission>
+          )
         },
         {
           path: '/systemintegration',
-          element:<SystemIntegration/>
+          element:(
+            <RequirePermission slug="commissioning" action="can_read">
+              <SystemIntegration/>
+            </RequirePermission>
+          )
         },
         {
           path: '/assetsmanagement',
-          element:<AssetManagement/>
+          element:(
+            <RequirePermission slug="maintenance" action="can_read">
+              <AssetManagement/>
+            </RequirePermission>
+          )
         },
         {
           path: '/generalledger',
-          element:<AccountLedger/>
+          element:(
+            <RequirePermission slug="account_ledger" action="can_read">
+              <AccountLedger/>
+            </RequirePermission>
+          )
         },
         {
           path: '/accountpayble',
-          element:<Acoountpayble/>
+          element:(
+            <RequirePermission slug="account_ledger" action="can_read">
+              <Acoountpayble/>
+            </RequirePermission>
+          )
         },
         {
           path: '/account recieve',
-          element: <AccountsReceivable/>
+          element: (
+            <RequirePermission slug="account_ledger" action="can_read">
+              <AccountsReceivable/>
+            </RequirePermission>
+          )
         },
         {
           path: '/financial report',
-          element:<FinancialReports/>
+          element:(
+            <RequirePermission slug="account_ledger" action="can_read">
+              <FinancialReports/>
+            </RequirePermission>
+          )
         },
         {
           path: '/asset scheduling',
-          element:<AssetScheduling/>
+          element:(
+            <RequirePermission slug="maintenance" action="can_read">
+              <AssetScheduling/>
+            </RequirePermission>
+          )
         },
         {
           path: '/maintenance report',
-          element:<MaintenanceReport/>
+          element:(
+            <RequirePermission slug="maintenance" action="can_read">
+              <MaintenanceReport/>
+            </RequirePermission>
+          )
         },
         {
           path: '/safety',
-          element:<SafetyCheck/>
+          element:(
+            <RequirePermission slug="maintenance" action="can_read">
+              <SafetyCheck/>
+            </RequirePermission>
+          )
         },
         {
         path:'/guest',
@@ -198,7 +308,11 @@ const MainRoutes = {
         },
         {
           path:'/accesscontrol',
-          element:<UserRoleAccessControl/>
+          element:(
+            <AdminOnly>
+                <UserRoleAccessControl/>
+            </AdminOnly>
+          )
         }
       ]
     },
