@@ -85,7 +85,7 @@ useEffect(() => {
 
   const handleEdit = (record) => {
   setFormData({
-    assetId: record.asset_id || "",
+    assetId: record.asset || "",
     maintenanceID: record.maintenance_id || "",
     maintenanceType: record.maintenance_type || "",
     scheduledDate: record.scheduled_date || "",
@@ -134,35 +134,6 @@ useEffect(() => {
 
 
 // 🔹 Handle submit
-// const handleSubmit = async () => {
-//   try {
-//     const payload = {
-//       asset_id: formData.assetId || "",
-//       maintenance_type: formData.maintenanceType || "",
-//       scheduled_date: formData.scheduledDate || "",
-//       frequency: formData.frequency || "",
-//       assigned_technician_id: formData.technicianId || "",
-//       task_description: formData.taskDescription || "",
-//       spare_parts_required: formData.sparePart || "",
-//       estimated_downtime: formData.EstimatedDowntime || null,
-//       approval_status: formData.approvalStatus || "Pending",
-//     };
-
-//     const res = await createMaintenanceSchedule(payload);
-
-//     alert(`✅ Maintenance Schedule created!\nGenerated ID: ${res.data.maintenance_id}`);
-
-//     // 🔹 Refresh schedules list after submit
-//     fetchSchedules();
-
-//     // 🔹 Reset + Close
-//     setFormData({});
-//     handleClose();
-//   } catch (error) {
-//     const message = error.response?.data?.detail || error.response?.data || error.message;
-//     alert(`❌ Failed to create schedule:\n${JSON.stringify(message, null, 2)}`);
-//   }
-// };
 const handleSubmit = async () => {
   try {
     const payload = {
@@ -177,32 +148,61 @@ const handleSubmit = async () => {
       approval_status: formData.approvalStatus || "Pending",
     };
 
-    let res;
+    const res = await createMaintenanceSchedule(payload);
 
-    if (editingId) {
-      // 🔹 Update
-      res = await updateMaintenanceSchedule(editingId, payload);
-      alert(`✅ Maintenance Schedule updated!\nID: ${res.data.maintenance_id}`);
-    } else {
-      // 🔹 Create
-      res = await createMaintenanceSchedule(payload);
-      alert(`✅ Maintenance Schedule created!\nID: ${res.data.maintenance_id}`);
-    }
+    alert(`✅ Maintenance Schedule created!\nGenerated ID: ${res.data.maintenance_id}`);
 
-    // 🔹 Refresh schedules
-    const updatedSchedules = await getMaintenanceSchedules();
-    setMaintenance(updatedSchedules);
+    // 🔹 Refresh schedules list after submit
+    fetchSchedules();
 
     // 🔹 Reset + Close
     setFormData({});
-    setEditingId(null);
     handleClose();
   } catch (error) {
     const message = error.response?.data?.detail || error.response?.data || error.message;
-    alert(`❌ Failed to submit schedule:\n${JSON.stringify(message, null, 2)}`);
-    console.error("❌ HandleSubmit error:", error);
+    alert(`❌ Failed to create schedule:\n${JSON.stringify(message, null, 2)}`);
   }
 };
+// const handleSubmit = async () => {
+//   try {
+//     const payload = {
+//       asset: formData.assetId || "",
+//       maintenance_type: formData.maintenanceType || "",
+//       scheduled_date: formData.scheduledDate || "",
+//       frequency: formData.frequency || "",
+//       assigned_technician_id: formData.technicianId || "",
+//       task_description: formData.taskDescription || "",
+//       spare_parts_required: formData.sparePart || "",
+//       estimated_downtime: formData.EstimatedDowntime || null,
+//       approval_status: formData.approvalStatus || "Pending",
+//     };
+
+//     let res;
+
+//     if (editingId) {
+//       // 🔹 Update
+//       res = await updateMaintenanceSchedule(editingId, payload);
+//       alert(`✅ Maintenance Schedule updated!\nID: ${res.data.maintenance_id}`);
+//     } else {
+//       // 🔹 Create
+//       res = await createMaintenanceSchedule(payload);
+//       alert(`✅ Maintenance Schedule created!\nID: ${res.data.maintenance_id}`);
+//     }
+
+//     // 🔹 Refresh schedules
+//     const updatedSchedules = await getMaintenanceSchedules();
+//     setMaintenance(updatedSchedules);
+
+//     // 🔹 Reset + Close
+//     setFormData({});
+//     setEditingId(null);
+//     handleClose();
+//   } catch (error) {
+//     const message = error.response?.data?.detail || error.response?.data || error.message;
+//     alert(`❌ Failed to submit schedule:\n${JSON.stringify(message, null, 2)}`);
+//     console.error("❌ HandleSubmit error:", error);
+//   }
+// };
 
 
   const filteredMaintenance = maintenance.filter((t) =>
@@ -302,7 +302,7 @@ const handleSubmit = async () => {
                <TableBody>
   {filteredMaintenance.map((t, i) => (
     <TableRow key={i}>
-      <TableCell>{t.asset_id}</TableCell>
+      <TableCell>{t.asset}</TableCell>
       <TableCell>{t.maintenance_id}</TableCell>
       <TableCell>{t.maintenance_type}</TableCell>
       <TableCell>{t.scheduled_date}</TableCell>

@@ -1,6 +1,6 @@
 
 
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -21,12 +21,9 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import { getAssets ,createCompliance,getCompliances,deleteCompliance,updateCompliance} from "../../allapi/maintenance";
 
-const dummyProjects = [
-  { id: "2025-AST-001" },
-  { id: "2025-AST-002" },
-  { id: "2025-AST-003" },
-];
+
 
 const SafetyCheck = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,36 +33,88 @@ const SafetyCheck = () => {
   const [formData, setFormData] = useState({});
   const [safetycheck, setsafetyCheck] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [editingId, setEditingId] = useState(null);   // stores compliance_id for edit
   const [currentEditId, setCurrentEditId] = useState(null);
+  const [assets, setAssets] = useState([]);
 
-  const handleOpenForm = (projectId) => {
-    setSelectedProjectId(projectId);
+useEffect(() => {
+  const fetchAssets = async () => {
+    try {
+      const data = await getAssets();
+      setAssets(data);
+    } catch (error) {
+      console.error("❌ Failed to fetch assets:", error);
+    }
+  };
+
+  fetchAssets();
+}, []);
+
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const data = await getCompliances();
+      setsafetyCheck(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  fetchData();
+}, []);
+
+
+  const handleOpenForm = (assetId) => {
+    setSelectedProjectId(assetId);
     const currentYear = new Date().getFullYear();
     const newSystemNumber = safetycheck.length + 1;
-    const paddedNumber = newSystemNumber.toString().padStart(3, '0');
+    const paddedNumber = newSystemNumber.toString().padStart(4, '0');
     
     setFormData({ 
-      complianceID: `CMP-${currentYear}-${paddedNumber}`,
-      projectId: projectId
+      complianceID: `CMS-${currentYear}-${paddedNumber}`,
+      assetId: assetId
     });
     setIsEditMode(false);
     setCurrentEditId(null);
     setOpen(true);
   };
 
-  const handleEdit = (safetyItem) => {
-    setFormData(safetyItem);
-    setSelectedProjectId(safetyItem.projectId);
-    setIsEditMode(true);
-    setCurrentEditId(safetyItem.complianceID);
-    setOpen(true);
-  };
+ const handleEdit = (record) => {
+  setFormData({
+    complianceID: record.compliance_id,   // system-generated
+    assetId: record.asset,                // FK asset_id
+    inspectionDate: record.inspection_date,
+    inspectionType: record.inspection_type,
+    inspectorID: record.inspector_id,
+    regulatoryStandards: record.regulatory_standards,
+    nonComplianceIssues: record.non_compliance_issues || "",
+    correctiveActionPlan: record.corrective_action_plan || "",
+    certificationExpiryDate: record.certification_expiry_date || "",
+  });
+  setEditingId(record.compliance_id); // ✅ store compliance_id for PUT
+  setIsEditMode(true);                // optional flag for button label
+  setOpen(true);                      // open dialog
+};
 
-  const handleDelete = (complianceID) => {
-    if (window.confirm("Are you sure you want to delete safety check report!")) {
-      setsafetyCheck(safetycheck.filter(item => item.complianceID !== complianceID));
-    }
-  };
+ // Delete handler with confirmation
+const handleDelete = async (compliance_id) => {
+  const confirmDelete = window.confirm(
+    `⚠️ Are you sure you want to delete Compliance ID: ${compliance_id}?`
+  );
+  if (!confirmDelete) return; // stop if user cancels
+
+  try {
+    await deleteCompliance(compliance_id);  // ✅ pass compliance_id
+    alert(`✅ Compliance ${compliance_id} deleted successfully`);
+
+    // refresh list
+    const updated = await getCompliances();
+    setsafetyCheck(updated);
+  } catch (error) {
+    alert("❌ Failed to delete compliance");
+    console.error("Delete error:", error);
+  }
+};
+
 
   const handleClose = () => {
     setOpen(false);
@@ -79,26 +128,45 @@ const SafetyCheck = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-  // Convert boolean fields to "T" or "F"
-  const updatedFormData = {
-    ...formData,
-  
-  };
+const handleSubmit = async () => {
+  try {
+    const payload = {
+      asset: formData.assetId, // asset_id (must be valid)
+      inspection_date: formData.inspectionDate,
+      inspection_type: formData.inspectionType,
+      inspector_id: formData.inspectorID,
+      regulatory_standards: formData.regulatoryStandards,
+      non_compliance_issues: formData.nonComplianceIssues || null,
+      corrective_action_plan: formData.correctiveActionPlan || null,
+      certification_expiry_date: formData.certificationExpiryDate || null,
+    };
 
-  if (isEditMode) {
-    // Update existing record
-    setsafetyCheck(safetycheck.map(item => 
-      item.complianceID === currentEditId ? updatedFormData : item
-    ));
-  } else {
-    // Add new record
-    const newSafety = { ...updatedFormData, projectId: selectedProjectId };
-    setsafetyCheck([...safetycheck, newSafety]);
+    let res;
+    if (editingId) {
+      // 🔹 Update mode
+      res = await updateCompliance(editingId, payload);
+      alert(`✅ Safety Check updated: ${res.compliance_id}`);
+    } else {
+      // 🔹 Create mode
+      res = await createCompliance(payload);
+      alert(`✅ Safety Check created: ${res.compliance_id}`);
+    }
+
+    // refresh safety check records
+    const updated = await getCompliances();
+    setsafetyCheck(updated);
+
+    // reset + close
+    setFormData({});
+    setEditingId(null);
+    setIsEditMode(false);
+    handleClose();
+  } catch (error) {
+    console.error("❌ handleSubmit error:", error);
+    alert("❌ Failed to submit safety check");
   }
-
-  handleClose();
 };
+
 
 
   const filteredSafetyCheck = safetycheck.filter((t) =>
@@ -142,19 +210,20 @@ const SafetyCheck = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {dummyProjects
-                  .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((proj, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{proj.id}</TableCell>
-                      <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                          <AddCircle sx={{ color: "#7267ef" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+  {assets
+    .filter(asset => asset.asset_id.toLowerCase().includes(searchTerm.toLowerCase()))
+    .map((asset, i) => (
+      <TableRow key={i}>
+        <TableCell>{asset.asset_id}</TableCell>
+        <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <IconButton onClick={() => handleOpenForm(asset.asset_id)} color="primary">
+            <AddCircle sx={{ color: "#7267ef" }} />
+          </IconButton>
+        </TableCell>
+      </TableRow>
+    ))}
+</TableBody>
+
             </Table>
           </Paper>
         </Grid>
@@ -193,21 +262,21 @@ const SafetyCheck = () => {
                 <TableBody>
                   {filteredSafetyCheck.map((t, i) => (
                     <TableRow key={i}>
-                      <TableCell>{t.projectId}</TableCell>
-                      <TableCell>{t.complianceID}</TableCell>
-                      <TableCell>{t.inspectionDate}</TableCell>
-                      <TableCell>{t.inspectionType}</TableCell>
-                      <TableCell>{t.inspectorID}</TableCell>
-                      <TableCell>{t.regulatoryStandards}</TableCell>
-                      <TableCell>{t.nonComplianceIssues}</TableCell>
-                      <TableCell>{t.correctiveActionPlan}</TableCell>
-                      <TableCell>{t.certificationExpiryDate}</TableCell>
+                      <TableCell>{t.asset}</TableCell>
+                      <TableCell>{t.compliance_id}</TableCell>
+                      <TableCell>{t.inspection_date}</TableCell>
+                      <TableCell>{t.inspection_type}</TableCell>
+                      <TableCell>{t.inspector_id}</TableCell>
+                      <TableCell>{t.regulatory_standards}</TableCell>
+                      <TableCell>{t.non_compliance_issues}</TableCell>
+                      <TableCell>{t.corrective_action_plan}</TableCell>
+                      <TableCell>{t.certification_expiry_date}</TableCell>
                     
                       <TableCell>
                         <IconButton onClick={() => handleEdit(t)} color="warning">
                           <Edit sx={{ color: "orange" }} />
                         </IconButton>
-                        <IconButton onClick={() => handleDelete(t.complianceID)} color="error">
+                        <IconButton onClick={() => handleDelete(t.compliance_id)} color="error">
                           <Delete sx={{ color: "red" }} />
                         </IconButton>
                       </TableCell>
@@ -258,12 +327,12 @@ const SafetyCheck = () => {
         </Grid>
 
         <Grid item xs={6}>
-          <label htmlFor="projectId">Asset ID</label>
+          <label htmlFor="assetId">Asset ID</label>
           <input
-            id="projectId"
-            name="projectId"
+            id="assetId"
+            name="assetId"
             className="input"
-            value={formData.projectId || ''}
+            value={formData.assetId || ''}
             onChange={handleChange}
             disabled
           />
