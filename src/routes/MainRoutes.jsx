@@ -299,12 +299,12 @@ const MainRoutes = {
           )
         },
         {
-        path:'/guest',
-        element:<GuestForm/>
-        },
-        {
-        path:'/user',
-        element:<UserRole/>
+          path:'/user',
+          element:(
+            <AdminOnly>
+                <UserRole/>
+            </AdminOnly>
+          )
         },
         {
           path:'/accesscontrol',
