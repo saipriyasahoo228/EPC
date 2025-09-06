@@ -81,7 +81,7 @@ const AssetManagement = () => {
     const paddedNumber = newSystemNumber.toString().padStart(3, '0');
     
     setFormData({ 
-      assetmanagementID: `AST-${currentYear}-${paddedNumber}`,
+      assetId: `AST-${currentYear}-${paddedNumber}`,
       poId: poId,
       procurementId:procurementId
     });
@@ -393,10 +393,10 @@ const handleSubmit = async () => {
       <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
       <Grid container spacing={2}>
         <Grid item xs={6}>
-          <label htmlFor="assetmanagementID">Asset ID</label>
+          <label htmlFor="assetId">Asset ID</label>
           <input
-            id="assetmanagementID"
-            name="assetmanagementID"
+            id="assetId"
+            name="assetId"
             className="input"
             value={formData.assetId || ''}
             onChange={handleChange}

@@ -1,6 +1,6 @@
 
 
-import React, { useState } from "react";
+import React, { useState ,useEffect} from "react";
 import {
   Dialog,
   DialogTitle,
@@ -21,12 +21,9 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import { getAssets,createWorkOrder ,getWorkOrders,updateWorkOrder,deleteWorkOrder} from "../../allapi/maintenance";
 
-const dummyProjects = [
-  { id: "2025-AST-001" },
-  { id: "2025-AST-002" },
-  { id: "2025-AST-003" },
-];
+
 
 const MaintenanceReport = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,37 +32,91 @@ const MaintenanceReport = () => {
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
   const [maintenancereport, setMaintenanceReport] = useState([]);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [currentEditId, setCurrentEditId] = useState(null);
+  const [assets, setAssets] = useState([]);
+  const [isEditMode, setIsEditMode] = useState(false); 
 
-  const handleOpenForm = (projectId) => {
-    setSelectedProjectId(projectId);
+  // ✅ Fetch assets on mount
+  useEffect(() => {
+    const fetchAssets = async () => {
+      try {
+        const data = await getAssets();
+        setAssets(data); // assuming API returns an array
+      } catch (error) {
+        console.error("❌ Error loading assets:", error);
+      }
+    };
+
+    fetchAssets();
+  }, []);
+
+
+  useEffect(() => {
+  // fetch initial records
+  const fetchReports = async () => {
+    try {
+      const data = await getWorkOrders();
+      setMaintenanceReport(data);
+    } catch (error) {
+      console.error("❌ Failed to load work orders:", error);
+    }
+  };
+  fetchReports();
+}, []);
+
+
+  const handleOpenForm = (assetId) => {
+    setSelectedProjectId(assetId);
     const currentYear = new Date().getFullYear();
     const newSystemNumber = maintenancereport.length + 1;
-    const paddedNumber = newSystemNumber.toString().padStart(3, '0');
+    const paddedNumber = newSystemNumber.toString().padStart(4, '0');
     
     setFormData({ 
       workOrderID: `WO-${currentYear}-${paddedNumber}`,
-      projectId: projectId
+      assetId: assetId
     });
     setIsEditMode(false);
     setCurrentEditId(null);
     setOpen(true);
   };
 
-  const handleEdit = (maintenancereportItem) => {
-    setFormData(maintenancereportItem);
-    setSelectedProjectId(maintenancereportItem.projectId);
-    setIsEditMode(true);
-    setCurrentEditId(maintenancereportItem.workOrderID);
-    setOpen(true);
-  };
+  const handleEdit = (record) => {
+  setFormData({
+    workOrderID:record.work_order_id,
+    assetId: record.asset,
+    reportedIssue: record.reported_issue,
+    issueReportedBy: record.issue_reported_by,
+    reportDate: record.report_date,
+    inspectionDate: record.inspection_date,
+    technicianId: record.technician_id,
+    repairWorkDone: record.repair_work_done,
+    partsReplaced: record.parts_replaced,
+    totalMaintenanceCost: record.total_maintenance_cost,
+    completionDate: record.completion_date,
+    finalStatus: record.final_status,
+  });
+  setEditingId(record.work_order_id); // tells handleSubmit to run PUT
+  setOpen(true);
+};
 
-  const handleDelete = (workOrderID) => {
-    if (window.confirm("Are you sure you want to delete maintenance  report!")) {
-      setMaintenanceReport(maintenancereport.filter(item => item.workOrderID !== workOrderID));
-    }
-  };
+
+  const handleDelete = async (workOrderId) => {
+  if (!window.confirm(`Are you sure you want to delete this work order?  ${workOrderId}`)) return;
+
+  try {
+    await deleteWorkOrder(workOrderId);
+    alert(`🗑️ Work order ${workOrderId} deleted successfully`);
+
+    // 🔹 remove from state without refetch
+    setMaintenanceReport((prev) =>
+      prev.filter((wo) => wo.work_order_id !== workOrderId)
+    );
+  } catch (error) {
+    alert("❌ Failed to delete work order");
+    console.error(error);
+  }
+};
 
   const handleClose = () => {
     setOpen(false);
@@ -79,25 +130,45 @@ const MaintenanceReport = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-  // Convert boolean fields to "T" or "F"
-  const updatedFormData = {
-    ...formData,
-  
-  };
 
-  if (isEditMode) {
-    // Update existing record
-    setMaintenanceReport(maintenancereport.map(item => 
-      item.workOrderID === currentEditId ? updatedFormData : item
-    ));
-  } else {
-    // Add new record
-    const newMaintenance = { ...updatedFormData, projectId: selectedProjectId };
-    setMaintenanceReport([...maintenancereport, newMaintenance]);
+
+const handleSubmit = async () => {
+  try {
+    const payload = {
+      asset: formData.assetId,
+      reported_issue: formData.reportedIssue,
+      issue_reported_by: formData.issueReportedBy,
+      report_date: formData.reportDate,
+      inspection_date: formData.inspectionDate || null,
+      technician_id: formData.technicianId,
+      repair_work_done: formData.repairWorkDone,
+      parts_replaced: formData.partsReplaced || null,
+      total_maintenance_cost: parseFloat(formData.totalMaintenanceCost || 0),
+      completion_date: formData.completionDate || null,
+      final_status: formData.finalStatus,
+    };
+
+    if (editingId) {
+      // 🔹 Update existing record
+      const res = await updateWorkOrder(editingId, payload);
+      alert(`✏️ Work order updated: ${res.work_order_id}`);
+    } else {
+      // 🔹 Create new record
+      const res = await createWorkOrder(payload);
+      alert(`✅ Work order created: ${res.work_order_id}`);
+    }
+
+    // 🔹 Refresh list
+    const updated = await getWorkOrders();
+    setMaintenanceReport(updated);
+
+    handleClose();
+    setEditingId(null); // reset
+    setFormData({});   // clear form
+  } catch (error) {
+    alert("❌ Failed to save work order");
+    console.error(error);
   }
-
-  handleClose();
 };
 
 
@@ -141,20 +212,25 @@ const MaintenanceReport = () => {
                   </TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
-                {dummyProjects
-                  .filter(proj => proj.id.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((proj, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{proj.id}</TableCell>
-                      <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <IconButton onClick={() => handleOpenForm(proj.id)} color="primary">
-                          <AddCircle sx={{ color: "#7267ef" }} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+               <TableBody>
+      {assets
+        .filter(asset =>
+          asset.asset_id.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .map((asset, i) => (
+          <TableRow key={i}>
+            <TableCell>{asset.asset_id}</TableCell>
+            <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+              <IconButton
+                onClick={() => handleOpenForm(asset.asset_id)}
+                color="primary"
+              >
+                <AddCircle sx={{ color: "#7267ef" }} />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+        ))}
+    </TableBody>
             </Table>
           </Paper>
         </Grid>
@@ -180,6 +256,7 @@ const MaintenanceReport = () => {
                     <TableCell sx={{color:'#7267ef'}}><strong>Asset ID</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>WorkOrder ID</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Reported Issuees</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Issuees ReportedBy</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Report Date</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Inspection Date</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Technician ID</strong></TableCell>
@@ -194,23 +271,24 @@ const MaintenanceReport = () => {
                 <TableBody>
                   {filteredMaintenancereport.map((t, i) => (
                     <TableRow key={i}>
-                      <TableCell>{t.projectId}</TableCell>
-                      <TableCell>{t.workOrderID}</TableCell>
-                      <TableCell>{t.reportedIssue}</TableCell>
-                      <TableCell>{t.reportDate}</TableCell>
-                      <TableCell>{t.inspectionDate}</TableCell>
-                      <TableCell>{t.technicianId}</TableCell>
-                      <TableCell>{t.repairWorkDone}</TableCell>
-                      <TableCell>{t.partsReplaced}</TableCell>
-                      <TableCell>{t.totalMaintenanceCost}</TableCell>
-                      <TableCell>{t.completionDate}</TableCell>
-                      <TableCell>{t.finalStatus}</TableCell>
+                      <TableCell>{t.asset}</TableCell>
+                      <TableCell>{t.work_order_id}</TableCell>
+                      <TableCell>{t.reported_issue}</TableCell>
+                      <TableCell>{t.issue_reported_by}</TableCell>
+                      <TableCell>{t.report_date}</TableCell>
+                      <TableCell>{t.inspection_date}</TableCell>
+                      <TableCell>{t.technician_id}</TableCell>
+                      <TableCell>{t.repair_work_done}</TableCell>
+                      <TableCell>{t.parts_replaced}</TableCell>
+                      <TableCell>{t.total_maintenance_cost}</TableCell>
+                      <TableCell>{t.completion_date}</TableCell>
+                      <TableCell>{t.final_status}</TableCell>
                       
                       <TableCell>
                         <IconButton onClick={() => handleEdit(t)} color="warning">
                           <Edit sx={{ color: "orange" }} />
                         </IconButton>
-                        <IconButton onClick={() => handleDelete(t.workOrderID)} color="error">
+                        <IconButton onClick={() => handleDelete(t.work_order_id)} color="error">
                           <Delete sx={{ color: "red" }} />
                         </IconButton>
                       </TableCell>
@@ -252,7 +330,7 @@ const MaintenanceReport = () => {
             id="projectId"
             name="projectId"
             className="input"
-            value={formData.projectId || ''}
+            value={formData.assetId || ''}
             onChange={handleChange}
             disabled
           />
@@ -390,7 +468,7 @@ const MaintenanceReport = () => {
             <option value="">-- Select Status --</option>
             <option value="Completed">Completed</option>
             <option value="In Progress">In Progress</option>
-            <option value="Pending Approval">Pending Approval</option>
+            <option value="Pending">Pending Approval</option>
           </select>
         </Grid>
 
@@ -429,7 +507,8 @@ const MaintenanceReport = () => {
               }
             }}
           >
-            {isEditMode ? "Update" : "Submit"}
+           {editingId ? "Update" : "Create"}
+
           </Button>
         </DialogActions>
       </Dialog>

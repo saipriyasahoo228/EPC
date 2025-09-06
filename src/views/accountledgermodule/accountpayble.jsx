@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState ,useEffect} from "react";
 import {
   Dialog,
   DialogTitle,
@@ -19,6 +19,8 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import { getVendors } from "../../allapi/procurement";
+import { createPayable,getPayables,deletePayable } from "../../allapi/account";
 
 const dummyProjects = [
   { id: "2025-VND-001" },
@@ -34,6 +36,38 @@ const Acoountpayble = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [vendors, setVendors] = useState([]);
+  
+
+
+
+   useEffect(() => {
+    const fetchVendors = async () => {
+      try {
+        const data = await getVendors();
+        setVendors(data); // assuming API returns array of vendor objects
+      } catch (error) {
+        console.error("❌ Error fetching vendors:", error);
+      }
+    };
+
+    fetchVendors();
+  }, []);
+
+
+
+  const fetchPayables = async () => {
+  try {
+    const data = await getPayables();
+    setRecords(data); // API returns payable objects
+  } catch (error) {
+    console.error("❌ Error fetching payables:", error);
+  }
+};
+useEffect(() => {
+  fetchPayables();
+}, []);
+
 
   const handleOpenForm = (projectId) => {
     const currentYear = new Date().getFullYear();
@@ -65,11 +99,23 @@ const Acoountpayble = () => {
     setOpen(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this invoice?")) {
-      setRecords(records.filter(item => item.invoiceId !== id));
-    }
-  };
+ const handleDelete = async (invoiceId) => {
+  const confirmDelete = window.confirm(
+    `Are you sure you want to delete invoice ${invoiceId}?`
+  );
+  if (!confirmDelete) return;
+
+  try {
+    await deletePayable(invoiceId);
+    alert(`✅ Invoice ${invoiceId} deleted successfully!`);
+    fetchPayables(); // refresh table
+  } catch (error) {
+    console.error("❌ Error deleting payable:", error);
+    alert("❌ Failed to delete invoice. Please try again.");
+  }
+};
+
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -89,19 +135,34 @@ const Acoountpayble = () => {
     return new Date(dueDate) < new Date();
   };
 
-  const handleSubmit = () => {
-    if (isEditMode) {
-      setRecords(records.map(item =>
-        item.invoiceId === editId ? formData : item
-      ));
-    } else {
-      setRecords([...records, formData]);
-    }
+  // 🔹 Handle form submission (POST)
+const handleSubmit = async () => {
+  try {
+    const payload = {
+      vendor: formData.vendorId, // must be vendor_id string like "VND-2025-0001"
+      invoice_date: formData.invoiceDate,
+      due_date: formData.dueDate,
+      total_amount: parseFloat(formData.totalAmount || 0),
+      amount_paid: parseFloat(formData.amountPaid || 0),
+      payment_status: formData.paymentStatus,
+      payment_method: formData.paymentMethod,
+      approval_status: formData.approvalStatus,
+    };
+
+    const res = await createPayable(payload); // POST request
     setOpen(false);
-    setFormData({});
-    setEditId(null);
-    setIsEditMode(false);
-  };
+
+    // ✅ Show success alert with generated invoice_id
+    alert(`✅ Payable created successfully! Invoice ID: ${res.invoice_id}`);
+
+    // ✅ Refresh data so table updates
+    fetchPayables();
+  } catch (error) {
+    console.error("❌ Error creating payable:", error.response?.data || error);
+    alert("❌ Failed to create payable. Please try again.");
+  }
+};
+
 
   const filteredRecords = records.filter((item) =>
     Object.values(item).some(val =>
@@ -137,20 +198,25 @@ const Acoountpayble = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {dummyProjects
-                  .filter(v => v.id.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((vendor, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{vendor.id}</TableCell>
-                     
-                       <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                              <IconButton onClick={() => handleOpenForm(vendor.id)} color="primary">
-                                                <AddCircle sx={{ color: "#7267ef" }} />
-                                              </IconButton>
-                                            </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+      {vendors
+        .filter((v) =>
+          v.vendor_id?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .map((vendor, index) => (
+          <TableRow key={index}>
+            <TableCell>{vendor.vendor_id}</TableCell>
+
+            <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+              <IconButton
+                onClick={() => handleOpenForm(vendor.vendor_id)}
+                color="primary"
+              >
+                <AddCircle sx={{ color: "#7267ef" }} />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+        ))}
+    </TableBody>
             </Table>
           </Paper>
         </Grid>
@@ -176,28 +242,33 @@ const Acoountpayble = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredRecords.map((item, i) => (
-                    <TableRow
-                      key={i}
-                      sx={{ backgroundColor: isOverdue(item.dueDate, item.paymentStatus) ? '#ffe6e6' : 'inherit' }}
-                    >
-                      <TableCell  >{item.invoiceId}</TableCell>
-                      <TableCell  >{item.vendorId}</TableCell>
-                      <TableCell  >{item.invoiceDate}</TableCell>
-                      <TableCell  >{item.dueDate}</TableCell>
-                      <TableCell  >{item.totalAmount}</TableCell>
-                      <TableCell  >{item.amountPaid}</TableCell>
-                      <TableCell  >{item.outstandingBalance}</TableCell>
-                      <TableCell  >{item.paymentStatus}</TableCell>
-                      <TableCell  >{item.paymentMethod}</TableCell>
-                      <TableCell  >{item.approvalStatus}</TableCell>
-                      <TableCell>
-                        <IconButton onClick={() => handleEdit(item)} color="warning" ><Edit  sx={{ color: "orange" }}/></IconButton>
-                        <IconButton onClick={() => handleDelete(item.invoiceId)} color="error" ><Delete sx={{ color: "red" }}/></IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+  {filteredRecords.map((item, i) => (
+    <TableRow
+      key={i}
+      sx={{ backgroundColor: isOverdue(item.due_date, item.payment_status) ? '#ffe6e6' : 'inherit' }}
+    >
+      <TableCell>{item.invoice_id}</TableCell>
+      <TableCell>{item.vendor}</TableCell>
+      <TableCell>{item.invoice_date}</TableCell>
+      <TableCell>{item.due_date}</TableCell>
+      <TableCell>{item.total_amount}</TableCell>
+      <TableCell>{item.amount_paid}</TableCell>
+      <TableCell>{item.outstanding_balance}</TableCell>
+      <TableCell>{item.payment_status}</TableCell>
+      <TableCell>{item.payment_method}</TableCell>
+      <TableCell>{item.approval_status}</TableCell>
+      <TableCell>
+        <IconButton onClick={() => handleEdit(item)} color="warning">
+          <Edit sx={{ color: "orange" }} />
+        </IconButton>
+        <IconButton onClick={() => handleDelete(item.invoice_id)} color="error">
+          <Delete sx={{ color: "red" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
               </Table>
             </TableContainer>
           </Paper>
@@ -259,10 +330,20 @@ const Acoountpayble = () => {
               <label>Payment Method</label>
               <input name="paymentMethod" className="input" value={formData.paymentMethod || ''} onChange={handleChange} />
             </Grid>
-            <Grid item xs={6}>
-              <label>Approval Status</label>
-              <input name="approvalStatus" className="input" value={formData.approvalStatus || ''} onChange={handleChange} />
-            </Grid>
+           <Grid item xs={6}>
+  <label>Approval Status</label>
+  <select
+    name="approvalStatus"
+    className="input"
+    value={formData.approvalStatus || "Pending"}
+    onChange={handleChange}
+  >
+    <option value="Pending">Pending</option>
+    <option value="Approved">Approved</option>
+    <option value="Rejected">Rejected</option>
+  </select>
+</Grid>
+
           </Grid>
         </DialogContent>
 
