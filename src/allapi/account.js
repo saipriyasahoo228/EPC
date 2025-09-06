@@ -48,3 +48,8 @@ export const deletePayable = async (invoiceId) => {
   const response = await api.delete(`/account/payable/${invoiceId}/`);
   return response.data;
 };
+//Update payable
+export const updatePayable = async (invoiceId, payload) => {
+  const response = await api.patch(`/account/payable/${invoiceId}/`, payload);
+  return response.data;
+};
