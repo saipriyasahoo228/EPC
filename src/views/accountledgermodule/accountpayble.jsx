@@ -20,13 +20,9 @@ import {
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getVendors } from "../../allapi/procurement";
-import { createPayable,getPayables,deletePayable } from "../../allapi/account";
+import { createPayable,getPayables,deletePayable,updatePayable } from "../../allapi/account";
 
-const dummyProjects = [
-  { id: "2025-VND-001" },
-  { id: "2025-VND-002" },
-  { id: "2025-VND-003" },
-];
+
 
 const Acoountpayble = () => {
   const [open, setOpen] = useState(false);
@@ -37,6 +33,7 @@ const Acoountpayble = () => {
   const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [vendors, setVendors] = useState([]);
+  const [editingId,setEditingId] = useState(null);
   
 
 
@@ -91,13 +88,25 @@ useEffect(() => {
     setOpen(true);
   };
 
-  const handleEdit = (data) => {
-    setFormData(data);
-    setSelectedProjectId(data.vendorId);
-    setIsEditMode(true);
-    setEditId(data.invoiceId);
-    setOpen(true);
-  };
+const handleEdit = (record) => {
+  setFormData({
+    invoiceId: record.invoice_id,   // use backend field naming
+    vendorId: record.vendor,
+    invoiceDate: record.invoice_date,
+    dueDate: record.due_date,
+    totalAmount: record.total_amount,
+    amountPaid: record.amount_paid,
+    outstandingBalance: record.outstanding_balance,
+    paymentStatus: record.payment_status,
+    paymentMethod: record.payment_method,
+    approvalStatus: record.approval_status,
+  });
+
+  setEditingId(record.invoice_id);   // important: invoice_id from backend
+  setIsEditMode(true);               // ✅ enable edit mode
+  setOpen(true);                     // open dialog
+};
+
 
  const handleDelete = async (invoiceId) => {
   const confirmDelete = window.confirm(
@@ -139,7 +148,7 @@ useEffect(() => {
 const handleSubmit = async () => {
   try {
     const payload = {
-      vendor: formData.vendorId, // must be vendor_id string like "VND-2025-0001"
+      vendor: formData.vendorId,
       invoice_date: formData.invoiceDate,
       due_date: formData.dueDate,
       total_amount: parseFloat(formData.totalAmount || 0),
@@ -149,17 +158,23 @@ const handleSubmit = async () => {
       approval_status: formData.approvalStatus,
     };
 
-    const res = await createPayable(payload); // POST request
+    if (isEditMode && editingId) {
+      // 🔄 Update case
+      const res = await updatePayable(editingId, payload);
+      alert(`✅ Invoice ${res.invoice_id} updated successfully!`);
+    } else {
+      // 🆕 Create case
+      const res = await createPayable(payload);
+      alert(`✅ Payable created successfully! Invoice ID: ${res.invoice_id}`);
+    }
+
     setOpen(false);
-
-    // ✅ Show success alert with generated invoice_id
-    alert(`✅ Payable created successfully! Invoice ID: ${res.invoice_id}`);
-
-    // ✅ Refresh data so table updates
+    setIsEditMode(false);  // reset
+    setEditingId(null);    // reset
     fetchPayables();
   } catch (error) {
-    console.error("❌ Error creating payable:", error.response?.data || error);
-    alert("❌ Failed to create payable. Please try again.");
+    console.error("❌ Error saving payable:", error.response?.data || error);
+    alert("❌ Failed to save payable. Please try again.");
   }
 };
 
@@ -226,7 +241,7 @@ const handleSubmit = async () => {
             <Typography variant="h6">Payable Records</Typography>
             <TableContainer>
               <Table stickyHeader>
-                <TableHead>
+                <TableHead >
                   <TableRow>
                     <TableCell sx={{color:'#7267ef'}}>Invoice ID</TableCell>
                     <TableCell sx={{color:'#7267ef'}}>Vendor ID</TableCell>
@@ -318,14 +333,29 @@ const handleSubmit = async () => {
               <label>Outstanding</label>
               <input className="input" value={formData.outstandingBalance || ''} disabled />
             </Grid>
-            <Grid item xs={6}>
+            {/* <Grid item xs={6}>
               <label>Payment Status</label>
               <select name="paymentStatus" className="input" value={formData.paymentStatus} onChange={handleChange}>
                 <option value="Pending">Pending</option>
                 <option value="Paid">Paid</option>
                 <option value="Overdue">Overdue</option>
               </select>
-            </Grid>
+            </Grid> */}
+            <Grid item xs={6}>
+  <label>Payment Status</label>
+  <select
+    name="paymentStatus"
+    className="input"
+    value={formData.paymentStatus || "Pending"}
+    onChange={handleChange}
+    disabled={isEditMode}   // ✅ disable only in edit mode
+  >
+    <option value="Pending">Pending</option>
+    <option value="Paid">Paid</option>
+    <option value="Overdue">Overdue</option>
+  </select>
+</Grid>
+
             <Grid item xs={6}>
               <label>Payment Method</label>
               <input name="paymentMethod" className="input" value={formData.paymentMethod || ''} onChange={handleChange} />

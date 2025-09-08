@@ -44,6 +44,7 @@ const MaintenanceReport = lazy(()=>import('../views/maintenancemodule/maintenanc
 const SafetyCheck  = lazy(()=>import('../views/maintenancemodule/safetycheck.jsx'));
 const UserRole = lazy(()=>import('../views/accesscontroluserrole/user.jsx'));
 const UserRoleAccessControl = lazy(()=>import('../views/accesscontroluserrole/access.jsx'));
+const GuestForm = lazy(()=>import('../views/accesscontroluserrole/guest.jsx'));
 // Typography = lazy(() => import('../views/ui-elements/basic/BasicTypography'));
 //const Color = lazy(() => import('../views/ui-elements/basic/BasicColor'));
 

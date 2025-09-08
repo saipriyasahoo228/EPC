@@ -342,6 +342,12 @@ const menuItems = {
           iconname: 'history_edu',
           children: [
             {
+              id: 'guest',
+              title: 'Guest Master',
+              type: 'item',
+              url: '/guest'
+            },
+            {
               id: 'user',
               title: 'User Master',
               type: 'item',
