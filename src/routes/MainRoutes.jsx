@@ -313,23 +313,27 @@ const MainRoutes = {
                 <UserRoleAccessControl/>
             </AdminOnly>
           )
+        },
+        {
+          path: '/guest',
+          element: <GuestForm />,
         }
       ]
     },
-    {
-      path: '/',
-      element: <GuestLayout />,
-      children: [
-        {
-          path: '/login',
-          element: <Login />
-        },
-        {
-          path: '/register',
-          element: <Register />
-        }
-      ]
-    }
+    // {
+    //   path: '/guest',
+    //   element: <GuestForm />,
+    //   children: [
+    //     {
+    //       path: '/login',
+    //       element: <Login />
+    //     },
+    //     {
+    //       path: '/register',
+    //       element: <Register />
+    //     }
+    //   ]
+    // }
   ]
 };
 
