@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState ,useEffect} from "react";
+import { IconButton } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import {
   Dialog,
   DialogTitle,
@@ -19,12 +22,12 @@ import {
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { createGuest ,getGuests,deleteGuest,updateGuest} from "../../allapi/account";
 
 const GuestForm = () => {
   const [guests, setGuests] = useState([]);
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
-    guest_id: "",
     name: "",
     mobile_number: "",
     email: "",
@@ -32,6 +35,22 @@ const GuestForm = () => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [isEditMode, setIsEditMode] = useState(false);
+
+
+  // 👇 Fetch guests when component loads
+  useEffect(() => {
+    fetchGuests();
+  }, []);
+
+  const fetchGuests = async () => {
+    try {
+      const data = await getGuests();
+      setGuests(data);
+    } catch (error) {
+      console.error("Error fetching guests:", error);
+    }
+  };
 
   // 🔹 Generate guest ID like GST001, GST002
   const generateGuestId = () => {
@@ -45,16 +64,57 @@ const GuestForm = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // 🔹 Add new guest
-  const handleSubmit = () => {
-    const newGuest = {
-      ...formData,
-      guest_id: generateGuestId(),
-    };
-    setGuests([...guests, newGuest]);
-    setFormData({ guest_id: "", name: "", mobile_number: "", email: "" });
+  // 🔹 handleSubmit Logic
+const handleSubmit = async () => {
+  try {
+    if (isEditMode) {
+      const response = await updateGuest(formData.guest_id, formData);
+      alert(`Guest ${response.guest_id} updated successfully!`);
+    } else {
+      const response = await createGuest(formData);
+      alert(`Guest created successfully! ID: ${response.guest_id}`);
+    }
+
+    await fetchGuests(); // refresh table
+    setFormData({ name: "", mobile_number: "", email: "" });
+    setIsEditMode(false);
     setOpen(false);
-  };
+  } catch (error) {
+    alert(error.response?.data?.detail || "Operation failed. Please try again.");
+    console.error("Error submitting guest:", error);
+  }
+};
+
+
+const handleEdit = (guest) => {
+  setFormData({
+    guest_id: guest.guest_id,
+    name: guest.name,
+    mobile_number: guest.mobile_number,
+    email: guest.email,
+  });
+  setIsEditMode(true);   // flag for PATCH
+  setOpen(true);         // open dialog with prefilled data
+};
+
+
+const handleDelete = async (guestId) => {
+  if (window.confirm(`Are you sure you want to delete this guest? ${guestId} `)) {
+    try {
+      await deleteGuest(guestId);
+      alert(`Guest deleted successfully!`);
+
+      // refresh list
+      await fetchGuests();
+    } catch (error) {
+      alert(
+        error.response?.data?.detail || "Failed to delete guest. Please try again."
+      );
+      console.error("Error deleting guest:", error);
+    }
+  }
+};
+
 
   // 🔹 Search filter
   const filteredGuests = guests.filter(
@@ -126,26 +186,45 @@ const GuestForm = () => {
       {/* Guest table */}
       <TableContainer component={Paper}>
         <Table>
-          <TableHead style={{ backgroundColor: "#7267ef" }}>
+          <TableHead >
             <TableRow>
-              <TableCell style={{ color: "white" }}>Guest ID</TableCell>
-              <TableCell style={{ color: "white" }}>Name</TableCell>
-              <TableCell style={{ color: "white" }}>Mobile</TableCell>
-              <TableCell style={{ color: "white" }}>Email</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Guest ID</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Name</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Mobile</TableCell>
+              <TableCell sx={{color:'#7267ef'}}>Email</TableCell>
+              <TableCell sx={{color:'#660000'}}>Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredGuests
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((guest, index) => (
-                <TableRow key={index}>
-                  <TableCell>{guest.guest_id}</TableCell>
-                  <TableCell>{guest.name}</TableCell>
-                  <TableCell>{guest.mobile_number}</TableCell>
-                  <TableCell>{guest.email}</TableCell>
-                </TableRow>
-              ))}
-          </TableBody>
+  {filteredGuests
+    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+    .map((guest, index) => (
+      <TableRow key={index}>
+        <TableCell>{guest.guest_id}</TableCell>
+        <TableCell>{guest.name}</TableCell>
+        <TableCell>{guest.mobile_number}</TableCell>
+        <TableCell>{guest.email}</TableCell>
+
+        {/* Actions cell */}
+        <TableCell align="center">
+          <IconButton
+            color="warning"
+            onClick={() => handleEdit(guest)}
+            
+          >
+            <EditIcon sx={{ color: "orange" }}/>
+          </IconButton>
+          <IconButton
+            color="error"
+            onClick={() => handleDelete(guest.guest_id)}
+           
+          >
+            <DeleteIcon  sx={{ color: "red" }}/>
+          </IconButton>
+        </TableCell>
+      </TableRow>
+    ))}
+</TableBody>
         </Table>
         <TablePagination
           component="div"
@@ -209,7 +288,7 @@ const GuestForm = () => {
             Cancel
           </Button>
           <Button
-            style={{ backgroundColor: "#660000", color: "white" }}
+            style={{ backgroundColor: "#7267ef", color: "white" }}
             onClick={handleSubmit}
           >
             Save

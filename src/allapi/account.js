@@ -53,3 +53,33 @@ export const updatePayable = async (invoiceId, payload) => {
   const response = await api.patch(`/account/payable/${invoiceId}/`, payload);
   return response.data;
 };
+// Create a new guest (POST)
+export const createGuest = async (payload) => {
+  const response = await api.post("/account/guest/", payload);
+  return response.data;
+};
+// Get all guests (GET)
+export const getGuests = async () => {
+  const response = await api.get("/account/guest/");
+  return response.data;
+};
+// Delete guest by ID (DELETE)
+export const deleteGuest = async (guestId) => {
+  const response = await api.delete(`/account/guest/${guestId}/`);
+  return response.data;
+};
+// Update guest by ID (PATCH)
+export const updateGuest = async (guestId, payload) => {
+  const response = await api.patch(`/account/guest/${guestId}/`, payload);
+  return response.data;
+};
+//POST api to create account recievable
+export const createReceivable = async (data) => {
+  const response = await api.post("/account/receivable/", data);
+  return response.data;
+};
+//GET api of account recievable
+export const getReceivables = async () => {
+  const response = await api.get("/account/receivable/");
+  return response.data;
+};
