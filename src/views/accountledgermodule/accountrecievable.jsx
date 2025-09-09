@@ -1,25 +1,60 @@
-import React, { useState } from "react";
+import React, { useState ,useEffect} from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, Grid, Typography, IconButton, Box,
   Table, TableHead, TableRow, TableCell, TableBody, Paper
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/Close"; 
+import { getGuests ,createReceivable,getReceivables} from "../../allapi/account";
 
-const dummyGuests = [
-  { id: "GUEST-2025-001" },
-  { id: "GUEST-2025-002" },
-  { id: "GUEST-2025-003" },
-];
+
 
 const AccountsReceivable = () => {
   const [open, setOpen] = useState(false);
   const [selectedGuestId, setSelectedGuestId] = useState("");
-  const [formData, setFormData] = useState({});
+  
   const [records, setRecords] = useState([]);
+
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
+  const [guests, setGuests] = useState([]);
+  const [formData, setFormData] = useState({
+  invoiceId: "",
+  invoiceDate: "",
+  dueDate: "",
+  totalAmount: "",
+  amountPaid: "",
+  paymentStatus: "Pending",
+  paymentMethod: "",
+  approvalStatus: "Pending",
+});
+
+  useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const data = await getGuests();
+      setGuests(data);
+    } catch (error) {
+      console.error("Error fetching guests:", error);
+    }
+  };
+  fetchData();
+}, []);
+
+useEffect(() => {
+  fetchRecords();
+}, []);
+
+const fetchRecords = async () => {
+  try {
+    const data = await getReceivables();
+    setRecords(data);
+  } catch (error) {
+    console.error("Error fetching receivables:", error);
+  }
+};
+
 
   const handleOpenForm = (guestId) => {
     const newId = `INV-${new Date().getFullYear()}-${(records.length + 1)
@@ -55,28 +90,47 @@ const AccountsReceivable = () => {
     }));
   };
 
-  const calculateOutstanding = (total, paid) => {
-    return parseFloat(total || 0) - parseFloat(paid || 0);
-  };
+  const outstandingBalance =
+  (parseFloat(formData.totalAmount) || 0) -
+  (parseFloat(formData.amountPaid) || 0);
 
-  const handleSubmit = () => {
-    const updatedData = {
-      ...formData,
-      outstandingBalance: calculateOutstanding(formData.totalAmount, formData.amountPaid),
+
+  const handleSubmit = async () => {
+  try {
+    const payload = {
+      guest: selectedGuestId, // this is the guest_id
+      invoice_id:formData.invoiceId,
+      invoice_date: formData.invoiceDate,
+      due_date: formData.dueDate,
+      total_amount: parseFloat(formData.totalAmount),
+      amount_received: parseFloat(formData.amountPaid),
+      payment_status: formData.paymentStatus,
+      payment_method: formData.paymentMethod,
+      approval_status: formData.approvalStatus,
     };
 
-    if (isEditMode) {
-      setRecords((prev) =>
-        prev.map((item) =>
-          item.invoiceId === editId ? updatedData : item
-        )
-      );
-    } else {
-      setRecords((prev) => [...prev, updatedData]);
-    }
+    const res = await createReceivable(payload);
+    alert("Receivable added successfully ✅");
 
-    handleClose();
-  };
+    await fetchRecords();
+
+    setOpen(false);
+    setFormData({
+      invoiceId: "",
+      invoiceDate: "",
+      dueDate: "",
+      totalAmount: "",
+      amountPaid: "",
+      paymentStatus: "Pending",
+      paymentMethod: "",
+      approvalStatus: "Pending",
+    });
+  } catch (err) {
+    console.error(err);
+    alert("❌ Failed to add receivable");
+  }
+};
+
 
   const handleEdit = (data) => {
     setSelectedGuestId(data.guestId);
@@ -104,21 +158,24 @@ const AccountsReceivable = () => {
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ color: '#7267ef' }}><strong>Guest ID</strong></TableCell>
+                   <TableCell sx={{ color: '#7267ef' }}><strong>Guest Name</strong></TableCell>
                   <TableCell sx={{ display: 'flex', justifyContent: 'flex-end', color: '#660000' }}><strong>Action</strong></TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
-                {dummyGuests.map((guest, i) => (
-                  <TableRow key={i}>
-                    <TableCell>{guest.id}</TableCell>
-                    <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <IconButton onClick={() => handleOpenForm(guest.id)} >
-                        <AddCircle sx={{ color: "#7267ef" }} />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
+             <TableBody>
+  {guests.map((guest, i) => (
+    <TableRow key={i}>
+      <TableCell>{guest.guest_id}</TableCell>
+      <TableCell>{guest.name}</TableCell>
+      <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <IconButton onClick={() => handleOpenForm(guest.guest_id)}>
+          <AddCircle sx={{ color: "#7267ef" }} />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
             </Table>
           </Paper>
         </Grid>
@@ -136,24 +193,28 @@ const AccountsReceivable = () => {
                   <TableCell sx={{color:'#7267ef'}}>Total</TableCell>
                   <TableCell sx={{color:'#7267ef'}}>Paid</TableCell>
                   <TableCell sx={{color:'#7267ef'}}>Outstanding</TableCell>
-                  <TableCell sx={{color:'#7267ef'}}>Status</TableCell>
+                  <TableCell sx={{color:'#7267ef'}}>Payment Status</TableCell>
+                  <TableCell sx={{color:'#7267ef'}}>Payment Method</TableCell>
+                  <TableCell sx={{color:'#7267ef'}}>Approval Status</TableCell>
                   <TableCell sx={{color:'#660000'}}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {records.map((r, i) => (
                   <TableRow key={i}>
-                    <TableCell>{r.invoiceId}</TableCell>
-                    <TableCell>{r.guestId}</TableCell>
-                    <TableCell>{r.invoiceDate}</TableCell>
-                    <TableCell>{r.dueDate}</TableCell>
-                    <TableCell>{r.totalAmount}</TableCell>
-                    <TableCell>{r.amountPaid}</TableCell>
-                    <TableCell>{r.outstandingBalance}</TableCell>
-                    <TableCell>{r.paymentStatus}</TableCell>
+                    <TableCell>{r.invoice_id}</TableCell>
+                    <TableCell>{r.guest_id}</TableCell>
+                    <TableCell>{r.invoice_date}</TableCell>
+                    <TableCell>{r.due_date}</TableCell>
+                    <TableCell>{r.total_amount}</TableCell>
+                    <TableCell>{r.amount_received}</TableCell>
+                    <TableCell>{r.outstanding_balance}</TableCell>
+                    <TableCell>{r.payment_status}</TableCell>
+                    <TableCell>{r.payment_method}</TableCell>
+                    <TableCell>{r.approval_status}</TableCell>
                     <TableCell>
-                      <IconButton onClick={() => handleEdit(r)}><Edit /></IconButton>
-                      <IconButton onClick={() => handleDelete(r.invoiceId)}><Delete /></IconButton>
+                      <IconButton onClick={() => handleEdit(r)}><Edit sx={{ color: "orange" }} /></IconButton>
+                      <IconButton onClick={() => handleDelete(r.invoiceId)}><Delete sx={{ color: "red" }}/></IconButton>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -224,6 +285,16 @@ const AccountsReceivable = () => {
               />
             </Grid>
             <Grid item xs={6}>
+  <label>Outstanding Balance</label>
+  <input
+    type="number"
+    className="input"
+    value={outstandingBalance}
+    disabled
+  />
+</Grid>
+
+            <Grid item xs={6}>
               <label>Payment Status</label>
               <select
                 name="paymentStatus"
@@ -246,14 +317,19 @@ const AccountsReceivable = () => {
               />
             </Grid>
             <Grid item xs={6}>
-              <label>Approval Status</label>
-              <input
-                name="approvalStatus"
-                className="input"
-                value={formData.approvalStatus || ""}
-                onChange={handleChange}
-              />
-            </Grid>
+  <label>Approval Status</label>
+  <select
+    name="approvalStatus"
+    className="input"
+    value={formData.approvalStatus || "Pending"}
+    onChange={handleChange}
+  >
+    <option value="Pending">Pending</option>
+    <option value="Approved">Approved</option>
+    <option value="Rejected">Rejected</option>
+  </select>
+</Grid>
+
           </Grid>
         </DialogContent>
         <DialogActions>
