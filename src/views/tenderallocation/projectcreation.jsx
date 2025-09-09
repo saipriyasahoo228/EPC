@@ -4,6 +4,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   Grid,
   Typography,
   Table,
@@ -16,22 +17,32 @@ import {
   IconButton,
   Box,
   Tooltip,
+  List,
+  ListItem,
+  ListItemText,
+  Checkbox,
+  Divider,
+  Chip,
+  TextField,
+  Collapse,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import HistoryIcon from '@mui/icons-material/History';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { v4 as uuidv4 } from 'uuid';
 import TablePagination from '@mui/material/TablePagination';
-import { getTenders,getTenderbyID,createProjectFromTender,cancelTender,getProjects } from '../../allapi/tenderAllocation'; // Adjust the path as needed
-
-
-
+import { getTenders,getTenderbyID,createProjectFromTender,cancelTender,getProjects, patchProject } from '../../allapi/tenderAllocation'; // Adjust the path as needed
+import { getUser, getGroups } from '../../allapi/user';
+import { getEffectiveUserPermissions } from '../../allapi/access';
 
 const ProjectCreation = () => {
   const today = new Date().toISOString().split('T')[0];
   const [tenders, setTenders] = useState([]);
+
   const [selectedTender, setSelectedTender] = useState(null);
   const [mode, setMode] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -42,6 +53,7 @@ const ProjectCreation = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5); // Default: 5 rows per page
   const [formData, setFormData] = useState({
+
     jobAllocationDate: '',
     govtProjectId: '',
     projectId: uuidv4(),
@@ -50,6 +62,16 @@ const ProjectCreation = () => {
     cancellationNote: '',
     
   });
+
+  // Allocate Users UI state
+  const [allocateOpen, setAllocateOpen] = useState(false);
+  const [allocateProject, setAllocateProject] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [selectedUserIds, setSelectedUserIds] = useState(new Set());
+  const [expandedUserId, setExpandedUserId] = useState(null);
+  const [userPerms, setUserPerms] = useState({}); // { [userId]: permissionsSummary }
 
   // Refs for input focus control
   const jobDateRef = useRef();
@@ -64,50 +86,48 @@ const ProjectCreation = () => {
   );
 
   const handleChangePage = (event, newPage) => {
-  setPage(newPage);
-};
-
-const handleChangeRowsPerPage = (event) => {
-  setRowsPerPage(parseInt(event.target.value, 10));
-  setPage(0);
-};
-
-const paginatedData = projectData.slice(
-  page * rowsPerPage,
-  page * rowsPerPage + rowsPerPage
-);
-
-
-//Fetch Tender Details
-useEffect(() => {
-  const fetchTenders = async () => {
-    try {
-      const data = await getTenders();
-      const enrichedData = data.map((d) => ({
-        tenderId: d.tender_id,
-        title: d.tender_ref_no || 'Untitled Tender',
-        status: d.status || '', // optional if you want to show status icon
-      }));
-      setTenders(enrichedData);
-    } catch (err) {
-      console.error('Error fetching tenders:', err);
-    }
+    setPage(newPage);
   };
 
-  const fetchProjects = async () => {
-    try {
-      const data = await getProjects();
-      setProjectData(data);
-    } catch (err) {
-      console.error('Error fetching projects:', err);
-    }
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
-  fetchTenders();
-  fetchProjects();
-}, []);
+  const paginatedData = projectData.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
+  // Fetch Tender Details
+  useEffect(() => {
+    const fetchTenders = async () => {
+      try {
+        const data = await getTenders();
+        const enrichedData = data.map((d) => ({
+          tenderId: d.tender_id,
+          title: d.tender_ref_no || 'Untitled Tender',
+          status: d.status || '', // optional if you want to show status icon
+        }));
+        setTenders(enrichedData);
+      } catch (err) {
+        console.error('Error fetching tenders:', err);
+      }
+    };
 
+    const fetchProjects = async () => {
+      try {
+        const data = await getProjects();
+        setProjectData(data);
+        console.log(data);
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+      }
+    };
+
+    fetchTenders();
+    fetchProjects();
+  }, []);
 
   // Function to log audit trail entries
   const logAuditTrail = (action, tenderId, details = {}) => {
@@ -122,31 +142,84 @@ useEffect(() => {
     setAuditTrails(prev => [...prev, newEntry]);
   };
 
-
-
-const handleOpenDialog = async (type, tender) => {
-  setMode(type);
-  setDialogOpen(true);
-
-  if (type === 'accept') {
-    setSelectedTender(tender);
-  }
-
-  if (type === 'view') {
+  // Open Allocate dialog for a project
+  const handleOpenAllocate = async (proj) => {
+    setAllocateProject(proj);
+    setAllocateOpen(true);
+    // seed selected users from project (supports strings or user objects)
+    const initial = new Set(
+      (proj.users || []).map((user) => (typeof user === 'string' ? user : user?.user_id)).filter(Boolean)
+    );
+    setSelectedUserIds(initial);
+    // fetch users and groups
     try {
-      const tenderDetails = await getTenderbyID(tender.tenderId);
-      setSelectedTender(tenderDetails); // overwrite with full backend data
-      logAuditTrail('Viewed tender details', tender.tenderId);
-    } catch (error) {
-      console.error('Error fetching tender by ID:', error);
-      alert('Failed to fetch tender details.');
+      const [usersRes, groupsRes] = await Promise.all([getUser(), getGroups()]);
+      setAllUsers(Array.isArray(usersRes) ? usersRes : []);
+      setGroups(Array.isArray(groupsRes) ? groupsRes : []);
+    } catch (e) {
+      console.error('Failed to fetch users/groups', e);
     }
-  }
+  };
 
-  if (type === 'cancel') {
-    setSelectedTender(tender);
-  }
-};
+  const handleCloseAllocate = () => {
+    setAllocateOpen(false);
+    setAllocateProject(null);
+    setUserSearch('');
+    setExpandedUserId(null);
+    setUserPerms({});
+  };
+
+  const toggleUserSelection = (userId) => {
+    setSelectedUserIds((prev) => {
+      const n = new Set([...prev]);
+      if (n.has(String(userId))) n.delete(String(userId));
+      else n.add(String(userId));
+      return n;
+    });
+  };
+
+  const roleForUser = (u) => (u?.role ? u.role : (u?.is_admin ? 'Admin' : 'User'));
+
+  const toTitleCase = (s) => (s || '').replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const loadUserPerms = async (userId) => {
+    if (userPerms[userId]) {
+      setExpandedUserId(expandedUserId === userId ? null : userId);
+      return;
+    }
+    try {
+      const perms = await getEffectiveUserPermissions(userId);
+      setUserPerms((m) => ({ ...m, [userId]: perms }));
+      setExpandedUserId(userId);
+    } catch (e) {
+      console.error('Failed to fetch permissions for user', userId, e);
+      setExpandedUserId(expandedUserId === userId ? null : userId);
+    }
+  };
+
+  const handleOpenDialog = async (type, tender) => {
+    setMode(type);
+    setDialogOpen(true);
+
+    if (type === 'accept') {
+      setSelectedTender(tender);
+    }
+
+    if (type === 'view') {
+      try {
+        const tenderDetails = await getTenderbyID(tender.tenderId);
+        setSelectedTender(tenderDetails); // overwrite with full backend data
+        logAuditTrail('Viewed tender details', tender.tenderId);
+      } catch (error) {
+        console.error('Error fetching tender by ID:', error);
+        alert('Failed to fetch tender details.');
+      }
+    }
+
+    if (type === 'cancel') {
+      setSelectedTender(tender);
+    }
+  };
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
@@ -164,70 +237,71 @@ const handleOpenDialog = async (type, tender) => {
       nextRef?.current?.focus();
     }
   };
-//Handle Submit Logic
-const handleSubmit = async () => {
-  try {
-    if (!selectedTender) return;
 
-    if (mode === 'accept') {
-      const payload = {
-        status: 'Accept',
-        job_allocation_date: formData.jobAllocationDate,
-        govt_project_id: formData.govtProjectId,
-        allocation_state: formData.allocationStatus,
-      };
+  // Handle Submit Logic
+  const handleSubmit = async () => {
+    try {
+      if (!selectedTender) return;
 
-      const response = await createProjectFromTender(selectedTender.tenderId, payload);
-      console.log('Project created successfully:', response);
-      alert(`Project ${response.project_id} created successfully!`);
+      if (mode === 'accept') {
+        const payload = {
+          status: 'Accept',
+          job_allocation_date: formData.jobAllocationDate,
+          govt_project_id: formData.govtProjectId,
+          allocation_state: formData.allocationStatus,
+        };
 
-      setTenders((prev) =>
-        prev.map((t) =>
-          t.tenderId === selectedTender.tenderId ? { ...t, status: 'Accept' } : t
-        )
-      );
+        const response = await createProjectFromTender(selectedTender.tenderId, payload);
+        console.log('Project created successfully:', response);
+        alert(`Project ${response.project_id} created successfully!`);
 
-      const updatedProjects = await getProjects();
-      setProjectData(updatedProjects); // ✅ updates table
+        setTenders((prev) =>
+          prev.map((t) =>
+            t.tenderId === selectedTender.tenderId ? { ...t, status: 'Accept' } : t
+          )
+        );
+
+        const updatedProjects = await getProjects();
+        setProjectData(updatedProjects); // updates table
+      }
+
+      if (mode === 'cancel') {
+        const payload = {
+          status: 'Cancel',
+          security_money_refund_date: formData.refundDate,
+          description: formData.cancellationNote,
+        };
+
+        const response = await cancelTender(selectedTender.tenderId, payload);
+        console.log('Tender cancelled successfully:', response);
+        alert('Tender cancelled successfully!');
+
+        setTenders((prev) =>
+          prev.map((t) =>
+            t.tenderId === selectedTender.tenderId ? { ...t, status: 'Cancel' } : t
+          )
+        );
+
+        const updatedProjects = await getProjects();
+        setProjectData(updatedProjects); // updates table
+      }
+
+      setFormData({
+        jobAllocationDate: '',
+        govtProjectId: '',
+        projectId: '',
+        allocationStatus: 'Allocated',
+        refundDate: '',
+        cancellationNote: '',
+      });
+      setDialogOpen(false);
+      setSelectedTender(null);
+      setMode(null);
+    } catch (error) {
+      console.error('Error submitting:', error);
+      alert('Submission failed. Please check data and try again.');
     }
-
-    if (mode === 'cancel') {
-      const payload = {
-        status: 'Cancel',
-        security_money_refund_date: formData.refundDate,
-        description: formData.cancellationNote,
-      };
-
-      const response = await cancelTender(selectedTender.tenderId, payload);
-      console.log('Tender cancelled successfully:', response);
-      alert('Tender cancelled successfully!');
-
-      setTenders((prev) =>
-        prev.map((t) =>
-          t.tenderId === selectedTender.tenderId ? { ...t, status: 'Cancel' } : t
-        )
-      );
-
-      const updatedProjects = await getProjects();
-      setProjectData(updatedProjects); // ✅ updates table
-    }
-
-    setFormData({
-      jobAllocationDate: '',
-      govtProjectId: '',
-      projectId: '',
-      allocationStatus: 'Allocated',
-      refundDate: '',
-      cancellationNote: '',
-    });
-    setDialogOpen(false);
-    setSelectedTender(null);
-    setMode(null);
-  } catch (error) {
-    console.error('Error submitting:', error);
-    alert('Submission failed. Please check data and try again.');
-  }
-};
+  };
 
   const renderStatusIcon = (status) => {
     switch (status) {
@@ -424,6 +498,7 @@ const handleSubmit = async () => {
           <TableCell sx={{ color: '#7267ef' }}>Refund Date</TableCell>
           <TableCell sx={{ color: '#7267ef' }}>Cancellation Note</TableCell>
           <TableCell sx={{ color: '#7267ef' }}>Status</TableCell>
+          <TableCell align="right" sx={{ color: '#7267ef' }}>Users</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -445,6 +520,12 @@ const handleSubmit = async () => {
                 ) : (
                   <HourglassEmptyIcon color="disabled" />
                 )}
+              </TableCell>
+              <TableCell align="right">
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                  <Chip size="small" label={`${(proj.users || []).length} users`} />
+                  <Button variant="outlined" onClick={() => handleOpenAllocate(proj)}>Allocate</Button>
+                </Box>
               </TableCell>
             </TableRow>
           ))
@@ -621,6 +702,168 @@ const handleSubmit = async () => {
             </Grid>
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Allocate Users Dialog */}
+      <Dialog open={allocateOpen} onClose={handleCloseAllocate} maxWidth="md" fullWidth>
+        <DialogTitle>
+          Allocate Users to Project {allocateProject?.project_id || ''}
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={5}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>All Users</Typography>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Search users by name, username or code"
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                sx={{ mb: 1 }}
+              />
+              <Paper variant="outlined" sx={{ maxHeight: 360, overflow: 'auto' }}>
+                <List dense>
+                  {(allUsers || [])
+                    .filter((u) => {
+                      const q = userSearch.trim().toLowerCase();
+                      if (!q) return true;
+                      const hay = [
+                        u.user_id,
+                        u.full_name,
+                        u.email,
+                        u.mobile_number,
+                        u.role,
+                        ...(Array.isArray(u.groups) ? u.groups : []),
+                      ]
+                        .filter(Boolean)
+                        .join(' ')
+                        .toLowerCase();
+                      return hay.includes(q);
+                    })
+                    .map((u) => {
+                      const checked = selectedUserIds.has(String(u.user_id));
+                      return (
+                        <React.Fragment key={u.user_id}>
+                          <ListItem button onClick={() => toggleUserSelection(u.user_id)}>
+                            <Checkbox edge="start" checked={checked} tabIndex={-1} disableRipple />
+                            <ListItemText
+                              // primary={`${u.full_name || '-'} (${roleForUser(u)})`}
+                              primary={`${u.full_name || '-'}`}
+                              secondary={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                  <Typography variant="caption" color="text.secondary">{`${u.user_id} ${u.email || ""}`}</Typography>
+                                  {/* <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                    {(Array.isArray(u.groups) ? u.groups : []).map((g) => (
+                                      <Chip key={`${u.user_id}-${g}`} label={g} size="small" />
+                                    ))}
+                                  </Box> */}
+                                </Box>
+                              }
+                            />
+                            {/* <ListItemSecondaryAction>
+                              <IconButton edge="end" onClick={() => loadUserPerms(u.user_id)}>
+                                {expandedUserId === u.user_id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                              </IconButton>
+                            </ListItemSecondaryAction> */}
+                          </ListItem>
+                          {/* <Collapse in={expandedUserId === u.user_id} timeout="auto" unmountOnExit>
+                            <Box sx={{ px: 2, pb: 1 }}>
+                              <Typography variant="caption" color="text.secondary">Permissions</Typography>
+                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                                {Array.isArray(userPerms[u.user_id]?.modules)
+                                  ? userPerms[u.user_id].modules.map((m) => (
+                                      <Chip
+                                        key={m.slug}
+                                        size="small"
+                                        label={`${m.slug}: ${['can_read','can_create','can_update','can_delete'].filter(k => m[k]).map(k=>k.replace('can_','')).join('/') || 'none'}`}
+                                      />
+                                    ))
+                                  : <Typography variant="caption">No data</Typography>}
+                              </Box>
+                            </Box>
+                          </Collapse> */}
+                          <Divider />
+                        </React.Fragment>
+                      );
+                    })}
+                </List>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={7}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Allocated to this Project</Typography>
+              <Paper variant="outlined" sx={{ maxHeight: 420, overflow: 'auto' }}>
+                <List dense>
+                  {(allUsers || [])
+                    .filter((u) => selectedUserIds.has(String(u.user_id)))
+                    .map((u) => (
+                      <ListItem
+                        key={`sel-${u.user_id}`}
+                        secondaryAction={
+                          <Button size="small" onClick={() => toggleUserSelection(u.user_id)}>Remove</Button>
+                        }
+                        alignItems="flex-start"
+                        sx={{
+                          pr: 2,
+                          '& .MuiListItemSecondaryAction-root': { right: 8 },
+                        }}
+                      >
+                        <ListItemText
+                          primary={`${u.full_name || u.user_id}`}
+                          secondary={toTitleCase(roleForUser(u))}
+                          primaryTypographyProps={{
+                            noWrap: true,
+                          }}
+                          secondaryTypographyProps={{
+                            noWrap: true,
+                          }}
+                          sx={{
+                            pr: 12,
+                            overflow: 'hidden',
+                            '& .MuiListItemText-primary, & .MuiListItemText-secondary': {
+                              textOverflow: 'ellipsis',
+                              overflow: 'hidden',
+                              whiteSpace: 'nowrap',
+                              display: 'block',
+                            },
+                          }}
+                        />
+                      </ListItem>
+                    ))}
+                  {Array.from(selectedUserIds).length === 0 && (
+                    <ListItem>
+                      <ListItemText primary="No users allocated yet." />
+                    </ListItem>
+                  )}
+                </List>
+              </Paper>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAllocate}>Close</Button>
+          <Button
+            variant="contained"
+            sx={{ backgroundColor: '#7267ef' }}
+            onClick={async () => {
+              if (!allocateProject) return;
+              try {
+                const users = Array.from(selectedUserIds);
+                // Persist allocation to backend
+                await patchProject(allocateProject.project_id, { users });
+                // Refresh project list
+                const updated = await getProjects();
+                setProjectData(updated);
+                alert('Users allocated successfully.');
+                handleCloseAllocate();
+              } catch (e) {
+                console.error('Failed to save allocation', e);
+                alert('Failed to save allocation. Please try again.');
+              }
+            }}
+          >
+            Save Allocation
+          </Button>
+        </DialogActions>
       </Dialog>
 
       {/* Audit Trail Dialog */}

@@ -83,3 +83,8 @@ export const getProjects = async () => {
   const response = await api.get('/tender/project/');
   return response.data;
 };
+
+export const patchProject = async (projectId, projectData) => {
+  const response = await api.patch(`/tender/project/${projectId}/`, projectData);
+  return response.data;
+};
