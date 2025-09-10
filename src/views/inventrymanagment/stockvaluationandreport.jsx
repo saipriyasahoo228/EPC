@@ -19,10 +19,11 @@ import {
 } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
 import { getStockManagement ,submitValuationReport,getValuationReports,deleteValuationReport } from "../../allapi/inventory";
-
+import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 
 
 const InventoryValuationForm = () => {
+  const MODULE_SLUG = 'inventory';
   const [open, setOpen] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
   const [stockOptions, setStockOptions] = useState([]);
@@ -179,10 +180,12 @@ useEffect(() => {
 
   return (
     <>
+    <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
       <Button variant="contained" onClick={() => setOpen(true)} sx={{backgroundColor:'#7267ef',mt:4}}>
         Add Inventory Valuation
       </Button>
-
+      </ShowIfCan>
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Inventory Valuation & Reporting</DialogTitle>
         <DialogContent dividers>
@@ -323,6 +326,7 @@ useEffect(() => {
           >
             Cancel
           </Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={editIndex !== null ? 'can_update' : 'can_create'}>
 
           <Button
             variant="outlined"
@@ -338,6 +342,7 @@ useEffect(() => {
           >
             {editIndex !== null ? 'Update' : 'Submit'}
           </Button>
+          </DisableIfCannot>
         </DialogActions>
       </Dialog>
 
@@ -368,12 +373,17 @@ useEffect(() => {
         <TableCell>{row.stock_turnover_ratio}</TableCell>
         <TableCell>{row.monthly_stock_report || '—'}</TableCell>
         <TableCell>
+        <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
           <IconButton onClick={() => handleEdit(idx)} sx={{ color: 'warning' }}>
             <Edit sx={{ color: "orange" }}/>
           </IconButton>
+          </DisableIfCannot>
+          <ShowIfCan slug={MODULE_SLUG} action="can_delete">
           <IconButton onClick={() => handleDelete(idx)} sx={{ color: 'error' }}>
             <Delete sx={{ color: "red" }}/>
           </IconButton>
+          </ShowIfCan>
         </TableCell>
       </TableRow>
     ))

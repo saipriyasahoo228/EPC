@@ -22,9 +22,10 @@ import {
 import { AddCircle, Edit, Delete ,ArrowBackIos, ArrowForwardIos} from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import { getInventoryItems,createStockReturn,getStockReturns,deleteStockReturn,updateStockReturn } from "../../allapi/inventory";
-
+import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 
 const StockReturn = () => {
+  const MODULE_SLUG = 'inventory';
   const [searchTerm, setSearchTerm] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -275,12 +276,15 @@ const handleSubmit = async () => {
     <TableRow key={i}>
       <TableCell>{item.item_id}</TableCell>
       <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+      <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
         <IconButton
           onClick={() => handleOpenForm(item.item_id)}
           color="primary"
         >
           <AddCircle sx={{ color: "#7267ef" }} />
         </IconButton>
+      </ShowIfCan>
       </TableCell>
     </TableRow>
   ))}
@@ -360,12 +364,18 @@ const handleSubmit = async () => {
       <TableCell>{item.adjustment_type}</TableCell>
       <TableCell>{item.wastage_reason}</TableCell>
       <TableCell>
+      <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
         <IconButton color="warning" onClick={() => handleEdit(item)}>
           <Edit sx={{ color: "orange" }} />
         </IconButton>
+        </DisableIfCannot>
+        <ShowIfCan slug={MODULE_SLUG} action="can_delete">
+
         <IconButton color="error" onClick={() => handleDelete(item.return_id)}>
           <Delete sx={{ color: "red" }} />
         </IconButton>
+        </ShowIfCan>
       </TableCell>
     </TableRow>
   ))}
@@ -534,6 +544,8 @@ const handleSubmit = async () => {
           >
             Cancel
           </Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={editingId ? 'can_update' : 'can_create'}>
+
          <Button
            variant="outlined"
            onClick={handleSubmit}
@@ -548,6 +560,7 @@ const handleSubmit = async () => {
          >
             {editingId ? "Update Return" : "Submit Return"}
          </Button>
+         </DisableIfCannot>
         </DialogActions>
       </Dialog>
     </>

@@ -43,9 +43,11 @@ import { AddCircle, Edit, Delete, ReportProblem, ShoppingCart } from "@mui/icons
 import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering"; 
 import {createSiteExecution,getSiteExecutions,deleteSiteExecution ,updateSiteExecution} from "../../allapi/construction";
+import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 
 
 const SiteExecution = () => {
+  const MODULE_SLUG = 'construction';
   const [siteCounter, setSiteCounter] = useState(1);
   const [searchTerm, setSearchTerm] = useState(''); // projects search
   const [searchQuery, setSearchQuery] = useState(''); // sites search
@@ -415,11 +417,14 @@ const quickUpdateStatus = async (s, newStatus) => {
                   <TableRow key={i} hover>
                     <TableCell>{proj.project_id}</TableCell>
                     <TableCell align="right">
+                    <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
                       <Tooltip title="Create site execution for this project">
                         <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
                           <AddCircle sx={{ color: "#7267ef" }} />
                         </IconButton>
                       </Tooltip>
+                    </ShowIfCan>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -568,16 +573,21 @@ const quickUpdateStatus = async (s, newStatus) => {
                           })()}
                         </TableCell>
                         <TableCell align="right">
+                        <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
                           <Tooltip title="Edit">
                             <IconButton color="warning" onClick={() => handleEdit(s)}>
                               <Edit sx={{ color: "orange" }} />
                             </IconButton>
                           </Tooltip>
+                          </DisableIfCannot>
+                          <ShowIfCan slug={MODULE_SLUG} action="can_delete">
                           <Tooltip title="Delete">
                             <IconButton color="error" onClick={() => handleDelete(s.project)}>
                               <Delete sx={{ color: "red" }} />
                             </IconButton>
                           </Tooltip>
+                          </ShowIfCan>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -632,17 +642,29 @@ const quickUpdateStatus = async (s, newStatus) => {
                             <CardActions sx={{ mt: 'auto', p: 1.5, pt: 0 }}>
                               <Stack direction="column" spacing={1} sx={{ width: '100%' }}>
                                 <Stack direction="row" spacing={1}>
-                                  <Button fullWidth variant="contained" color="success" size="small" onClick={(e) => { e.stopPropagation(); quickUpdateStatus(s, 'on track'); }}>On Track</Button>
-                                  <Button fullWidth variant="contained" color="warning" size="small" onClick={(e) => { e.stopPropagation(); quickUpdateStatus(s, 'delayed'); }}>Delay</Button>
-                                  <Button fullWidth variant="contained" color="error" size="small" onClick={(e) => { e.stopPropagation(); quickUpdateStatus(s, 'halted'); }}>Halt</Button>
+                                <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+                                <Button fullWidth variant="contained" color="success" size="small" onClick={(e) => { e.stopPropagation(); quickUpdateStatus(s, 'on track'); }}>On Track</Button></DisableIfCannot>
+                                <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+                                <Button fullWidth variant="contained" color="warning" size="small" onClick={(e) => { e.stopPropagation(); quickUpdateStatus(s, 'delayed'); }}>Delay</Button></DisableIfCannot>
+                                <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+                                  <Button fullWidth variant="contained" color="error" size="small" onClick={(e) => { e.stopPropagation(); quickUpdateStatus(s, 'halted'); }}>Halt</Button></DisableIfCannot>
                                 </Stack>
+                                
+
                                 <Stack direction="row" spacing={1}>
-                                  <Button fullWidth variant="outlined" color="warning" size="small" startIcon={<ReportProblem />} onClick={(e) => { e.stopPropagation(); setQaSite(s); setIssueText(''); setIssueOpen(true); }}>Log Issue</Button>
-                                  <Button fullWidth variant="outlined" color="info" size="small" startIcon={<ShoppingCart />} onClick={(e) => { e.stopPropagation(); setQaSite(s); setMaterialItem(''); setMaterialQty(''); setMaterialOpen(true); }}>Request Materials</Button>
+                                <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+                                  <Button fullWidth variant="outlined" color="warning" size="small" startIcon={<ReportProblem />} onClick={(e) => { e.stopPropagation(); setQaSite(s); setIssueText(''); setIssueOpen(true); }}>Log Issue</Button></DisableIfCannot>
+                                  <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+                                  <Button fullWidth variant="outlined" color="info" size="small" startIcon={<ShoppingCart />} onClick={(e) => { e.stopPropagation(); setQaSite(s); setMaterialItem(''); setMaterialQty(''); setMaterialOpen(true); }}>Request Materials</Button></DisableIfCannot>
                                 </Stack>
+                                                    
                                 <Stack direction="row" spacing={1}>
+                                  <DisableIfCannot slug={MODULE_SLUG} action="can_update">
                                   <Button fullWidth variant="outlined" size="small" startIcon={<Edit />} onClick={(e) => { e.stopPropagation(); handleEdit(s); }}>Update</Button>
+                                  </DisableIfCannot>
+                                  <ShowIfCan slug={MODULE_SLUG} action="can_delete">
                                   <Button fullWidth variant="outlined" color="error" size="small" startIcon={<Delete />} onClick={(e) => { e.stopPropagation(); handleDelete(s.project); }}>Delete</Button>
+                                  </ShowIfCan>
                                 </Stack>
                               </Stack>
                             </CardActions>
@@ -785,7 +807,7 @@ const quickUpdateStatus = async (s, newStatus) => {
   Cancel
 </Button>
 
-
+<DisableIfCannot slug={MODULE_SLUG} action="can_create">
     <Button
   variant="outlined"
   onClick={handleSubmit}
@@ -801,7 +823,7 @@ const quickUpdateStatus = async (s, newStatus) => {
   Submit
 </Button>
 
-
+</DisableIfCannot>
   </DialogActions>
 </Dialog>
 

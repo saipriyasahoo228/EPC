@@ -21,10 +21,12 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering";
 import { createHandover,getHandovers,updateHandover,deleteHandover } from "../../allapi/commision";
+import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 
 
 
 const HandoverProcess = () => {
+  const MODULE_SLUG = 'commissioning';
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -244,9 +246,12 @@ const filteredHandover = handoverprocess.filter((h) =>
           <TableRow key={i}>
             <TableCell>{proj.project_id}</TableCell>
             <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
               <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
                 <AddCircle sx={{ color: "#7267ef" }} />
               </IconButton>
+              </ShowIfCan>
             </TableCell>
           </TableRow>
         ))}
@@ -305,15 +310,20 @@ const filteredHandover = handoverprocess.filter((h) =>
             <TableCell>{h.pending_issues}</TableCell>
             <TableCell>{h.final_approval_status}</TableCell>
             <TableCell>
+            <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
               <IconButton onClick={() => handleEdit(h)} color="warning">
                 <Edit sx={{ color: "orange" }} />
               </IconButton>
+              </DisableIfCannot>
+              <ShowIfCan slug={MODULE_SLUG} action="can_delete">
               <IconButton
                 onClick={() => handleDelete(h.handover_id)}
                 color="error"
               >
                 <Delete sx={{ color: "red" }} />
               </IconButton>
+              </ShowIfCan>
             </TableCell>
           </TableRow>
         ))}
@@ -513,6 +523,7 @@ const filteredHandover = handoverprocess.filter((h) =>
           >
             Cancel
           </Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={isEditMode && editingId ? 'can_update' : 'can_create'}>
 
           <Button
             variant="outlined"
@@ -528,6 +539,7 @@ const filteredHandover = handoverprocess.filter((h) =>
           >
             {isEditMode ? "Update" : "Submit"}
           </Button>
+          </DisableIfCannot>
         </DialogActions>
       </Dialog>
     </>

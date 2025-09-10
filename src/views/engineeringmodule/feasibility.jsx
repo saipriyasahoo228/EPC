@@ -22,10 +22,11 @@ import {
 import { AddCircle, Edit, Delete ,ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import {getProjectsAccept, createFeasibilityStudy, fetchFeasibilityStudies, patchFeasibilityStudy, deleteFeasibilityStudy} from '../../allapi/engineering';
-
+import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 
 
 const FeasibilityForm = () => {
+  const MODULE_SLUG = 'engineering';
   const [projects, setProjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -288,12 +289,14 @@ const paginatedFeasibility = filteredFeasibility.slice(
                 <TableCell
                   sx={{ display: 'flex', justifyContent: 'flex-end' }}
                 >
+                  <ShowIfCan slug={MODULE_SLUG} action="can_create">
                   <IconButton
                     onClick={() => handleOpenForm(proj.project_id)}
                     color="primary"
                   >
                     <AddCircle sx={{ color: '#7267ef' }} />
                   </IconButton>
+                  </ShowIfCan>
                 </TableCell>
               </TableRow>
             ))
@@ -384,15 +387,18 @@ const paginatedFeasibility = filteredFeasibility.slice(
 
                       <TableCell>
   {/* Edit Button */}
+  <DisableIfCannot slug={MODULE_SLUG} action="can_edit">
   <IconButton color="warning" onClick={() => handleEdit(study)}>
     <Edit sx={{ color: "orange" }} />
   </IconButton>
+  </DisableIfCannot>
   
   {/* Delete Button */}
-  
+  <ShowIfCan slug={MODULE_SLUG} action="can_delete">
   <IconButton color="error" onClick={() => handleDelete(study.feasibility_study_id)}>
   <Delete sx={{ color: "red" }} />
 </IconButton>
+</ShowIfCan>
 
 </TableCell>
 
@@ -595,6 +601,7 @@ const paginatedFeasibility = filteredFeasibility.slice(
           >
             Cancel
           </Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={mode === 'edit' ? 'can_update' : 'can_create'}>
          <Button
            variant="outlined"
            onClick={handleSubmit}
@@ -611,6 +618,7 @@ const paginatedFeasibility = filteredFeasibility.slice(
           {mode === 'edit' ? 'Update' : 'Submit'}
            
          </Button>
+         </DisableIfCannot>
         </DialogActions>
       </Dialog>
     </>

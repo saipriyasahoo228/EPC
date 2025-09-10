@@ -20,9 +20,11 @@ import {
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getMaterialProcurements , createLogistics,fetchLogistics,deleteLogistics,updateLogistics} from "../../allapi/procurement";
+import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 
 
 const LogisticForm = () => {
+  const MODULE_SLUG = 'procurement';
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [logisticsList, setLogisticsList] = useState([]);
@@ -414,9 +416,11 @@ const handleEdit = (index) => {
               <TableCell>{proj.procurement_id}</TableCell>
               <TableCell>{proj.purchase_order}</TableCell>
               <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <ShowIfCan slug={MODULE_SLUG} action="can_create">
                 <IconButton onClick={() => handleOpenForm(i)} color="primary">
                   <AddCircle sx={{ color: "#7267ef" }} />
                 </IconButton>
+                </ShowIfCan>
               </TableCell>
             </TableRow>
           ))}
@@ -474,12 +478,16 @@ const handleEdit = (index) => {
                       <TableCell>{p.damageReport}</TableCell>
                       
                       <TableCell>
+                        <DisableIfCannot slug={MODULE_SLUG} action="can_update">
                         <IconButton color="warning" onClick={() => handleEdit(i)}>
                           <Edit sx={{ color: "orange" }} />
                         </IconButton>
+                        </DisableIfCannot>
+                        <ShowIfCan slug={MODULE_SLUG} action="can_delete">
                          <IconButton color="error" onClick={() => handleDelete(p.logisticId, i)}>
                           <Delete sx={{ color: "red" }} />
                         </IconButton>
+                        </ShowIfCan>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -706,7 +714,8 @@ const handleEdit = (index) => {
               >
                 Cancel
               </Button>
-          
+              <DisableIfCannot slug={MODULE_SLUG} action={isEditing ? 'can_update' : 'can_create'}>
+
               <Button
                 variant="outlined"
                 onClick={handleSubmit}
@@ -721,6 +730,7 @@ const handleEdit = (index) => {
               >
                 {isEditing ? "Update Logistic Details" : "Submit Logistic Details"}
               </Button>
+              </DisableIfCannot>
         </DialogActions>
       </Dialog>
     </>

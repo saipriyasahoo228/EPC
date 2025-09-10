@@ -22,11 +22,12 @@ import { AddCircle, Edit, Delete,ArrowBackIos, ArrowForwardIos } from "@mui/icon
 import CloseIcon from '@mui/icons-material/Close';
 import {getProjectsAccept} from '../../allapi/engineering';
 import {createVendor,getVendors,deleteVendor,updateVendor} from '../../allapi/procurement';
-
+import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 
 
 const VendorForm = () => {
     // Initialize state variables
+    const MODULE_SLUG = 'procurement';
     const [searchTerm, setSearchTerm] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [open, setOpen] = useState(false);
@@ -322,12 +323,15 @@ const paginatedVendor = filteredVendors.slice(
                    <TableCell
                      sx={{ display: 'flex', justifyContent: 'flex-end' }}
                    >
+                    <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
                      <IconButton
                        onClick={() => handleOpenForm(proj.project_id)}
                        color="primary"
                      >
                        <AddCircle sx={{ color: '#7267ef' }} />
                      </IconButton>
+                     </ShowIfCan>
                    </TableCell>
                  </TableRow>
                ))
@@ -412,13 +416,16 @@ const paginatedVendor = filteredVendors.slice(
         <TableCell>{v.payment_terms}</TableCell>
         <TableCell>{v.contract_expiry_date}</TableCell>
         <TableCell>
+        <DisableIfCannot slug={MODULE_SLUG} action="can_update">
           <IconButton color="warning" onClick={() => handleEdit(v)}>
   <Edit sx={{ color: 'orange' }} />
 </IconButton>
-
+</DisableIfCannot>
+<ShowIfCan slug={MODULE_SLUG} action="can_delete">
          <IconButton color="error" onClick={() => handleDelete(v.vendor_id)}>
   <Delete sx={{ color: "red" }} />
 </IconButton>
+</ShowIfCan>
 
         </TableCell>
       </TableRow>
@@ -644,6 +651,7 @@ const paginatedVendor = filteredVendors.slice(
     >
       Cancel
     </Button>
+    <DisableIfCannot slug={MODULE_SLUG} action={editingId ? 'can_update' : 'can_create'}>
 
     <Button
       variant="outlined"
@@ -659,6 +667,7 @@ const paginatedVendor = filteredVendors.slice(
     >
        {editingId ? 'Update Vendor' : 'Submit Vendor'}
     </Button>
+    </DisableIfCannot>
   </DialogActions>
 </Dialog>
 

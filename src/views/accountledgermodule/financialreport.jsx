@@ -21,8 +21,10 @@ import { Edit, Delete } from '@mui/icons-material';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import CloseIcon from '@mui/icons-material/Close';
+import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 
 const FinancialReports = () => {
+  const MODULE_SLUG = 'account_ledger';
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -118,9 +120,12 @@ const FinancialReports = () => {
 
   return (
     <div>
+      <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
       <Button variant="contained" sx={{ mt: 4, mb: 2, backgroundColor: '#7267ef' }} onClick={() => handleOpen()}>
         Add Financial Report
       </Button>
+      </ShowIfCan>
 
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ backgroundColor: '#f3f3f3', color: '#7267ef', display: 'flex', justifyContent: 'space-between' }}>
@@ -162,7 +167,10 @@ const FinancialReports = () => {
         </DialogContent>
         <DialogActions sx={{ pr: 3, pb: 2 }}>
           <Button onClick={handleClose} sx={{ outline: '2px solid #800000', color: '#800000' }}>Cancel</Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={editItem ? 'can_update' : 'can_create'}>
+
           <Button variant="outlined" onClick={handleSubmit} sx={{ borderColor: '#7267ef', color: '#7267ef' }}>Submit</Button>
+          </DisableIfCannot>
         </DialogActions>
       </Dialog>
 
@@ -208,12 +216,17 @@ const FinancialReports = () => {
                 <TableCell>{item.approvalStatus}</TableCell>
                 <TableCell>{item.comments}</TableCell>
                 <TableCell>
+                <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
                   <IconButton color="warning" onClick={() => handleOpen(item)}>
                     <Edit sx={{ color: 'orange' }} />
                   </IconButton>
+                  </DisableIfCannot>
+                  <ShowIfCan slug={MODULE_SLUG} action="can_delete">
                   <IconButton color="error" onClick={() => handleDelete(item.reportId)}>
                     <Delete sx={{ color: 'red' }} />
                   </IconButton>
+                  </ShowIfCan>
                 </TableCell>
               </TableRow>
             ))}

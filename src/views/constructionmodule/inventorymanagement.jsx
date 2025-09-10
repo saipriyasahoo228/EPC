@@ -24,10 +24,11 @@ import { getProjectsAccept } from "../../allapi/engineering";
 import { getInventoryItems } from "../../allapi/inventory";
 import { createMaterialInventory,getMaterialInventory,updateMaterialInventory,deleteMaterialInventory } from "../../allapi/construction";
 import {getVendors} from "../../allapi/procurement";
-
+import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 
 
 const InventoryManagement = () => {
+  const MODULE_SLUG = 'construction';
   const [editingIndex, setEditingIndex] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -328,9 +329,12 @@ const filteredInventory = inventory.filter((m) =>
             {/* Adjust key names as per your API response */}
             <TableCell>{proj.project_id}</TableCell>
             <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
               <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
                 <AddCircle sx={{ color: "#7267ef" }} />
               </IconButton>
+            </ShowIfCan>
             </TableCell>
           </TableRow>
         ))}
@@ -378,12 +382,17 @@ const filteredInventory = inventory.filter((m) =>
       <TableCell>{m.delivery_date}</TableCell>
 
       <TableCell>
+      <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
         <IconButton color="warning" onClick={() => handleEdit(m, i)}>
           <Edit sx={{ color: "orange" }} />
         </IconButton>
+        </DisableIfCannot>
+        <ShowIfCan slug={MODULE_SLUG} action="can_delete">
         <IconButton color="error" onClick={() => handleDelete(m.id)}>
           <Delete sx={{ color: "red" }} />
         </IconButton>
+        </ShowIfCan>
       </TableCell>
     </TableRow>
   ))}
@@ -551,6 +560,7 @@ const filteredInventory = inventory.filter((m) =>
   Cancel
 </Button>
 
+<DisableIfCannot slug={MODULE_SLUG} action={editingId ? 'can_update' : 'can_create'}>
 
     <Button
   variant="outlined"
@@ -566,7 +576,7 @@ const filteredInventory = inventory.filter((m) =>
 >
   {editingId ? "Update" : "Submit"}
 </Button>
-
+</DisableIfCannot>
 
   </DialogActions>
 </Dialog>

@@ -7,10 +7,12 @@ import {
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close"; 
 import { getGuests ,createReceivable,getReceivables} from "../../allapi/account";
+import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 
 
 
 const AccountsReceivable = () => {
+  const MODULE_SLUG = 'account_ledger';
   const [open, setOpen] = useState(false);
   const [selectedGuestId, setSelectedGuestId] = useState("");
   
@@ -168,9 +170,12 @@ const fetchRecords = async () => {
       <TableCell>{guest.guest_id}</TableCell>
       <TableCell>{guest.name}</TableCell>
       <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+      <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
         <IconButton onClick={() => handleOpenForm(guest.guest_id)}>
           <AddCircle sx={{ color: "#7267ef" }} />
         </IconButton>
+        </ShowIfCan>
       </TableCell>
     </TableRow>
   ))}
@@ -213,8 +218,13 @@ const fetchRecords = async () => {
                     <TableCell>{r.payment_method}</TableCell>
                     <TableCell>{r.approval_status}</TableCell>
                     <TableCell>
+                    <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
                       <IconButton onClick={() => handleEdit(r)}><Edit sx={{ color: "orange" }} /></IconButton>
+                      </DisableIfCannot>
+                      <ShowIfCan slug={MODULE_SLUG} action="can_delete">
                       <IconButton onClick={() => handleDelete(r.invoiceId)}><Delete sx={{ color: "red" }}/></IconButton>
+                      </ShowIfCan>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -334,9 +344,12 @@ const fetchRecords = async () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose} sx={{ outline: '2px solid #800000', color: '#800000' }}>Cancel</Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={isEditMode ? 'can_update' : 'can_create'}>
+
           <Button variant="outlined" onClick={handleSubmit} sx={{ color: "#7267ef", borderColor: "#7267ef" }}>
             {isEditMode ? "Update" : "Submit"}
           </Button>
+          </DisableIfCannot>
         </DialogActions>
       </Dialog>
     </>

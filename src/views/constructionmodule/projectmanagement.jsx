@@ -22,11 +22,13 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering"; 
 import { createProject,fetchConstructionProjects,deleteConstructionProject ,updateConstructionProject} from "../../allapi/construction"; 
+import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 
 
 
 
 const ProjectManagement = () => {
+  const MODULE_SLUG = 'construction';
   const [editingIndex, setEditingIndex] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -271,9 +273,11 @@ const handleDelete = async (projectId) => {
     <TableRow key={i}>
       <TableCell>{proj.project_id}</TableCell>
       <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <ShowIfCan slug={MODULE_SLUG} action="can_create">
         <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
           <AddCircle sx={{ color: "#7267ef" }} />
         </IconButton>
+        </ShowIfCan>
       </TableCell>
     </TableRow>
   ))}
@@ -333,12 +337,16 @@ const handleDelete = async (projectId) => {
       <TableCell>{p.project_milestones}</TableCell>
       <TableCell>{p.resource_allocation}</TableCell>
       <TableCell>
+        <DisableIfCannot slug={MODULE_SLUG} action="can_update">
         <IconButton color="warning" onClick={() => handleEdit(p)}>
           <Edit sx={{ color: "orange" }} />
         </IconButton>
+        </DisableIfCannot>
+        <ShowIfCan slug={MODULE_SLUG} action="can_delete">
         <IconButton color="error" onClick={() => handleDelete(p.project)}>
           <Delete sx={{ color: "red" }} />
         </IconButton>
+        </ShowIfCan>
       </TableCell>
     </TableRow>
   ))}
@@ -494,6 +502,7 @@ const handleDelete = async (projectId) => {
   Cancel
 </Button>
 
+<DisableIfCannot slug={MODULE_SLUG} action={isEditing ? 'can_update' : 'can_create'}>
 
     <Button
   variant="outlined"
@@ -509,7 +518,7 @@ const handleDelete = async (projectId) => {
 >
   {isEditing ? "Update Project" : "Submit Project"}
 </Button>
-
+</DisableIfCannot>
 
   </DialogActions>
 </Dialog>
