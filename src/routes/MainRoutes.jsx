@@ -316,7 +316,7 @@ const MainRoutes = {
         },
         {
           path: '/guest',
-          element: <GuestForm />,
+          element: (<GuestForm />),
         }
       ]
     },

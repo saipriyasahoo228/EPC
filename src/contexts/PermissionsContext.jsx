@@ -132,3 +132,22 @@ export const PermissionProvider = ({ children }) => {
 };
 
 export const usePermissions = () => useContext(PermissionsContext);
+
+// Convenience hook to get all action permissions for a module in one call
+// Usage:
+//   const perms = useModulePermissions('maintenance');
+//   <Button disabled={!perms.canCreate}>Save</Button>
+export const useModulePermissions = (slug) => {
+  const ctx = useContext(PermissionsContext);
+  const { can, loading } = ctx;
+  return useMemo(
+    () => ({
+      loading,
+      canRead: can(slug, 'can_read'),
+      canCreate: can(slug, 'can_create'),
+      canUpdate: can(slug, 'can_update'),
+      canDelete: can(slug, 'can_delete'),
+    }),
+    [can, loading, slug]
+  );
+};

@@ -57,6 +57,7 @@ const AssetScheduling = () => {
   try {
     const data = await getMaintenanceSchedules();
     setMaintenance(data);
+    console.log(data);
   } catch (error) {
     console.error("❌ Error loading schedules:", error);
   }
@@ -302,7 +303,7 @@ const handleSubmit = async () => {
                <TableBody>
   {filteredMaintenance.map((t, i) => (
     <TableRow key={i}>
-      <TableCell>{t.asset}</TableCell>
+      <TableCell>{t.asset_id}</TableCell>
       <TableCell>{t.maintenance_id}</TableCell>
       <TableCell>{t.maintenance_type}</TableCell>
       <TableCell>{t.scheduled_date}</TableCell>

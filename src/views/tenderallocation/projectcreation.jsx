@@ -38,8 +38,9 @@ import TablePagination from '@mui/material/TablePagination';
 import { getTenders,getTenderbyID,createProjectFromTender,cancelTender,getProjects, patchProject } from '../../allapi/tenderAllocation'; // Adjust the path as needed
 import { getUser, getGroups } from '../../allapi/user';
 import { getEffectiveUserPermissions } from '../../allapi/access';
-
+import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 const ProjectCreation = () => {
+  const MODULE_SLUG = 'tender_allocation';
   const today = new Date().toISOString().split('T')[0];
   const [tenders, setTenders] = useState([]);
 
@@ -78,7 +79,7 @@ const ProjectCreation = () => {
   const govtIdRef = useRef();
   const allocationStatusRef = useRef();
   const refundDateRef = useRef();
-  const cancellationNoteRef = useRef();
+  const cancellationNoteRef = useRef(); 
 
   const filteredTenders = tenders.filter((tender) =>
     tender.tenderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -396,6 +397,7 @@ const ProjectCreation = () => {
                       View
                     </Button>
 
+<DisableIfCannot slug={MODULE_SLUG} action="can_create">
                     <Button
   variant="contained"
   color="success"
@@ -404,7 +406,9 @@ const ProjectCreation = () => {
 >
   Accept
 </Button>
+</DisableIfCannot>
 
+<DisableIfCannot slug={MODULE_SLUG} action="can_update">
 <Button
   variant="contained"
   color="error"
@@ -413,7 +417,7 @@ const ProjectCreation = () => {
 >
   Cancel
 </Button>
-
+</DisableIfCannot>
                   </Box>
                 </TableCell>
               </TableRow>
@@ -524,7 +528,9 @@ const ProjectCreation = () => {
               <TableCell align="right">
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
                   <Chip size="small" label={`${(proj.users || []).length} users`} />
+                  <ShowIfCan slug={MODULE_SLUG} action="can_update">
                   <Button variant="outlined" onClick={() => handleOpenAllocate(proj)}>Allocate</Button>
+                  </ShowIfCan>
                 </Box>
               </TableCell>
             </TableRow>
@@ -685,6 +691,7 @@ const ProjectCreation = () => {
                 </Button>
               </Grid>
               <Grid item>
+                <DisableIfCannot slug={MODULE_SLUG} action={mode === 'accept' ? 'can_create' : 'can_update'}>
                 <Button
                   onClick={handleSubmit}
                   variant="outlined"
@@ -698,6 +705,7 @@ const ProjectCreation = () => {
                 >
                   Submit
                 </Button>
+                </DisableIfCannot>
               </Grid>
             </Grid>
           )}
@@ -841,6 +849,7 @@ const ProjectCreation = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseAllocate}>Close</Button>
+          <DisableIfCannot slug={MODULE_SLUG} action="can_update">
           <Button
             variant="contained"
             sx={{ backgroundColor: '#7267ef' }}
@@ -863,6 +872,7 @@ const ProjectCreation = () => {
           >
             Save Allocation
           </Button>
+          </DisableIfCannot>
         </DialogActions>
       </Dialog>
 

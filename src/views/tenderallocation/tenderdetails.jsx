@@ -5,9 +5,11 @@ import 'jspdf-autotable';
 import { Button, Badge } from '@mui/material';
 import AuditTrail from './tenderaudit';
 import { createTender,getTenders,updateTender,deleteTender } from '../../allapi/tenderAllocation'
+import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 
 
 const TenderDetailsEntry = () => {
+  const MODULE_SLUG = 'tender_allocation';
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -334,7 +336,7 @@ const currentTenders = filteredTenders.slice(startIndex, startIndex + rowsPerPag
   return (
     <div style={{ padding: '2rem', minHeight: '100vh' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-       
+       <ShowIfCan slug={MODULE_SLUG} action="can_create">
         <button 
   onClick={() => {
     resetForm();
@@ -351,7 +353,7 @@ const currentTenders = filteredTenders.slice(startIndex, startIndex + rowsPerPag
 >
   Add Tender Details
 </button>
-
+</ShowIfCan>
         <Badge 
           badgeContent={auditTrail.length} 
           color="primary" 
@@ -563,7 +565,7 @@ const currentTenders = filteredTenders.slice(startIndex, startIndex + rowsPerPag
                     <option value="Under Review">Under Review</option>
                     <option value="Closed">Closed</option>
                   </select>
-          
+                  <DisableIfCannot slug={MODULE_SLUG} action={isEditing ? 'can_update' : 'can_create'}>
                   <button
                     onClick={handleSubmit}
                     style={{
@@ -577,7 +579,7 @@ const currentTenders = filteredTenders.slice(startIndex, startIndex + rowsPerPag
                   >
                     {isEditing ? 'Update' : 'Save'}
                   </button>
-
+                  </DisableIfCannot>
                   <button
                     onClick={() => setShowModal(false)}
                     style={{
@@ -696,18 +698,22 @@ const currentTenders = filteredTenders.slice(startIndex, startIndex + rowsPerPag
     <td style={tableCellStyle}>{tender.tender_description}</td>
     <td style={tableCellStyle}>{tender.status}</td>
     <td style={tableCellStyle}>
+      <DisableIfCannot slug={MODULE_SLUG} action="can_update">
       <button
         onClick={() => handleEdit(tender.tender_id)}
         style={actionBtnStyleBlue}
       >
         <Pencil size={18} color="#7267ef" />
       </button>
+      </DisableIfCannot>
+      <ShowIfCan slug={MODULE_SLUG} action="can_delete">
       <button
         onClick={() => handleDelete(tender.tender_id)}
         style={actionBtnStyleRed}
       >
         <Trash size={18} color="#800000" />
       </button>
+      </ShowIfCan>
     </td>
   </tr>
 ))}
