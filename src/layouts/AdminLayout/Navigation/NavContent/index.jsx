@@ -14,7 +14,7 @@ import SimpleBar from 'simplebar-react';
 
 // assets
 import logo from 'assets/images/logo.svg';
-
+import EngineeringIcon from '@mui/icons-material/Engineering';
 // -----------------------|| NAV CONTENT ||-----------------------//
 
 export default function NavContent({ navigation, activeNav }) {
@@ -68,8 +68,42 @@ export default function NavContent({ navigation, activeNav }) {
 
   const mHeader = (
     <div className="m-header">
-      <Link to="/dashboard/sales" className="b-brand">
-        <img src={logo} alt="" className="logo logo-lg" />
+      <Link to="/dashboard" className="b-brand" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+        {/* <img src={logo} alt="" className="logo logo-lg" /> */}
+        {/* <i className="material-icons-two-tone" style={{ fontSize: '1.3rem', color: '#7267ef' }}>engineering</i> */}
+        {/* <EngineeringIcon sx={{ fontSize: '1.5rem', color: '#ffffff' }} /> */}
+        <span
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 28,
+      height: 28,
+      borderRadius: '50%',
+      border: '2px solid #ffffff',
+      background: 'rgba(255,255,255,0.08)',
+    }}
+  >
+    <EngineeringIcon sx={{ fontSize: '1.1rem', color: '#ffffff' }} />
+  </span>
+        <span
+          style={{
+            fontWeight: 900,
+            fontSize: '1.35rem',
+            alignItems: 'center',
+            justifyContent: 'center',
+            // letterSpacing: '0.4px',
+            color: 'white',
+            backgroundImage: 'linear-gradient(90deg, #7267ef, #a174f8)',
+            backgroundSize: '200% auto',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            textTransform: 'uppercase',
+            lineHeight: 1,
+          }}
+        >
+          EPC Sync
+        </span>
       </Link>
     </div>
   );

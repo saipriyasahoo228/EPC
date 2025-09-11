@@ -1,4 +1,3 @@
-
 // export default MainRoutes;
 import { lazy } from 'react';
 import { Navigate } from 'react-router-dom';
@@ -7,10 +6,68 @@ import AdminLayout from 'layouts/AdminLayout';
 import GuestLayout from 'layouts/GuestLayout';
 import RequirePermission from 'components/auth/RequirePermission';
 import AdminOnly from 'components/auth/AdminOnly';
+import React from 'react';
+import { usePermissions } from '../contexts/PermissionsContext';
+import { isUserAuthenticated } from '../auth';
+import { Outlet } from 'react-router-dom';
 
+// Guard: Block Admin routes for pure Site Supervisor users (role is 'site supervisor' and groups are none or only 'site supervisor').
+// If the user is also in any other group (e.g., engineer), do NOT block.
+const SiteSupervisorBlocker = ({ children }) => {
+  const { user, loading } = usePermissions();
+  if (loading) return null;
 
- 
+  const role = (user?.role || '').toString().toLowerCase();
+  const rawGroups = Array.isArray(user?.groups) ? user.groups : [];
+  const groupNames = rawGroups
+    .map(g => (typeof g === 'string' ? g : (g?.name || g?.title || g?.slug || '')))
+    .filter(Boolean)
+    .map(s => s.toString().toLowerCase());
+  console.log(groupNames);
+  console.log(rawGroups);
 
+  const hasOtherGroup = groupNames.some(n => n && n !== 'site supervisor');
+  const onlySiteSupOrNone = groupNames.length === 0 || !hasOtherGroup;
+  const shouldBlock = role === 'site supervisor' && onlySiteSupOrNone;
+
+  if (shouldBlock) {
+    return <Navigate to="/site-exec-sup" replace />;
+  }
+  return <>{children}</>;
+};
+
+// Auth-only wrapper: if not authenticated, redirect to /login. Otherwise render children.
+const AuthOnly = ({ children }) => {
+  if (!isUserAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+// Access guard for Site Execution Supervisor page:
+// - Must be authenticated
+// - AND (role is 'site supervisor' OR groups include 'site supervisor' OR is_admin=true)
+const CanAccessSiteExec = ({ children }) => {
+  if (!isUserAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+  const { user, loading } = usePermissions();
+  if (loading) return null;
+  const role = (user?.role || '').toString().toLowerCase();
+  const isAdmin = Boolean(user?.is_admin);
+  const rawGroups = Array.isArray(user?.groups) ? user.groups : [];
+  const groupNames = rawGroups
+    .map(g => (typeof g === 'string' ? g : (g?.name || g?.title || g?.slug || '')))
+    .filter(Boolean)
+    .map(s => s.toString().toLowerCase());
+  const inSupervisorGroup = groupNames.includes('site supervisor');
+  const isSupervisorRole = role === 'site supervisor';
+  const allowed = isAdmin || isSupervisorRole || inSupervisorGroup;
+  if (!allowed) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
 
 const DashboardSales = lazy(() => import('../views/dashboard/DashSales/index'));
 const TenderDetailsEntry = lazy(() => import('../views/tenderallocation/tenderdetails'));
@@ -66,24 +123,30 @@ const MainRoutes = {
       path: '',
       element: <Navigate to="/login" replace />
     },
-    // Standalone page (no AdminLayout sidebar) for Site Execution Supervisor
+    // Public/guest page for Site Execution Supervisor (no AdminLayout). Clean path + legacy redirect.
     {
-      path: '/site execution supervisor',
+      path: '/site-exec-sup',
       element: <GuestLayout />,
       children: [
         {
-          path: '/site execution supervisor',
+          path: '/site-exec-sup',
           element: (
-            <RequirePermission slug="construction" action="can_read">
-              <SiteExecutionSupervisor/>
-            </RequirePermission>
-          )
+            <CanAccessSiteExec>
+              <SiteExecutionSupervisor />
+            </CanAccessSiteExec>
+          ),
         }
       ]
     },
+    // Legacy path with spaces -> redirect to clean path
+    { path: '/site execution supervisor', element: <Navigate to="/site-exec-sup" replace /> },
     {
       path: '/',
-      element: <AdminLayout />,
+      element: (
+        <SiteSupervisorBlocker>
+          <AdminLayout />
+        </SiteSupervisorBlocker>
+      ),
       children: [
         {
           path: '/dashboard',

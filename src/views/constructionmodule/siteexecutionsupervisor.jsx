@@ -25,6 +25,8 @@ import {
   DialogActions,
   Avatar,
   Tooltip,
+  Autocomplete,
+  LinearProgress,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -49,8 +51,11 @@ import AddIcon from '@mui/icons-material/Add';
 
 import { getProjectsAccept } from '../../allapi/engineering';
 import { createSiteExecution, getSiteExecutions } from '../../allapi/construction';
+import { getInventoryItems } from '../../allapi/inventory';
+import { createMaterialProcurement, getMaterialProcurements } from '../../allapi/procurement';
 
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+import { wrap } from 'lodash-es';
 
 const MODULE_SLUG = 'construction';
 const DRAFT_KEY_PREFIX = 'dpr_draft_';
@@ -112,8 +117,44 @@ const SiteExecutionSupervisor = () => {
   const [loadingReports, setLoadingReports] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportFocus, setReportFocus] = useState(null);
+  // Materials request
+  const [materialsOpen, setMaterialsOpen] = useState(false);
+  const [inventory, setInventory] = useState([]);
+  const [procurements, setProcurements] = useState([]);
+  const [loadingInventory, setLoadingInventory] = useState(false);
+  const [loadingProcurements, setLoadingProcurements] = useState(false);
+  const [matDetailOpen, setMatDetailOpen] = useState(false);
+  const [matFocus, setMatFocus] = useState(null);
+  const [matForm, setMatForm] = useState({
+    item: null, // entire item object
+    quantity: '',
+    unit_price: '',
+    requested_by: '',
+  });
 
   const deviceId = useMemo(() => navigator.userAgent || 'unknown', []);
+
+  // Helpers
+  const formatDMY = useCallback((d) => {
+    if (!d) return '-';
+    const dt = new Date(d);
+    if (isNaN(dt)) return '-';
+    const dd = String(dt.getDate()).padStart(2, '0');
+    const mm = String(dt.getMonth() + 1).padStart(2, '0');
+    const yyyy = dt.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }, []);
+
+  const formatINR = useCallback((v) => {
+    if (v === null || v === undefined || v === '') return '-';
+    const num = Number(v);
+    if (isNaN(num)) return `₹ ${v}`;
+    try {
+      return `₹ ${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(num)}`;
+    } catch {
+      return `₹ ${num}`;
+    }
+  }, []);
 
   // Theme: Quicksand font & pastel palette
   const theme = useMemo(() => createTheme({
@@ -239,6 +280,89 @@ const SiteExecutionSupervisor = () => {
     };
     fetchReports();
   }, [selectedProjectId]);
+
+  // Load inventory once
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoadingInventory(true);
+        const data = await getInventoryItems();
+        if (mounted) setInventory(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error('Failed to load inventory', e);
+      } finally {
+        setLoadingInventory(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // Load material procurements for selected project
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!selectedProjectId) { setProcurements([]); return; }
+      try {
+        setLoadingProcurements(true);
+        const data = await getMaterialProcurements();
+        const list = (Array.isArray(data) ? data : []).filter(p => String(p.project) === String(selectedProjectId));
+        if (mounted) setProcurements(list);
+      } catch (e) {
+        console.error('Failed to load procurements', e);
+      } finally {
+        setLoadingProcurements(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [selectedProjectId]);
+
+  // Materials dialog handlers
+  const openMaterials = useCallback(() => {
+    if (!selectedProjectId) {
+      setSnack({ open: true, severity: 'info', message: "Select a project to request materials" });
+      return;
+    }
+    setMatForm({ item: null, quantity: '', unit_price: '', requested_by: '' });
+    setMaterialsOpen(true);
+  }, [selectedProjectId]);
+
+  const closeMaterials = useCallback(() => setMaterialsOpen(false), []);
+
+  const submitMaterials = useCallback(async () => {
+    if (!selectedProjectId) { setSnack({ open: true, severity: 'warning', message: 'Project is required' }); return; }
+    if (!matForm.item) { setSnack({ open: true, severity: 'warning', message: 'Select an item' }); return; }
+    if (!matForm.quantity) { setSnack({ open: true, severity: 'warning', message: 'Enter quantity' }); return; }
+    try {
+      const form = new FormData();
+      form.append('project', selectedProjectId);
+      form.append('material_name', matForm.item.item_name || '');
+      form.append('material_code', matForm.item.item_id || '');
+      form.append('quantity_requested', String(matForm.quantity));
+      if (matForm.unit_price) form.append('unit_price', String(matForm.unit_price));
+      form.append('requested_by', matForm.requested_by || '');
+      form.append('request_date', new Date().toISOString().slice(0,10));
+      form.append('approval_status', 'Pending');
+      form.append('payment_status', 'Pending');
+      // expected_delivery_date will be set later by procurement, not by supervisor
+
+      await createMaterialProcurement(form);
+      setSnack({ open: true, severity: 'success', message: 'Material request submitted' });
+      setMaterialsOpen(false);
+      // Refresh procurements
+      try {
+        const data = await getMaterialProcurements();
+        const list = (Array.isArray(data) ? data : []).filter(p => String(p.project) === String(selectedProjectId));
+        setProcurements(list);
+      } catch {}
+    } catch (e) {
+      const msg = e?.response?.data ? JSON.stringify(e.response.data) : e.message;
+      setSnack({ open: true, severity: 'error', message: msg || 'Failed to submit' });
+    }
+  }, [selectedProjectId, matForm]);
+
+  const openMaterialDetail = useCallback((p) => { setMatFocus(p); setMatDetailOpen(true); }, []);
+  const closeMaterialDetail = useCallback(() => { setMatDetailOpen(false); setMatFocus(null); }, []);
 
   const openReport = useCallback((r) => { setReportFocus(r); setReportOpen(true); }, []);
   const closeReport = useCallback(() => { setReportOpen(false); setReportFocus(null); }, []);
@@ -537,9 +661,9 @@ const SiteExecutionSupervisor = () => {
           </Box>
         )}
         {/* Project selection and status pills */}
-        <Card elevation={0} sx={{ border: 'none', borderRadius: 0, mt: 0, mx: 2, mb: 1, backgroundColor: 'background.paper', boxShadow: '0 6px 20px rgba(0,0,0,0.06)', p: 1 }}>
+        <Card elevation={0} sx={{ border: 'none', borderRadius: 2, mt: 0, mx: 2, mb: 2, backgroundColor: 'background.paper', boxShadow: '0 6px 20px rgba(0,0,0,0.06)', p: 1 }}>
           <CardContent>
-            <Stack spacing={2}>
+            <Stack spacing={2.5}>
               <TextField
                 select
                 label="Project"
@@ -559,25 +683,31 @@ const SiteExecutionSupervisor = () => {
                 </Typography>
               )}
 
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography variant="subtitle1" sx={{ color: 'text.secondary', flex: 1 }}>Previous Reports</Typography>
+                <ShowIfCan slug="construction" action="can_create">
+                  <Button size="small" variant="outlined" onClick={openMaterials} disabled={!selectedProjectId}>Request Materials</Button>
+                </ShowIfCan>
+              </Stack>
+
               {mode === 'list' && (
                 <>
-                  <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>Previous Reports</Typography>
                   {loadingReports ? (
                     <Stack direction="row" alignItems="center" spacing={1}><CircularProgress size={18} /><Typography variant="body2">Loading…</Typography></Stack>
                   ) : reports.length === 0 ? (
                     <Typography variant="body2" color="text.secondary">No reports yet for this project.</Typography>
                   ) : (
-                    <Stack spacing={1}>
+                    <Stack spacing={1.5}>
                       {reports.slice(0, 6).map((r, idx) => (
                         <Stack
                           key={`${r.site_id}-${idx}`}
                           direction="row"
                           alignItems="center"
-                          spacing={1.5}
+                          spacing={2}
                           onClick={() => openReport(r)}
                           sx={{
-                            p: 1.2,
-                            borderRadius: 2,
+                            p: 1.6,
+                            borderRadius: 1.5,
                             backgroundColor: 'background.paper',
                             border: '1px solid',
                             borderColor: 'divider',
@@ -606,6 +736,81 @@ const SiteExecutionSupervisor = () => {
                           <Chip label={(r.site_execution_status||'').replace(/\b\w/g, c=>c.toUpperCase())} size="small" variant="outlined" />
                         </Stack>
                       ))}
+                    </Stack>
+                  )}
+                  {/* Requested Materials */}
+                  <Divider sx={{ my: 1.5 }} />
+                  <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>Requested Materials</Typography>
+                  {loadingProcurements ? (
+                    <Stack direction="row" alignItems="center" spacing={1}><CircularProgress size={18} /><Typography variant="body2">Loading…</Typography></Stack>
+                  ) : procurements.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">No material requests for this project.</Typography>
+                  ) : (
+                    <Stack spacing={1.5}>
+                      {/* Legend */}
+                      <Stack direction="row" spacing={2.5} alignItems="center" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                        <Box sx={{ width: 14, height: 6, bgcolor: 'warning.light', borderRadius: 1 }} /> <span>Approval</span>
+                        <Box sx={{ width: 14, height: 6, bgcolor: 'info.light', borderRadius: 1 }} /> <span>Delivery</span>
+                        <Box sx={{ width: 14, height: 6, bgcolor: 'success.light', borderRadius: 1 }} /> <span>Payment</span>
+                      </Stack>
+                      {procurements.map((p, i) => {
+                        const seg1 = p.approval_status === 'Approved' ? 50 : p.approval_status === 'Rejected' ? 0 : 20;
+                        // Delivery progress from request_date -> expected_delivery_date relative to today
+                        let seg2 = 0;
+                        if (p.expected_delivery_date && p.request_date) {
+                          const start = new Date(p.request_date);
+                          const end = new Date(p.expected_delivery_date);
+                          const now = new Date();
+                          if (!isNaN(start) && !isNaN(end) && end > start) {
+                            const totalMs = end - start;
+                            const elapsedMs = Math.min(Math.max(now - start, 0), totalMs);
+                            const ratio = elapsedMs / totalMs; // 0..1
+                            seg2 = Math.round(30 * ratio);
+                          } else if (!isNaN(end) && end <= now) {
+                            seg2 = 30;
+                          }
+                        } else if (p.expected_delivery_date) {
+                          // No request_date; treat as milestone pending until date crossed
+                          const end = new Date(p.expected_delivery_date);
+                          seg2 = new Date() >= end ? 30 : 0;
+                        }
+                        const seg3 = p.payment_status === 'Completed' ? 20 : p.payment_status === 'Partially Paid' ? 10 : 0;
+                        const total = Math.min(100, seg1 + seg2 + seg3);
+                        return (
+                          <Box key={i} onClick={()=>openMaterialDetail(p)} sx={{ p: 1.6, borderRadius: 1.5, border: '1px solid', borderColor: 'divider', cursor: 'pointer', '&:hover': { boxShadow: '0 8px 18px rgba(0,0,0,0.08)' } }}>
+                            <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flexWrap: 'wrap', p: 1 }}>
+                            <Chip size="small" label={p.approval_status} variant="outlined" color={p.approval_status==='Approved'?'success':p.approval_status==='Rejected'?'error':'warning'} />
+                            <Chip size="small" label={"Payment " + p.payment_status} variant="outlined" />
+                            </Stack>
+                            <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flexWrap: 'wrap' }}>
+                              <Typography variant="subtitle1" sx={{ flex: 1 }}>{p.material_name} ({p.material_code})</Typography>
+                            </Stack>
+                            <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap:'wrap',  alignItems: 'center' }}>
+                              {/* <Chip size="medium" variant="outlined" color="secondary" label={`Qty: ${p.quantity_requested}`} /> */}
+                              {/* <Chip size="small" variant="outlined" color="info" label={`Unit Cost: ${p.unit_price || '-'}`} /> */}
+                              {/* <Chip size="small" variant="outlined" color="success" label={`Total Cost: ${p.total_cost || '-'}`} /> */}
+                              <Typography color="text.secondary" variant="caption" sx={{ fontWeight: 700 }} >Qty: {p.quantity_requested}</Typography>
+                              <Typography variant="caption" >Unit Cost: {formatINR(p.unit_price)}</Typography>
+                              <Typography variant="caption" >Total Cost: {formatINR(p.total_cost)}</Typography>
+                              <Typography  variant="caption" sx={{ ml: 0.5, fontWeight: 700 }}>Expected: {p.expected_delivery_date ? formatDMY(p.expected_delivery_date) : '-'}</Typography>
+                            </Stack>
+                            <Box sx={{
+                              mt: 1.2,
+                              height: 12,
+                              borderRadius: 999,
+                              overflow: 'hidden',
+                              display: 'flex',
+                              border: theme => `1px solid ${theme.palette.divider}`,
+                              backgroundColor: theme => theme.palette.action.hover,
+                            }}>
+                              <Box sx={{ width: `${seg1}%`, height: '100%', bgcolor: 'warning.main' }} />
+                              <Box sx={{ width: `${seg2}%`, height: '100%', bgcolor: 'info.main' }} />
+                              <Box sx={{ width: `${seg3}%`, height: '100%', bgcolor: 'success.main' }} />
+                              <Box sx={{ width: `${Math.max(0, 100 - total)}%`, height: '100%', bgcolor: 'transparent' }} />
+                            </Box>
+                          </Box>
+                        );
+                      })}
                     </Stack>
                   )}
                 </>
@@ -956,6 +1161,87 @@ const SiteExecutionSupervisor = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeReport}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Material Details Dialog */}
+      <Dialog open={matDetailOpen} onClose={closeMaterialDetail} fullWidth maxWidth="sm">
+        <DialogTitle>Material Request Details</DialogTitle>
+        <DialogContent dividers>
+          {matFocus && (
+            <Stack spacing={1.2}>
+              <Typography variant="body2"><strong>Item:</strong> {matFocus.material_name} ({matFocus.material_code})</Typography>
+              <Typography variant="body2"><strong>Quantity:</strong> {matFocus.quantity_requested}</Typography>
+              {/* <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                <Chip size="small" variant="outlined" color="info" label={`Unit: ${matFocus.unit_price || '-'}`} />
+                <Chip size="small" variant="outlined" color="success" label={`Total Cost: ${matFocus.total_cost || '-'}`} />
+              </Stack> */}
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>Unit Cost: {formatINR(matFocus.unit_price)}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>Total Cost: {formatINR(matFocus.total_cost)}</Typography>
+              <Typography variant="body2"><strong>Approval Status:</strong> {matFocus.approval_status}</Typography>
+              <Typography variant="body2"><strong>Payment Status:</strong> {matFocus.payment_status}</Typography>
+              <Typography variant="body2"><strong>Expected Delivery:</strong> {matFocus.expected_delivery_date ? formatDMY(matFocus.expected_delivery_date) : '-'}</Typography>
+              <Typography variant="body2"><strong>Requested By:</strong> {matFocus.requested_by || '-'}</Typography>
+              <Typography variant="body2"><strong>Request Date:</strong> {matFocus.request_date ? formatDMY(matFocus.request_date) : '-'}</Typography>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeMaterialDetail}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Materials Request Dialog */}
+      <Dialog open={materialsOpen} onClose={closeMaterials} fullWidth maxWidth="sm">
+        <DialogTitle>Request Materials</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            <Typography variant="caption" color="text.secondary">Project</Typography>
+            <TextField value={selectedProjectId || ''} fullWidth size="small" disabled />
+
+            <Typography variant="caption" color="text.secondary">Item</Typography>
+            <Autocomplete
+              options={inventory}
+              loading={loadingInventory}
+              getOptionLabel={(opt) => opt?.item_name ? `${opt.item_name} (${opt.item_id})` : ''}
+              value={matForm.item}
+              onChange={(e, v) => setMatForm(s => ({ ...s, item: v }))}
+              renderInput={(params) => <TextField {...params} placeholder="Search items" size="small" />}
+            />
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+              <TextField
+                label="Quantity"
+                type="number"
+                size="small"
+                fullWidth
+                value={matForm.quantity}
+                onChange={(e)=> setMatForm(s => ({ ...s, quantity: e.target.value }))}
+              />
+              <TextField
+                label="Unit Price (optional)"
+                type="number"
+                size="small"
+                fullWidth
+                value={matForm.unit_price}
+                onChange={(e)=> setMatForm(s => ({ ...s, unit_price: e.target.value }))}
+              />
+            </Stack>
+
+            <TextField
+              label="Requested By"
+              size="small"
+              fullWidth
+              value={matForm.requested_by}
+              onChange={(e)=> setMatForm(s => ({ ...s, requested_by: e.target.value }))}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeMaterials}>Cancel</Button>
+          <ShowIfCan slug="procurement" action="can_create">
+            <Button variant="contained" onClick={submitMaterials}>Submit Request</Button>
+          </ShowIfCan>
         </DialogActions>
       </Dialog>
       </Box>
