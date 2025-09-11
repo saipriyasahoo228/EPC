@@ -83,3 +83,13 @@ export const getReceivables = async () => {
   const response = await api.get("/account/receivable/");
   return response.data;
 };
+// ✅ Delete a receivable by invoice_id
+export const deleteReceivable = async (invoiceId) => {
+  const response = await api.delete(`/account/receivable/${invoiceId}/`);
+  return response.data;
+};
+// Update (PATCH)
+export const updateReceivable = async (invoiceId, updatedData) => {
+  const response = await api.patch(`/account/receivable/${invoiceId}/`, updatedData);
+  return response.data;
+};
