@@ -1,0 +1,966 @@
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Chip,
+  Stack,
+  Fab,
+  IconButton,
+  Snackbar,
+  Alert,
+  Card,
+  CardContent,
+  CardMedia,
+  CircularProgress,
+  useMediaQuery,
+  MenuItem,
+  AppBar,
+  Toolbar,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Avatar,
+  Tooltip,
+} from '@mui/material';
+import Grid from '@mui/material/Grid';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import PersonIcon from '@mui/icons-material/Person';
+import ConstructionIcon from '@mui/icons-material/Construction';
+import BuildIcon from '@mui/icons-material/Build';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import PlaceIcon from '@mui/icons-material/Place';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import DevicesIcon from '@mui/icons-material/Devices';
+import PublicIcon from '@mui/icons-material/Public';
+import WbSunnyIcon from '@mui/icons-material/WbSunny';
+import GroupIcon from '@mui/icons-material/Group';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import MobileStepper from '@mui/material/MobileStepper';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
+import SaveIcon from '@mui/icons-material/Save';
+import CloseIcon from '@mui/icons-material/Close';
+import AddIcon from '@mui/icons-material/Add';
+
+import { getProjectsAccept } from '../../allapi/engineering';
+import { createSiteExecution, getSiteExecutions } from '../../allapi/construction';
+
+import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+
+const MODULE_SLUG = 'construction';
+const DRAFT_KEY_PREFIX = 'dpr_draft_';
+
+const statusOptions = [
+  { key: 'on track', label: 'On Track', color: 'success' },
+  { key: 'delayed', label: 'Delayed', color: 'warning' },
+  { key: 'halted', label: 'Halted', color: 'error' },
+];
+
+const SiteExecutionSupervisor = () => {
+  const isMobile = useMediaQuery('(max-width:600px)');
+  const fileInputRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  // Projects and selection
+  const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  // View mode & steps
+  const [mode, setMode] = useState('list'); // 'list' | 'form'
+  const [step, setStep] = useState(0);
+  const steps = ['Details', 'Compliance', 'Location', 'Photo', 'Review'];
+
+  // Form model
+  const [form, setForm] = useState({
+    site_supervisor_id: '',
+    work_completed: '',
+    manpower_utilized: '',
+    equipment_used: '',
+    weather_conditions: '',
+    safety_compliance_report: '',
+    material_consumption: '',
+    site_issues: '',
+    site_execution_status: 'on track',
+  });
+
+  // Location
+  const [location, setLocation] = useState({
+    latitude: null,
+    longitude: null,
+    accuracy: null,
+    timestamp: null,
+    error: '',
+    loading: false,
+    permission: 'prompt', // 'granted' | 'denied' | 'prompt'
+  });
+
+  // Photo
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [photoBlob, setPhotoBlob] = useState(null);
+
+  // UI state
+  const [submitting, setSubmitting] = useState(false);
+  const [snack, setSnack] = useState({ open: false, severity: 'success', message: '' });
+  const [restored, setRestored] = useState(false);
+  const [autoRequestedGeo, setAutoRequestedGeo] = useState(false);
+  // Reports
+  const [reports, setReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportFocus, setReportFocus] = useState(null);
+
+  const deviceId = useMemo(() => navigator.userAgent || 'unknown', []);
+
+  // Theme: Quicksand font & pastel palette
+  const theme = useMemo(() => createTheme({
+    shape: { borderRadius: 14 },
+    typography: {
+      fontFamily: 'Quicksand, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      fontSize: 15,
+      body1: { fontSize: '0.98rem' },
+      body2: { fontSize: '0.92rem' },
+      button: { fontSize: '0.96rem' },
+      h6: { fontWeight: 700 },
+    },
+    palette: {
+      primary: { main: '#57B79D' },
+      secondary: { main: '#FFB672' },
+      info: { main: '#FEB4A9' },
+      text: { primary: '#021A2D' },
+    },
+    components: {
+      MuiChip: {
+        defaultProps: { size: 'medium' },
+        styleOverrides: {
+          root: { borderRadius: 999 },
+          outlinedPrimary: { backgroundColor: 'rgba(87,183,157,0.08)' },
+          outlinedInfo: { backgroundColor: 'rgba(254,180,169,0.10)' },
+          outlinedSecondary: { backgroundColor: 'rgba(255,182,114,0.10)' },
+        }
+      },
+      MuiButton: {
+        defaultProps: { size: 'medium' },
+        styleOverrides: { root: { textTransform: 'none', borderRadius: 10, padding: '8px 16px' } }
+      },
+      MuiPaper: {
+        styleOverrides: { root: { borderRadius: 16 } }
+      },
+      MuiCard: {
+        styleOverrides: { root: { borderRadius: 16 } }
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: {
+            borderRadius: 12,
+            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#57B79D' },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#57B79D', borderWidth: 2 },
+          },
+          notchedOutline: { borderRadius: 12 },
+          input: { paddingTop: 10, paddingBottom: 10 },
+        }
+      },
+      MuiDialog: {
+        styleOverrides: { paper: { borderRadius: 18 } }
+      }
+    }
+  }), []);
+
+  // Inject Google Font (Quicksand) once
+  useEffect(() => {
+    const id = 'quicksand-font-link';
+    if (!document.getElementById(id)) {
+      const link = document.createElement('link');
+      link.id = id;
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap';
+      document.head.appendChild(link);
+    }
+  }, []);
+
+  // Helpers
+  const draftKey = useMemo(() => `${DRAFT_KEY_PREFIX}${selectedProjectId || 'no_project'}`, [selectedProjectId]);
+
+  const setField = (name, value) => setForm(prev => ({ ...prev, [name]: value }));
+
+  // Load projects
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await getProjectsAccept();
+        if (mounted) setProjects(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error('Failed to load projects', e);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // Restore draft for selected project
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (raw) {
+        const draft = JSON.parse(raw);
+        setForm(draft.form || {});
+        setPhotoPreview(draft.photoPreview || '');
+        setRestored(true);
+        setSnack({ open: true, severity: 'success', message: 'Draft restored' });
+      } else {
+        // Reset form if project changed and no draft
+        setForm(f => ({ ...f }));
+      }
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey]);
+
+  // Fetch reports for selected project
+  useEffect(() => {
+    const fetchReports = async () => {
+      if (!selectedProjectId) { setReports([]); return; }
+      setLoadingReports(true);
+      try {
+        const data = await getSiteExecutions();
+        const list = Array.isArray(data) ? data.filter(r => String(r.project) === String(selectedProjectId)) : [];
+        // Sort latest first
+        list.sort((a,b) => new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0));
+        setReports(list);
+      } catch (e) {
+        console.error('Failed to load reports', e);
+      } finally {
+        setLoadingReports(false);
+      }
+    };
+    fetchReports();
+  }, [selectedProjectId]);
+
+  const openReport = useCallback((r) => { setReportFocus(r); setReportOpen(true); }, []);
+  const closeReport = useCallback(() => { setReportOpen(false); setReportFocus(null); }, []);
+
+  // Auto-save draft (debounced)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const data = { form, photoPreview };
+        localStorage.setItem(draftKey, JSON.stringify(data));
+      } catch (e) {
+        // storage might be full
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [form, photoPreview, draftKey]);
+
+  const clearDraft = useCallback(() => {
+    try {
+      localStorage.removeItem(draftKey);
+      setSnack({ open: true, severity: 'success', message: 'Draft cleared' });
+    } catch {}
+  }, [draftKey]);
+
+  // Geolocation
+  const captureLocation = useCallback(() => {
+    if (!('geolocation' in navigator)) {
+      setLocation(l => ({ ...l, error: 'Geolocation not supported', permission: 'denied' }));
+      return;
+    }
+    setLocation(l => ({ ...l, loading: true, error: '' }));
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          timestamp: pos.timestamp ? new Date(pos.timestamp).toISOString() : new Date().toISOString(),
+          error: '',
+          loading: false,
+          permission: 'granted',
+        });
+      },
+      err => {
+        setLocation(l => ({
+          ...l,
+          error: err.message || 'Location permission denied',
+          loading: false,
+          permission: 'denied',
+        }));
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }, []);
+
+  // Auto request on mount once
+  useEffect(() => {
+    if (!autoRequestedGeo) {
+      setAutoRequestedGeo(true);
+      captureLocation();
+    }
+  }, [autoRequestedGeo, captureLocation]);
+
+  // Photo handling: trigger input
+  const handleFabClick = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  // Draw overlay text on image using canvas and export to blob
+  const overlayAndExport = async (file, meta) => {
+    const img = new Image();
+    const fileUrl = URL.createObjectURL(file);
+    return new Promise((resolve, reject) => {
+      img.onload = async () => {
+        try {
+          const canvas = canvasRef.current;
+          if (!canvas) return reject(new Error('Canvas not found'));
+          const maxW = 1280; // downscale for upload size
+          const scale = img.width > maxW ? maxW / img.width : 1;
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+
+          // Overlay text
+          const lines = [];
+          if (meta.latitude && meta.longitude) {
+            lines.push(`Lat: ${Number(meta.latitude).toFixed(6)}, Lng: ${Number(meta.longitude).toFixed(6)}`);
+          }
+          if (meta.timestamp) {
+            const ts = new Date(meta.timestamp);
+            lines.push(`Time: ${ts.toLocaleString()}`);
+          }
+          ctx.font = `${Math.max(14, Math.round(w * 0.018))}px sans-serif`;
+          ctx.fillStyle = 'rgba(0,0,0,0.55)';
+          ctx.textBaseline = 'bottom';
+
+          // draw background rect for better visibility
+          const padding = 8;
+          const lineHeight = Math.max(18, Math.round(w * 0.024));
+          const textWidth = lines.reduce((acc, line) => Math.max(acc, ctx.measureText(line).width), 0);
+          const boxW = textWidth + padding * 2;
+          const boxH = lineHeight * lines.length + padding * 2;
+          const x = w - boxW - 10;
+          const y = h - 10;
+
+          ctx.fillRect(x, y - boxH, boxW, boxH);
+          ctx.fillStyle = 'white';
+          lines.forEach((line, idx) => {
+            ctx.fillText(line, x + padding, y - padding - (lines.length - 1 - idx) * lineHeight);
+          });
+
+          canvas.toBlob(
+            blob => {
+              if (!blob) return reject(new Error('Failed to export image'));
+              const preview = canvas.toDataURL('image/jpeg', 0.9);
+              resolve({ blob, preview });
+            },
+            'image/jpeg',
+            0.9
+          );
+        } catch (e) {
+          reject(e);
+        } finally {
+          URL.revokeObjectURL(fileUrl);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(fileUrl);
+        reject(new Error('Failed to load image'));
+      };
+      img.src = fileUrl;
+    });
+  };
+
+  const onPhotoPicked = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const { blob, preview } = await overlayAndExport(file, {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        timestamp: location.timestamp || new Date().toISOString(),
+      });
+      setPhotoBlob(blob);
+      setPhotoPreview(preview);
+      setSnack({ open: true, severity: 'success', message: 'Photo captured' });
+    } catch (err) {
+      console.error(err);
+      setSnack({ open: true, severity: 'error', message: 'Failed to process photo' });
+    } finally {
+      // allow picking same file again
+      e.target.value = '';
+    }
+  };
+
+  // Validation
+  const validate = () => {
+    const errors = [];
+    if (!selectedProjectId) errors.push('Project is required');
+    if (!form.site_supervisor_id?.trim()) errors.push('Supervisor ID is required');
+    if (!form.work_completed?.trim()) errors.push('Work completed is required');
+    if (!form.manpower_utilized || isNaN(Number(form.manpower_utilized))) errors.push('Valid manpower utilized is required');
+    if (!form.site_execution_status) errors.push('Status is required');
+    if (errors.length) {
+      setSnack({ open: true, severity: 'error', message: errors[0] });
+      return false;
+    }
+    return true;
+  };
+
+  // Submit
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    setSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append('project', selectedProjectId);
+      fd.append('site_supervisor_id', form.site_supervisor_id);
+      // Let backend generate DPR id; if you want to allow manual entry later, include below:
+      // fd.append('daily_progress_report_id', form.daily_progress_report_id || '');
+
+      fd.append('work_completed', form.work_completed);
+      fd.append('manpower_utilized', String(form.manpower_utilized || '0'));
+      fd.append('equipment_used', form.equipment_used || '');
+      fd.append('weather_conditions', form.weather_conditions || '');
+      fd.append('safety_compliance_report', form.safety_compliance_report || '');
+      fd.append('material_consumption', form.material_consumption || '');
+      if (form.site_issues) fd.append('site_issues', form.site_issues);
+      fd.append('site_execution_status', form.site_execution_status || 'on track');
+
+      if (location.latitude != null) fd.append('latitude', String(location.latitude));
+      if (location.longitude != null) fd.append('longitude', String(location.longitude));
+      if (location.accuracy != null) fd.append('location_accuracy', String(location.accuracy));
+      if (location.timestamp) fd.append('location_timestamp', location.timestamp);
+
+      if (deviceId) fd.append('device_id', deviceId);
+
+      if (photoBlob) {
+        fd.append('photo_evidence', photoBlob, 'evidence.jpg');
+      }
+
+      const res = await createSiteExecution(fd);
+      setSnack({ open: true, severity: 'success', message: `Saved! Site ID: ${res?.site_id || 'generated'}` });
+
+      // reset and clear draft
+      setForm({
+        site_supervisor_id: '',
+        work_completed: '',
+        manpower_utilized: '',
+        equipment_used: '',
+        weather_conditions: '',
+        safety_compliance_report: '',
+        material_consumption: '',
+        site_issues: '',
+        site_execution_status: 'on track',
+      });
+      setPhotoBlob(null);
+      setPhotoPreview('');
+      clearDraft();
+      // Return to list and refresh
+      setMode('list');
+      setStep(0);
+      try {
+        const data = await getSiteExecutions();
+        const list = Array.isArray(data) ? data.filter(r => String(r.project) === String(selectedProjectId)) : [];
+        list.sort((a,b) => new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0));
+        setReports(list);
+      } catch {}
+    } catch (err) {
+      console.error('Submit failed', err);
+      const backendMsg = err?.response?.data?.detail || (err?.response?.data ? JSON.stringify(err.response.data) : err?.message) || 'Submit failed';
+      setSnack({ open: true, severity: 'error', message: backendMsg });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ pb: 10 }}>
+      {/* Hidden canvas for processing overlays */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+      {/* Sticky Header */}
+      <AppBar position="sticky" elevation={0} sx={{
+        backgroundColor: 'background.paper',
+        boxShadow: 'none',
+        borderBottom: theme => `1px solid ${theme.palette.divider}`,
+      }}>
+        <Toolbar sx={{ minHeight: 56, alignItems: 'center', gap: 1 }}>
+          <Typography variant="h6" sx={{ flex: 1, color: 'text.primary', fontWeight: 600 }}>
+            Site Execution Supervisor
+          </Typography>
+          <Chip
+            label={statusOptions.find(s => s.key === form.site_execution_status)?.label || 'Status'}
+            color="primary"
+            size="small"
+            variant="outlined"
+          />
+        </Toolbar>
+      </AppBar>
+
+      {/* Content */}
+      <Box sx={{ p: 0 }}>
+        {/* Hero header */}
+        {mode === 'list' && (
+          <Box sx={{
+            position: 'relative',
+            overflow: 'hidden',
+            px: 2,
+            pt: 2,
+            pb: 6,
+            background: 'linear-gradient(135deg, rgba(87,183,157,0.12) 0%, rgba(255,182,114,0.12) 100%)',
+            color: 'text.primary',
+            borderBottomLeftRadius: 28,
+            borderBottom: theme => `1px solid ${theme.palette.divider}`,
+          }}>
+            {/* Decorative bubbles */}
+            <Box sx={{ position: 'absolute', right: -30, top: -30, width: 140, height: 140, bgcolor: 'primary.main', opacity: 0.12, borderRadius: '50%' }} />
+            <Box sx={{ position: 'absolute', right: 40, top: -10, width: 60, height: 60, bgcolor: 'secondary.main', opacity: 0.14, borderRadius: '50%' }} />
+
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="h6" sx={{ flex: 1 }}>Today</Typography>
+              <Chip size="small" color="primary" variant="outlined" label={new Date().toLocaleDateString()} />
+            </Stack>
+            <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>Log your daily progress, capture a photo and location.</Typography>
+
+            {/* Bottom wave */}
+            <Box component="svg" viewBox="0 0 1440 80" preserveAspectRatio="none" sx={{ position: 'absolute', left: 0, right: 0, bottom: -1, height: 40, width: '100%' }}>
+              <path fill="currentColor" fillOpacity="0.06" d="M0,64L60,53.3C120,43,240,21,360,21.3C480,21,600,43,720,58.7C840,75,960,85,1080,69.3C1200,53,1320,11,1380,-5.3L1440,-21L1440,81L1380,81C1320,81,1200,81,1080,81C960,81,840,81,720,81C600,81,480,81,360,81C240,81,120,81,60,81L0,81Z" />
+            </Box>
+          </Box>
+        )}
+        {/* Project selection and status pills */}
+        <Card elevation={0} sx={{ border: 'none', borderRadius: 0, mt: 0, mx: 2, mb: 1, backgroundColor: 'background.paper', boxShadow: '0 6px 20px rgba(0,0,0,0.06)', p: 1 }}>
+          <CardContent>
+            <Stack spacing={2}>
+              <TextField
+                select
+                label="Project"
+                fullWidth
+                size="small"
+                required
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+              >
+                {projects.map((p, i) => (
+                  <MenuItem key={i} value={p.project_id}>{p.project_id}</MenuItem>
+                ))}
+              </TextField>
+              {!selectedProjectId && (
+                <Typography variant="caption" color="text.secondary" sx={{ pl: 0.5 }}>
+                  Select a project to add today's report.
+                </Typography>
+              )}
+
+              {mode === 'list' && (
+                <>
+                  <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>Previous Reports</Typography>
+                  {loadingReports ? (
+                    <Stack direction="row" alignItems="center" spacing={1}><CircularProgress size={18} /><Typography variant="body2">Loading…</Typography></Stack>
+                  ) : reports.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">No reports yet for this project.</Typography>
+                  ) : (
+                    <Stack spacing={1}>
+                      {reports.slice(0, 6).map((r, idx) => (
+                        <Stack
+                          key={`${r.site_id}-${idx}`}
+                          direction="row"
+                          alignItems="center"
+                          spacing={1.5}
+                          onClick={() => openReport(r)}
+                          sx={{
+                            p: 1.2,
+                            borderRadius: 2,
+                            backgroundColor: 'background.paper',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            cursor: 'pointer',
+                            position: 'relative',
+                            '&:before': {
+                              content: '""',
+                              position: 'absolute',
+                              left: -10,
+                              top: 0,
+                              bottom: 0,
+                              width: 2,
+                              background: 'linear-gradient(180deg, #57B79D, transparent)'
+                            },
+                            '&:hover': { boxShadow: '0 6px 16px rgba(0,0,0,0.06)', transform: 'translateY(-1px)', transition: 'all .15s ease' }
+                          }}
+                        >
+                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'primary.main' }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="subtitle2" sx={{ lineHeight: 1.1 }}>{r.daily_progress_report_id || r.site_id}</Typography>
+                            <Typography variant="caption" color="text.secondary">{new Date(r.updated_at || r.created_at).toLocaleString()}</Typography>
+                            <Typography variant="body2" sx={{ mt: 0.5 }}>
+                              {r.work_completed ? String(r.work_completed).slice(0, 64) + (String(r.work_completed).length > 64 ? '…' : '') : '-'}
+                            </Typography>
+                          </Box>
+                          <Chip label={(r.site_execution_status||'').replace(/\b\w/g, c=>c.toUpperCase())} size="small" variant="outlined" />
+                        </Stack>
+                      ))}
+                    </Stack>
+                  )}
+                </>
+              )}
+            </Stack>
+          </CardContent>
+        </Card>
+        {mode === 'form' && (
+          <Card elevation={0} sx={{ border: 'none', borderRadius: 0, backgroundColor: 'transparent', boxShadow: 'none' }}>
+            <CardContent>
+              <Stack direction="row" alignItems="center" sx={{ mb: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">Step {step + 1} of {steps.length}: {steps[step]}</Typography>
+                <Box sx={{ ml: 'auto' }}>
+                  <Button size="small" onClick={() => setMode('list')}>Cancel</Button>
+                </Box>
+              </Stack>
+              <MobileStepper
+                variant="dots"
+                steps={steps.length}
+                position="static"
+                activeStep={step}
+                sx={{ background: 'transparent', mb: 1, p: 0 }}
+                nextButton={<span />}
+                backButton={<span />}
+              />
+
+              <Stack spacing={2}>
+                {step === 0 && (
+                  <>
+                    <Typography variant="caption" color="text.secondary">Status*</Typography>
+                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                      {statusOptions.map(opt => (
+                        <Chip
+                          key={opt.key}
+                          label={opt.label}
+                          color={form.site_execution_status === opt.key ? 'primary' : 'default'}
+                          variant="outlined"
+                          size="small"
+                          onClick={() => setField('site_execution_status', opt.key)}
+                          sx={{ borderRadius: 999 }}
+                        />
+                      ))}
+                    </Stack>
+                    <TextField label="Site Supervisor ID" required fullWidth size="small" value={form.site_supervisor_id} onChange={(e) => setField('site_supervisor_id', e.target.value)} />
+                    <TextField label="Work Completed" required fullWidth size="small" multiline minRows={3} value={form.work_completed} onChange={(e) => setField('work_completed', e.target.value)} />
+                    <TextField label="Manpower Utilized" required type="number" fullWidth size="small" value={form.manpower_utilized} onChange={(e) => setField('manpower_utilized', e.target.value)} />
+                    <TextField label="Equipment Used" required fullWidth size="small" multiline minRows={2} value={form.equipment_used} onChange={(e) => setField('equipment_used', e.target.value)} />
+                    <TextField label="Weather Conditions" required fullWidth size="small" value={form.weather_conditions} onChange={(e) => setField('weather_conditions', e.target.value)} />
+                  </>
+                )}
+
+                {step === 1 && (
+                  <>
+                    <TextField label="Safety Compliance Report" required fullWidth size="small" multiline minRows={3} value={form.safety_compliance_report} onChange={(e) => setField('safety_compliance_report', e.target.value)} />
+                    <TextField label="Material Consumption" required fullWidth size="small" multiline minRows={3} value={form.material_consumption} onChange={(e) => setField('material_consumption', e.target.value)} />
+                    <TextField label="Site Issues (optional)" fullWidth size="small" multiline minRows={2} value={form.site_issues} onChange={(e) => setField('site_issues', e.target.value)} />
+                  </>
+                )}
+
+                {step === 2 && (
+                  <>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Button variant="outlined" size="small" startIcon={<MyLocationIcon />} onClick={captureLocation} disabled={location.loading}>
+                        {location.loading ? 'Fetching Location…' : 'Enable Location'}
+                      </Button>
+                      {location.latitude && location.longitude ? (
+                        <Typography variant="body2" color="text.secondary">{`Lat: ${Number(location.latitude).toFixed(6)}, Lng: ${Number(location.longitude).toFixed(6)}${location.accuracy ? ` (±${Math.round(location.accuracy)}m)` : ''}`}</Typography>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">Location not available</Typography>
+                      )}
+                    </Stack>
+                    {location.error && (<Alert severity="warning" variant="outlined">{location.error}</Alert>)}
+                  </>
+                )}
+
+                {step === 3 && (
+                  <>
+                    {photoPreview && (
+                      <Box sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                        <CardMedia component="img" image={photoPreview} alt="Photo evidence" sx={{ maxHeight: 420, objectFit: 'contain', borderRadius: 2, boxShadow: 'none' }} />
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>Location stamped on image when available.</Typography>
+                      </Box>
+                    )}
+                    {!photoPreview && (
+                      <Typography variant="body2" color="text.secondary">Tap the camera button to capture a photo.</Typography>
+                    )}
+                  </>
+                )}
+
+                {step === 4 && (
+                  <>
+                    <Typography variant="subtitle2">Review</Typography>
+                    <Stack spacing={0.5}>
+                      <Typography variant="body2"><strong>Project:</strong> {selectedProjectId || '-'}</Typography>
+                      <Typography variant="body2"><strong>Status:</strong> {form.site_execution_status}</Typography>
+                      <Typography variant="body2"><strong>Supervisor:</strong> {form.site_supervisor_id || '-'}</Typography>
+                      <Typography variant="body2"><strong>Work:</strong> {form.work_completed || '-'}</Typography>
+                      <Typography variant="body2"><strong>Manpower:</strong> {form.manpower_utilized || '-'}</Typography>
+                      <Typography variant="body2"><strong>Equipment:</strong> {form.equipment_used || '-'}</Typography>
+                      <Typography variant="body2"><strong>Weather:</strong> {form.weather_conditions || '-'}</Typography>
+                      <Typography variant="body2"><strong>Safety:</strong> {form.safety_compliance_report || '-'}</Typography>
+                      <Typography variant="body2"><strong>Materials:</strong> {form.material_consumption || '-'}</Typography>
+                      <Typography variant="body2"><strong>Issues:</strong> {form.site_issues || '-'}</Typography>
+                      <Typography variant="body2"><strong>Location:</strong> {location.latitude && location.longitude ? `${location.latitude}, ${location.longitude}` : '-'}</Typography>
+                      <Typography variant="body2"><strong>Photo:</strong> {photoPreview ? 'Attached' : 'Not attached'}</Typography>
+                    </Stack>
+                  </>
+                )}
+
+                <Stack direction="row" spacing={1} sx={{ pt: 1 }}>
+                  <Button size="small" disabled={step === 0} onClick={() => setStep(s => Math.max(0, s - 1))}>Back</Button>
+                  {step < steps.length - 1 ? (
+                    <Button variant="contained" size="small" onClick={() => setStep(s => Math.min(steps.length - 1, s + 1))}>Next</Button>
+                  ) : (
+                    <ShowIfCan slug={MODULE_SLUG} action="can_create">
+                      <Button variant="contained" size="small" onClick={handleSubmit} disabled={submitting}>
+                        {submitting ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Submit'}
+                      </Button>
+                    </ShowIfCan>
+                  )}
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        )}
+      </Box>
+
+      {/* FAB and hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="user"
+        onChange={onPhotoPicked}
+        style={{ display: 'none' }}
+      />
+      {/* FABs: add report vs camera */}
+      {mode === 'list' ? (
+        <ShowIfCan slug={MODULE_SLUG} action="can_create">
+          <Tooltip title={selectedProjectId ? "Add today's report" : 'Select a project to add a report'} placement="left">
+            <span onClick={() => { if (!selectedProjectId) setSnack({ open: true, severity: 'info', message: 'Select a project to add today\'s report' }); }}>
+              <Fab
+                color="primary"
+                onClick={()=>{ if (!selectedProjectId) return; setMode('form'); setStep(0); }}
+                aria-label="add"
+                disabled={!selectedProjectId}
+                sx={{
+                  position: 'fixed',
+                  right: 16,
+                  bottom: 16,
+                  boxShadow: 1,
+                  backgroundColor: 'primary.main',
+                  color: 'primary.contrastText',
+                  '&:hover': { backgroundColor: 'primary.dark', boxShadow: 2 },
+                  '&.Mui-disabled': {
+                    backgroundColor: (theme) => theme.palette.action.disabledBackground,
+                    color: (theme) => theme.palette.action.disabled,
+                    boxShadow: 'none',
+                  },
+                }}
+              >
+                <AddIcon />
+              </Fab>
+            </span>
+          </Tooltip>
+        </ShowIfCan>
+      ) : step === 3 ? (
+        <ShowIfCan slug={MODULE_SLUG} action="can_create">
+          <Fab
+            color="primary"
+            onClick={handleFabClick}
+            aria-label="capture"
+            sx={{ position: 'fixed', right: 16, bottom: 16, boxShadow: 4, background: 'linear-gradient(135deg, #7267ef 0%, #9a94ff 100%)' }}
+          >
+            <CameraAltIcon />
+          </Fab>
+        </ShowIfCan>
+      ) : null}
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={3500}
+        onClose={() => setSnack(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnack(s => ({ ...s, open: false }))}
+          severity={snack.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snack.message}
+        </Alert>
+      </Snackbar>
+
+      {/* Report Details Dialog */}
+      <Dialog open={reportOpen} onClose={closeReport} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ p: 0 }}>
+          {reportFocus && (
+            <Box sx={{
+              px: 2,
+              py: 2,
+              background: 'linear-gradient(135deg, rgba(87,183,157,0.08) 0%, rgba(255,182,114,0.08) 100%)',
+              borderBottom: theme => `1px solid ${theme.palette.divider}`,
+            }}>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <AssignmentIcon sx={{ fontSize: 16 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  {reportFocus.daily_progress_report_id || reportFocus.site_id}
+                </Typography>
+                <Box sx={{ flex: 1 }} />
+                <Chip size="small" label={(reportFocus.site_execution_status||'').replace(/\b\w/g, c=>c.toUpperCase())} color="primary" variant="outlined" />
+              </Stack>
+              <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <AccessTimeIcon sx={{ fontSize: 16 }} />
+                  <Typography variant="caption">Updated {new Date(reportFocus.updated_at || reportFocus.created_at).toLocaleString()}</Typography>
+                </Stack>
+              </Stack>
+            </Box>
+          )}
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 0 }}>
+          {reportFocus ? (
+            <Box sx={{ p: 2 }}>
+              <Stack spacing={2}>
+                {/* Overview */}
+                <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                  <Typography variant="overline" color="text.secondary">Overview</Typography>
+                  <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
+                    <Grid item xs={12} sm={6}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <PersonIcon sx={{ fontSize: 16 }} />
+                        <Typography variant="body2"><strong>Supervisor:</strong> {reportFocus.site_supervisor_id}</Typography>
+                      </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <ConstructionIcon sx={{ fontSize: 16 }} />
+                        <Typography variant="body2"><strong>Project:</strong> {reportFocus.project}</Typography>
+                      </Stack>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                {/* Work & Resources */}
+                <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                  <Typography variant="overline" color="text.secondary">Work & Resources</Typography>
+                  <Divider sx={{ my: 1 }} />
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={12}>
+                      <Typography variant="body2"><strong>Work Completed:</strong> {reportFocus.work_completed || '-'}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <BuildIcon sx={{ fontSize: 16 }} />
+                        <Typography variant="body2"><strong>Equipment:</strong> {reportFocus.equipment_used || '-'}</Typography>
+                      </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <GroupIcon sx={{ fontSize: 16 }} />
+                        <Typography variant="body2"><strong>Manpower:</strong></Typography>
+                        <Chip size="small" color="secondary" variant="outlined" label={`${reportFocus.manpower_utilized ?? '-'} people`} />
+                      </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <WbSunnyIcon sx={{ fontSize: 16 }} />
+                        <Typography variant="body2"><strong>Weather:</strong></Typography>
+                        <Chip size="small" color="info" variant="outlined" label={reportFocus.weather_conditions || '-'} />
+                      </Stack>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                {/* Safety & Materials */}
+                <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                  <Typography variant="overline" color="text.secondary">Safety & Materials</Typography>
+                  <Divider sx={{ my: 1 }} />
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={12}>
+                      <Typography variant="body2"><strong>Safety:</strong> {reportFocus.safety_compliance_report || '-'}</Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="body2"><strong>Materials:</strong> {reportFocus.material_consumption || '-'}</Typography>
+                    </Grid>
+                    {!!reportFocus.site_issues && (
+                      <Grid item xs={12}>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <WarningAmberIcon color="warning" sx={{ fontSize: 16 }} />
+                          <Typography variant="body2" color="error"><strong>Issues:</strong> {reportFocus.site_issues}</Typography>
+                        </Stack>
+                      </Grid>
+                    )}
+                  </Grid>
+                </Box>
+
+                {/* Location & System */}
+                <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                  <Typography variant="overline" color="text.secondary">Location & System</Typography>
+                  <Divider sx={{ my: 1 }} />
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={12} sm={6}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <PlaceIcon sx={{ fontSize: 16 }} />
+                        <Typography variant="body2"><strong>Location:</strong> {reportFocus.latitude && reportFocus.longitude ? `${reportFocus.latitude}, ${reportFocus.longitude}` : '—'}</Typography>
+                      </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <AccessTimeIcon sx={{ fontSize: 16 }} />
+                        <Typography variant="body2"><strong>Location Time:</strong> {reportFocus.location_timestamp ? new Date(reportFocus.location_timestamp).toLocaleString() : '—'}</Typography>
+                      </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="body2"><strong>Check-in:</strong> {reportFocus.checkin_time ? new Date(reportFocus.checkin_time).toLocaleString() : '—'}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="body2"><strong>Check-out:</strong> {reportFocus.checkout_time ? new Date(reportFocus.checkout_time).toLocaleString() : '—'}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <DevicesIcon sx={{ fontSize: 16 }} />
+                        <Typography variant="body2"><strong>Device:</strong> {reportFocus.device_id || '—'}</Typography>
+                      </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <PublicIcon sx={{ fontSize: 16 }} />
+                        <Typography variant="body2"><strong>IP:</strong> {reportFocus.ip_address || '—'}</Typography>
+                      </Stack>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                {!!reportFocus.photo_evidence && (
+                  <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                    <Typography variant="overline" color="text.secondary">Photo Evidence</Typography>
+                    <Divider sx={{ my: 1 }} />
+                    <CardMedia component="img" src={reportFocus.photo_evidence} alt="Photo" sx={{ borderRadius: 1, maxHeight: 360, objectFit: 'contain' }} />
+                  </Box>
+                )}
+              </Stack>
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeReport}>Close</Button>
+        </DialogActions>
+      </Dialog>
+      </Box>
+    </ThemeProvider>
+  );
+};
+
+export default SiteExecutionSupervisor;

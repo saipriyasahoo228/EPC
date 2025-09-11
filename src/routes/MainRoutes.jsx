@@ -27,6 +27,7 @@ const StockReturn = lazy(() => import('../views/inventrymanagment/stockreturn.js
 const InventoryValuationForm = lazy(() =>import('../views/inventrymanagment/stockvaluationandreport.jsx'));
 const ProjectManagement = lazy(()=>import('../views/constructionmodule/projectmanagement.jsx'));
 const SiteExecution = lazy(()=>import('../views/constructionmodule/siteexecution.jsx'));
+const SiteExecutionSupervisor = lazy(()=>import('../views/constructionmodule/siteexecutionsupervisor.jsx'));
 const QualityControl = lazy(()=>import('../views/constructionmodule/qualitycontrol.jsx'));
 const SafetyManagement = lazy(() =>import('../views/constructionmodule/safetymanagement.jsx'));
 const InventoryManagement = lazy(()=>import('../views/constructionmodule/inventorymanagement.jsx'));
@@ -64,6 +65,21 @@ const MainRoutes = {
     {
       path: '',
       element: <Navigate to="/login" replace />
+    },
+    // Standalone page (no AdminLayout sidebar) for Site Execution Supervisor
+    {
+      path: '/site execution supervisor',
+      element: <GuestLayout />,
+      children: [
+        {
+          path: '/site execution supervisor',
+          element: (
+            <RequirePermission slug="construction" action="can_read">
+              <SiteExecutionSupervisor/>
+            </RequirePermission>
+          )
+        }
+      ]
     },
     {
       path: '/',

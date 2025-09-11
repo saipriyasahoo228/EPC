@@ -75,9 +75,9 @@ export const getSiteExecutions = async () => {
 };
 
 // ✅ DELETE API for Site Execution
-export const deleteSiteExecution = async (projectId) => {
+export const deleteSiteExecution = async (siteId) => {
   try {
-    const response = await api.delete(`/construction/site-execution/${projectId}/`);
+    const response = await api.delete(`/construction/site-execution/${siteId}/`);
     return response.data;
   } catch (error) {
     console.error(
@@ -88,10 +88,10 @@ export const deleteSiteExecution = async (projectId) => {
   }
 };
 // ✅ UPDATE API for Site Execution
-export const updateSiteExecution = async (projectId, updatedData) => {
+export const updateSiteExecution = async (siteId, updatedData) => {
   try {
     const response = await api.patch(
-      `/construction/site-execution/${projectId}/`,
+      `/construction/site-execution/${siteId}/`,
       updatedData
     );
     return response.data;
