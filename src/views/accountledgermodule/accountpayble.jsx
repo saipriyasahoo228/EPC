@@ -92,7 +92,7 @@ useEffect(() => {
 
 const handleEdit = (record) => {
   setFormData({
-    invoiceId: record.invoice_id,   // use backend field naming
+    invoiceId: record.invoice_id,   
     vendorId: record.vendor,
     invoiceDate: record.invoice_date,
     dueDate: record.due_date,
@@ -104,9 +104,9 @@ const handleEdit = (record) => {
     approvalStatus: record.approval_status,
   });
 
-  setEditingId(record.invoice_id);   // important: invoice_id from backend
-  setIsEditMode(true);               // ✅ enable edit mode
-  setOpen(true);                     // open dialog
+  setEditingId(record.invoice_id);   
+  setIsEditMode(true);               
+  setOpen(true);                     
 };
 
 
