@@ -23,10 +23,12 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering"; // adjust path
 import { createTesting , getTestingRecords,updateTesting,deleteTesting} from "../../allapi/commision";
+import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 
 
 
 const Testing = () => {
+  const MODULE_SLUG = 'commissioning';
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -236,9 +238,12 @@ const filteredTesting = testingmanagement.filter((t) =>
           <TableRow key={i}>
             <TableCell>{proj.project_id}</TableCell>
             <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
               <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
                 <AddCircle sx={{ color: "#7267ef" }} />
               </IconButton>
+              </ShowIfCan>
             </TableCell>
           </TableRow>
         ))}
@@ -294,13 +299,18 @@ const filteredTesting = testingmanagement.filter((t) =>
       <TableCell>{t.retest_date || "-"}</TableCell>
       <TableCell>{t.testing_status}</TableCell>
       <TableCell>
+      <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
         <IconButton onClick={() => handleEdit(t)} color="warning">
           <Edit sx={{ color: "orange" }} />
         </IconButton>
+        </DisableIfCannot>
+        <ShowIfCan slug={MODULE_SLUG} action="can_delete">
         {/* 👇 Here use `t.id` for delete */}
         <IconButton onClick={() => handleDelete(t.testing_id)} color="error">
           <Delete sx={{ color: "red" }} />
         </IconButton>
+        </ShowIfCan>
       </TableCell>
     </TableRow>
   ))}
@@ -504,6 +514,7 @@ const filteredTesting = testingmanagement.filter((t) =>
           >
             Cancel
           </Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={editingId ? 'can_update' : 'can_create'}>
 
           <Button
             variant="outlined"
@@ -519,6 +530,7 @@ const filteredTesting = testingmanagement.filter((t) =>
           >
           {editingId ? "Update" : "Submit"}
           </Button>
+          </DisableIfCannot>
         </DialogActions>
       </Dialog>
     </>

@@ -23,10 +23,11 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering";
 import { createSafetyManagement,getSafetyManagements,deleteSafetyManagement,updateSafetyManagement } from "../../allapi/construction";
-
+import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 
 
 const SafetyManagement = () => {
+  const MODULE_SLUG = 'construction';
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -270,9 +271,11 @@ const handleSubmit = async () => {
     <TableRow key={i}>
       <TableCell>{proj.project_id}</TableCell>
       <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <ShowIfCan slug={MODULE_SLUG} action="can_create">
         <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
           <AddCircle sx={{ color: "#7267ef" }} />
         </IconButton>
+        </ShowIfCan>
       </TableCell>
     </TableRow>
   ))}
@@ -323,12 +326,16 @@ const handleSubmit = async () => {
           <TableCell>{s.safety_training_conducted ? "Yes" : "No"}</TableCell>
 
           <TableCell>
+            <DisableIfCannot slug={MODULE_SLUG} action="can_update">
             <IconButton onClick={() => handleEdit(s)} color="warning">
               <Edit sx={{ color: "orange" }} />
             </IconButton>
+            </DisableIfCannot>
+            <ShowIfCan slug={MODULE_SLUG} action="can_delete">
             <IconButton onClick={() => handleDelete(s.safety_report_id)} color="error">
               <Delete sx={{ color: "red" }} />
             </IconButton>
+            </ShowIfCan>
           </TableCell>
         </TableRow>
       ))}
@@ -490,6 +497,7 @@ const handleSubmit = async () => {
           >
             Cancel
           </Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={editingId ? 'can_update' : 'can_create'}>
 
           <Button
             variant="outlined"
@@ -505,6 +513,7 @@ const handleSubmit = async () => {
           >
             {editingId ? "Update" : "Submit"}
           </Button>
+          </DisableIfCannot>
         </DialogActions>
       </Dialog>
     </>

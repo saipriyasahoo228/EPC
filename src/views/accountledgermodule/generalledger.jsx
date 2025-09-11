@@ -21,8 +21,10 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import CloseIcon from '@mui/icons-material/Close';
 import { createLedger, getLedgers, updateLedger, deleteLedger } from '../../allapi/account';
+import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 
 const AccountLedger = () => {
+  const MODULE_SLUG = 'account_ledger';
   const [ledgerItems, setLedgerItems] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -204,9 +206,12 @@ const AccountLedger = () => {
 
   return (
     <div>
+      <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
       <Button variant="contained" sx={{ mt: 4, mb: 2, backgroundColor: '#7267ef' }} onClick={handleOpen}>
         Add Ledger Entry
       </Button>
+      </ShowIfCan>
 
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ backgroundColor: '#f3f3f3', color: '#7267ef', display: 'flex', justifyContent: 'space-between' }}>
@@ -257,7 +262,10 @@ const AccountLedger = () => {
         </DialogContent>
         <DialogActions sx={{ pr: 3, pb: 2 }}>
           <Button onClick={handleClose} sx={{ outline: '2px solid #800000', color: '#800000' }}>Cancel</Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={editingId ? 'can_update' : 'can_create'}>
+
           <Button variant="outlined" onClick={handleSubmit} sx={{ borderColor: '#7267ef', color: '#7267ef' }}>Submit</Button>
+          </DisableIfCannot>
         </DialogActions>
       </Dialog>
 
@@ -297,12 +305,17 @@ const AccountLedger = () => {
                   <TableCell>{item.reference_number}</TableCell>
                   <TableCell>{item.approval_status}</TableCell>
                   <TableCell>
+                  <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
                     <IconButton onClick={() => handleEdit(item)}>
                       <Edit sx={{ color: "orange" }} />
                     </IconButton>
+                    </DisableIfCannot>
+                    <ShowIfCan slug={MODULE_SLUG} action="can_delete">
                     <IconButton onClick={() => handleDelete(item.ledger_id)}>
                       <Delete sx={{ color: "red" }} />
                     </IconButton>
+                    </ShowIfCan>
                   </TableCell>
                 </TableRow>
               ))}

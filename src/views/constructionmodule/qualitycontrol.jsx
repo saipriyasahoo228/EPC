@@ -22,9 +22,10 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering";
 import {createQualityControl,getQualityControls,updateQualityControl,deleteQualityControl} from "../../allapi/construction";
-
+import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 
 const QualityControl = () => {
+  const MODULE_SLUG = 'construction';
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -264,12 +265,15 @@ useEffect(() => {
           <TableRow key={i}>
             <TableCell>{proj.project_id}</TableCell>
             <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
               <IconButton
                 onClick={() => handleOpenForm(proj.project_id)} // ✅ passing project id
                 color="primary"
               >
                 <AddCircle sx={{ color: "#7267ef" }} />
               </IconButton>
+            </ShowIfCan>
             </TableCell>
           </TableRow>
         ))}
@@ -325,12 +329,18 @@ useEffect(() => {
                       <TableCell>{q.approval_status}</TableCell>
                       <TableCell>{q.next_inspection_date}</TableCell>
                       <TableCell>
+
+                      <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
                         <IconButton onClick={() => handleEdit(q)} color="warning">
                           <Edit sx={{ color: "orange" }} />
                         </IconButton>
+                        </DisableIfCannot>
+                        <ShowIfCan slug={MODULE_SLUG} action="can_delete">
                         <IconButton onClick={() => handleDelete(q.qc_id)} color="error">
                           <Delete sx={{ color: "red" }} />
                         </IconButton>
+                        </ShowIfCan>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -530,6 +540,7 @@ useEffect(() => {
           >
             Cancel
           </Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={editingId ? 'can_update' : 'can_create'}>
 
           <Button
             variant="outlined"
@@ -545,6 +556,7 @@ useEffect(() => {
           >
             {isEditMode ? "Update" : "Submit"}
           </Button>
+          </DisableIfCannot>
         </DialogActions>
       </Dialog>
     </>

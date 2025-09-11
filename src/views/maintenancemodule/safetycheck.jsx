@@ -22,10 +22,12 @@ import {
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getAssets ,createCompliance,getCompliances,deleteCompliance,updateCompliance} from "../../allapi/maintenance";
+import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 
 
 
 const SafetyCheck = () => {
+  const MODULE_SLUG = 'maintenance';
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -216,9 +218,12 @@ const handleSubmit = async () => {
       <TableRow key={i}>
         <TableCell>{asset.asset_id}</TableCell>
         <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
           <IconButton onClick={() => handleOpenForm(asset.asset_id)} color="primary">
             <AddCircle sx={{ color: "#7267ef" }} />
           </IconButton>
+          </ShowIfCan>
         </TableCell>
       </TableRow>
     ))}
@@ -273,12 +278,17 @@ const handleSubmit = async () => {
                       <TableCell>{t.certification_expiry_date}</TableCell>
                     
                       <TableCell>
+                      <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
                         <IconButton onClick={() => handleEdit(t)} color="warning">
                           <Edit sx={{ color: "orange" }} />
                         </IconButton>
+                        </DisableIfCannot>
+                        <ShowIfCan slug={MODULE_SLUG} action="can_delete">
                         <IconButton onClick={() => handleDelete(t.compliance_id)} color="error">
                           <Delete sx={{ color: "red" }} />
                         </IconButton>
+                        </ShowIfCan>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -441,6 +451,7 @@ const handleSubmit = async () => {
           >
             Cancel
           </Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={editingId ? 'can_update' : 'can_create'}>
 
           <Button
             variant="outlined"
@@ -456,6 +467,7 @@ const handleSubmit = async () => {
           >
             {isEditMode ? "Update" : "Submit"}
           </Button>
+          </DisableIfCannot>
         </DialogActions>
       </Dialog>
     </>

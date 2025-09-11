@@ -21,10 +21,12 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getVendors } from "../../allapi/procurement";
 import { createPayable,getPayables,deletePayable,updatePayable } from "../../allapi/account";
+import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 
 
 
 const Acoountpayble = () => {
+  const MODULE_SLUG = 'account_ledger';
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [formData, setFormData] = useState({});
@@ -222,12 +224,15 @@ const handleSubmit = async () => {
             <TableCell>{vendor.vendor_id}</TableCell>
 
             <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
               <IconButton
                 onClick={() => handleOpenForm(vendor.vendor_id)}
                 color="primary"
               >
                 <AddCircle sx={{ color: "#7267ef" }} />
               </IconButton>
+              </ShowIfCan>
             </TableCell>
           </TableRow>
         ))}
@@ -273,12 +278,17 @@ const handleSubmit = async () => {
       <TableCell>{item.payment_method}</TableCell>
       <TableCell>{item.approval_status}</TableCell>
       <TableCell>
+      <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
         <IconButton onClick={() => handleEdit(item)} color="warning">
           <Edit sx={{ color: "orange" }} />
         </IconButton>
+        </DisableIfCannot>
+        <ShowIfCan slug={MODULE_SLUG} action="can_delete">
         <IconButton onClick={() => handleDelete(item.invoice_id)} color="error">
           <Delete sx={{ color: "red" }} />
         </IconButton>
+        </ShowIfCan>
       </TableCell>
     </TableRow>
   ))}
@@ -379,9 +389,12 @@ const handleSubmit = async () => {
 
         <DialogActions>
           <Button onClick={() => setOpen(false)} sx={{ outline: '2px solid #800000', color: '#800000' }}>Cancel</Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={isEditMode && editingId ? 'can_update' : 'can_create'}>
+
           <Button onClick={handleSubmit} variant="outlined" sx={{ color: "#7267ef", borderColor: "#7267ef" }}>
             {isEditMode ? "Update" : "Submit"}
           </Button>
+          </DisableIfCannot>
         </DialogActions>
       </Dialog>
     </>

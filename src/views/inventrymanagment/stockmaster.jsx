@@ -23,10 +23,11 @@ import {
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import { getInventoryItems,createStock,getStockManagement ,deleteStock,updateStock } from "../../allapi/inventory";
-
+import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 
 
 const StockMaster = () => {
+  const MODULE_SLUG = 'inventory';
   const [searchTerm, setSearchTerm] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -299,12 +300,15 @@ const handleDelete = async (stockManagementId) => {
                   <TableRow key={i}>
                     <TableCell>{item.item_id}</TableCell>
                     <TableCell sx={{ display: "flex", justifyContent: "flex-end" }}>
+                    <ShowIfCan slug={MODULE_SLUG} action="can_create">
+
                       <IconButton
                         onClick={() => handleOpenForm(item.item_id)}
                         color="primary"
                       >
                         <AddCircle sx={{ color: "#7267ef" }} />
                       </IconButton>
+                      </ShowIfCan>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -361,15 +365,21 @@ const handleDelete = async (stockManagementId) => {
       <TableCell>{item.stock_valuation}</TableCell>
       <TableCell>{item.last_updated}</TableCell>
       <TableCell>
+      <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+
         <IconButton color="warning" onClick={() => handleEdit(item)}>
           <Edit sx={{ color: "orange" }} />
         </IconButton>
+        </DisableIfCannot>
+        <ShowIfCan slug={MODULE_SLUG} action="can_delete">
+
         <IconButton
           color="error"
           onClick={() => handleDelete(item.stock_id)}
         >
           <Delete sx={{ color: "red" }} />
         </IconButton>
+        </ShowIfCan>
       </TableCell>
     </TableRow>
   ))}
@@ -520,6 +530,8 @@ const handleDelete = async (stockManagementId) => {
           >
             Cancel
           </Button>
+          <DisableIfCannot slug={MODULE_SLUG} action={selectedItemId ? 'can_update' : 'can_create'}>
+
          <Button
            variant="outlined"
            onClick={handleSubmit}
@@ -534,6 +546,7 @@ const handleDelete = async (stockManagementId) => {
          >
            Submit
          </Button>
+         </DisableIfCannot>
         </DialogActions>
       </Dialog>
     </>

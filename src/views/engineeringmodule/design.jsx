@@ -21,11 +21,13 @@ import {
 import {getProjectsAccept, createDesignPlan, getDesignPlans,updateDesignPlan, deleteDesignPlan } from '../../allapi/engineering';
 import { AddCircle, Edit, Delete , ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 
 
 
 
 const DesignForm = () => {
+  const MODULE_SLUG = 'engineering';
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -316,9 +318,11 @@ const paginatedDesigns = filteredDesigns.slice(
           <TableRow key={i}>
             <TableCell>{proj.project_id}</TableCell>
             <TableCell sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <ShowIfCan slug={MODULE_SLUG} action="can_create">
               <IconButton onClick={() => handleOpenForm(proj.project_id)} color="primary">
                 <AddCircle sx={{ color: "#7267ef" }} />
               </IconButton>
+              </ShowIfCan>
             </TableCell>
           </TableRow>
         ))}
@@ -405,14 +409,17 @@ const paginatedDesigns = filteredDesigns.slice(
       <TableCell>{d.design_completion_date}</TableCell>
       <TableCell>{d.status}</TableCell>
       <TableCell>
+        <DisableIfCannot slug={MODULE_SLUG} action="can_update">
         <IconButton color="warning" onClick={() => handleEdit(d)}>
   <Edit sx={{ color: "orange" }} />
 </IconButton>
+</DisableIfCannot>
 
-
+    <ShowIfCan slug={MODULE_SLUG} action="can_delete">
       <IconButton color="error" onClick={() => handleDelete(d.design_id)}>
   <Delete sx={{ color: "red" }} />
 </IconButton>
+</ShowIfCan>
 
       </TableCell>
     </TableRow>
@@ -622,7 +629,7 @@ const paginatedDesigns = filteredDesigns.slice(
   Cancel
 </Button>
 
-
+<DisableIfCannot slug={MODULE_SLUG} action={mode === 'edit' ? 'can_update' : 'can_create'}>
     <Button
   variant="outlined"
   onClick={handleSubmit}
@@ -640,7 +647,7 @@ const paginatedDesigns = filteredDesigns.slice(
   
 </Button>
 
-
+</DisableIfCannot>
   </DialogActions>
 </Dialog>
 
