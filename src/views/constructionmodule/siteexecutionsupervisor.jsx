@@ -50,7 +50,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 
 import { getProjectsAccept } from '../../allapi/engineering';
-import { createSiteExecution, getSiteExecutions } from '../../allapi/construction';
+import { createSiteExecution, getSiteExecutions, createMaterialInventory } from '../../allapi/construction';
 import { getInventoryItems } from '../../allapi/inventory';
 import { createMaterialProcurement, getMaterialProcurements } from '../../allapi/procurement';
 
@@ -131,6 +131,11 @@ const SiteExecutionSupervisor = () => {
     unit_price: '',
     requested_by: '',
   });
+  // Material consumption (selection from inventory with quantities)
+  const [consumptionOpen, setConsumptionOpen] = useState(false);
+  const [consumptionItems, setConsumptionItems] = useState([]); // [{ item, quantity }]
+  const [consumptionNotes, setConsumptionNotes] = useState('');
+  const [savingConsumption, setSavingConsumption] = useState(false);
 
   const deviceId = useMemo(() => navigator.userAgent || 'unknown', []);
 
@@ -280,6 +285,73 @@ const SiteExecutionSupervisor = () => {
     };
     fetchReports();
   }, [selectedProjectId]);
+
+  // Material consumption dialog handlers
+  const openConsumption = useCallback(() => {
+    if (!selectedProjectId) {
+      setSnack({ open: true, severity: 'info', message: 'Select a project first' });
+      return;
+    }
+    setConsumptionOpen(true);
+  }, [selectedProjectId]);
+
+  const closeConsumption = useCallback(() => {
+    setConsumptionOpen(false);
+  }, []);
+
+  const addConsumptionItem = useCallback((item) => {
+    if (!item) return;
+    setConsumptionItems((prev) => {
+      const exists = prev.some((ci) => ci.item?.item_id === item.item_id);
+      if (exists) return prev;
+      return [...prev, { item, quantity: '' }];
+    });
+  }, []);
+
+  const updateConsumptionQty = useCallback((itemId, qty) => {
+    setConsumptionItems((prev) => prev.map((ci) => ci.item?.item_id === itemId ? { ...ci, quantity: qty } : ci));
+  }, []);
+
+  const removeConsumptionItem = useCallback((itemId) => {
+    setConsumptionItems((prev) => prev.filter((ci) => ci.item?.item_id !== itemId));
+  }, []);
+
+  const submitConsumption = useCallback(async () => {
+    if (!selectedProjectId) { setSnack({ open: true, severity: 'warning', message: 'Project is required' }); return; }
+    const payloads = consumptionItems
+      .filter(ci => ci.item && ci.quantity && Number(ci.quantity) > 0)
+      .map(ci => ({
+        material: ci.item.item_id,
+        project: selectedProjectId,
+        material_name: ci.item.item_name,
+        quantity_used: ci.quantity,
+      }));
+    if (payloads.length === 0) {
+      setSnack({ open: true, severity: 'warning', message: 'Add at least one item with quantity' });
+      return;
+    }
+    try {
+      setSavingConsumption(true);
+      // Post each consumption entry
+      for (const p of payloads) {
+        // eslint-disable-next-line no-await-in-loop
+        await createMaterialInventory(p);
+      }
+      // Build plain text summary and set into form.material_consumption
+      const summary = payloads
+        .map(p => `${p.material} - ${p.material_name}: ${p.quantity_used}`)
+        .join(', ');
+      const fullText = consumptionNotes?.trim() ? `${summary}. Notes: ${consumptionNotes.trim()}` : summary;
+      setForm(prev => ({ ...prev, material_consumption: fullText }));
+      setSnack({ open: true, severity: 'success', message: 'Material consumption recorded' });
+      setConsumptionOpen(false);
+    } catch (e) {
+      const msg = e?.response?.data ? JSON.stringify(e.response.data) : e.message;
+      setSnack({ open: true, severity: 'error', message: msg || 'Failed to save material consumption' });
+    } finally {
+      setSavingConsumption(false);
+    }
+  }, [consumptionItems, consumptionNotes, selectedProjectId]);
 
   // Load inventory once
   useEffect(() => {
@@ -596,12 +668,67 @@ const SiteExecutionSupervisor = () => {
       } catch {}
     } catch (err) {
       console.error('Submit failed', err);
-      const backendMsg = err?.response?.data?.detail || (err?.response?.data ? JSON.stringify(err.response.data) : err?.message) || 'Submit failed';
+      const backendMsg = err?.response?.data ? JSON.stringify(err.response.data) : err?.message || 'Submit failed';
       setSnack({ open: true, severity: 'error', message: backendMsg });
     } finally {
       setSubmitting(false);
     }
   };
+
+  // Helper to resolve userId from storage or token
+  const resolveLoggedInUserId = useCallback(() => {
+    try {
+      let userId = '';
+      const raw = localStorage.getItem('userInfo');
+      if (raw) {
+        const u = JSON.parse(raw);
+        userId =
+          u?.user_id ||
+          u?.userid ||
+          u?.userId ||
+          u?.id ||
+          u?.profile?.user_id ||
+          '';
+      }
+      if (!userId) {
+        const decoded = getLoggedInUserInfo?.();
+        userId = decoded?.user_id || '';
+      }
+      return userId;
+    } catch {
+      return '';
+    }
+  }, []);
+
+  // Auto-fill on mount and when userInfo updates
+  useEffect(() => {
+    const prefill = () => {
+      const userId = resolveLoggedInUserId();
+      if (userId && !form.site_supervisor_id) {
+        setForm(prev => ({ ...prev, site_supervisor_id: userId }));
+      }
+    };
+    prefill();
+    window.addEventListener('userInfoUpdated', prefill);
+    return () => window.removeEventListener('userInfoUpdated', prefill);
+  }, [form.site_supervisor_id, resolveLoggedInUserId]);
+
+  // After draft restore, ensure prefill if still empty
+  useEffect(() => {
+    if (!form.site_supervisor_id) {
+      const userId = resolveLoggedInUserId();
+      if (userId) setForm(prev => ({ ...prev, site_supervisor_id: userId }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restored]);
+
+  // When entering form mode, prefill if empty
+  useEffect(() => {
+    if (mode === 'form' && !form.site_supervisor_id) {
+      const userId = resolveLoggedInUserId();
+      if (userId) setForm(prev => ({ ...prev, site_supervisor_id: userId }));
+    }
+  }, [mode, form.site_supervisor_id, resolveLoggedInUserId]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -663,7 +790,7 @@ const SiteExecutionSupervisor = () => {
         {/* Project selection and status pills */}
         <Card elevation={0} sx={{ border: 'none', borderRadius: 2, mt: 0, mx: 2, mb: 2, backgroundColor: 'background.paper', boxShadow: '0 6px 20px rgba(0,0,0,0.06)', p: 1 }}>
           <CardContent>
-            <Stack spacing={2.5}>
+            <Stack spacing={2}>
               <TextField
                 select
                 label="Project"
@@ -854,7 +981,16 @@ const SiteExecutionSupervisor = () => {
                         />
                       ))}
                     </Stack>
-                    <TextField label="Site Supervisor ID" required fullWidth size="small" value={form.site_supervisor_id} onChange={(e) => setField('site_supervisor_id', e.target.value)} />
+                    <TextField
+                      label="Site Supervisor ID"
+                      required
+                      fullWidth
+                      size="small"
+                      placeholder="Auto-filled from your account"
+                      helperText="Prefilled with your user ID. You can change it if needed."
+                      value={form.site_supervisor_id}
+                      onChange={(e) => setField('site_supervisor_id', e.target.value)}
+                    />
                     <TextField label="Work Completed" required fullWidth size="small" multiline minRows={3} value={form.work_completed} onChange={(e) => setField('work_completed', e.target.value)} />
                     <TextField label="Manpower Utilized" required type="number" fullWidth size="small" value={form.manpower_utilized} onChange={(e) => setField('manpower_utilized', e.target.value)} />
                     <TextField label="Equipment Used" required fullWidth size="small" multiline minRows={2} value={form.equipment_used} onChange={(e) => setField('equipment_used', e.target.value)} />
@@ -865,7 +1001,32 @@ const SiteExecutionSupervisor = () => {
                 {step === 1 && (
                   <>
                     <TextField label="Safety Compliance Report" required fullWidth size="small" multiline minRows={3} value={form.safety_compliance_report} onChange={(e) => setField('safety_compliance_report', e.target.value)} />
-                    <TextField label="Material Consumption" required fullWidth size="small" multiline minRows={3} value={form.material_consumption} onChange={(e) => setField('material_consumption', e.target.value)} />
+                    <Stack spacing={1}>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                        <TextField
+                          label="Material Consumption (summary)"
+                          fullWidth
+                          size="small"
+                          value={form.material_consumption}
+                          placeholder="Click to select materials used"
+                          multiline
+                          minRows={2}
+                          InputProps={{ readOnly: true }}
+                          onClick={openConsumption}
+                        />
+                        <Button variant="outlined" onClick={openConsumption}>Select Materials</Button>
+                      </Stack>
+                      <TextField
+                        label="Material Consumption Notes (optional)"
+                        fullWidth
+                        size="small"
+                        value={consumptionNotes}
+                        onChange={(e)=> setConsumptionNotes(e.target.value)}
+                        placeholder="Add any extra notes regarding material consumption"
+                        multiline
+                        minRows={2}
+                      />
+                    </Stack>
                     <TextField label="Site Issues (optional)" fullWidth size="small" multiline minRows={2} value={form.site_issues} onChange={(e) => setField('site_issues', e.target.value)} />
                   </>
                 )}
@@ -1161,6 +1322,64 @@ const SiteExecutionSupervisor = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeReport}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Material Consumption Dialog */}
+      <Dialog open={consumptionOpen} onClose={closeConsumption} fullWidth maxWidth="sm" fullScreen={isMobile}>
+        <DialogTitle>Select Materials Used</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            <Typography variant="caption" color="text.secondary">Project</Typography>
+            <TextField value={selectedProjectId || ''} fullWidth size="small" disabled />
+
+            <Typography variant="caption" color="text.secondary">Add Item</Typography>
+            <Autocomplete
+              options={inventory}
+              loading={loadingInventory}
+              getOptionLabel={(opt) => opt?.item_name ? `${opt.item_id} - ${opt.item_name}` : ''}
+              onChange={(e, v) => addConsumptionItem(v)}
+              disablePortal
+              renderInput={(params) => <TextField {...params} placeholder="Search items" size="small" fullWidth />}
+            />
+
+            {consumptionItems.length > 0 && (
+              <Stack spacing={1}>
+                {consumptionItems.map((ci) => (
+                  <Stack key={ci.item.item_id} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ p: 1.25, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                    <Typography sx={{ flex: 1 }}>{ci.item.item_id} - {ci.item.item_name}</Typography>
+                    <TextField
+                      label="Quantity Used"
+                      type="number"
+                      size="small"
+                      value={ci.quantity}
+                      onChange={(e)=> updateConsumptionQty(ci.item.item_id, e.target.value)}
+                      sx={{ width: '100%' }}
+                    />
+                    <Button color="error" onClick={() => removeConsumptionItem(ci.item.item_id)}>Remove</Button>
+                  </Stack>
+                ))}
+              </Stack>
+            )}
+
+            <TextField
+              label="Notes (optional)"
+              size="small"
+              fullWidth
+              value={consumptionNotes}
+              onChange={(e)=> setConsumptionNotes(e.target.value)}
+              multiline
+              minRows={2}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeConsumption}>Cancel</Button>
+          <ShowIfCan slug="construction" action="can_create">
+            <Button variant="contained" onClick={submitConsumption} disabled={savingConsumption}>
+              {savingConsumption ? <CircularProgress size={18} sx={{ color: 'white' }} /> : 'Save Consumption'}
+            </Button>
+          </ShowIfCan>
         </DialogActions>
       </Dialog>
 

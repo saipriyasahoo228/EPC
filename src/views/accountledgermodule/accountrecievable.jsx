@@ -6,12 +6,8 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close"; 
-<<<<<<< HEAD
 import { getGuests ,createReceivable,getReceivables,deleteReceivable,updateReceivable} from "../../allapi/account";
-=======
-import { getGuests ,createReceivable,getReceivables} from "../../allapi/account";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
->>>>>>> b86202bee535519c9fe0ed85606813bbd5ab702d
 
 
 
@@ -312,14 +308,11 @@ const resetForm = () => {
                     <DisableIfCannot slug={MODULE_SLUG} action="can_update">
 
                       <IconButton onClick={() => handleEdit(r)}><Edit sx={{ color: "orange" }} /></IconButton>
-<<<<<<< HEAD
-                      <IconButton onClick={() => handleDelete(r.invoice_id)}><Delete sx={{ color: "red" }}/></IconButton>
-=======
+                      {/* <IconButton onClick={() => handleDelete(r.invoice_id)}><Delete sx={{ color: "red" }}/></IconButton> */}
                       </DisableIfCannot>
                       <ShowIfCan slug={MODULE_SLUG} action="can_delete">
                       <IconButton onClick={() => handleDelete(r.invoiceId)}><Delete sx={{ color: "red" }}/></IconButton>
                       </ShowIfCan>
->>>>>>> b86202bee535519c9fe0ed85606813bbd5ab702d
                     </TableCell>
                   </TableRow>
                 ))}

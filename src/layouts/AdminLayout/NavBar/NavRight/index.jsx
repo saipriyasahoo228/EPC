@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { ListGroup, Button, Modal, Badge } from 'react-bootstrap';
 import { logout } from 'auth';
 import LogoutRounded from '@mui/icons-material/LogoutRounded';
+import { Link } from 'react-router-dom';
 
 // -----------------------|| NAV RIGHT ||-----------------------//
 
 export default function NavRight() {
-  const [user, setUser] = useState({ full_name: '', role: '', user_id: '', is_admin: false });
+  const [user, setUser] = useState({ full_name: '', role: '', user_id: '', is_admin: false, groups: [] });
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
@@ -20,18 +21,26 @@ export default function NavRight() {
             role: u?.role || '',
             user_id: u?.user_id || '',
             is_admin: Boolean(u?.is_admin),
+            groups: Array.isArray(u?.groups) ? u.groups : [],
           });
         } else {
-          setUser({ full_name: 'Guest', role: '', user_id: '', is_admin: false });
+          setUser({ full_name: 'Guest', role: '', user_id: '', is_admin: false, groups: [] });
         }
       } catch {
-        setUser({ full_name: 'User', role: '', user_id: '', is_admin: false });
+        setUser({ full_name: 'User', role: '', user_id: '', is_admin: false, groups: [] });
       }
     };
     readUser();
     window.addEventListener('userInfoUpdated', readUser);
     return () => window.removeEventListener('userInfoUpdated', readUser);
   }, []);
+
+  const roleLc = (user?.role || '').toString().toLowerCase();
+  const groupNames = (Array.isArray(user?.groups) ? user.groups : [])
+    .map(g => (typeof g === 'string' ? g : (g?.name || g?.title || g?.slug || '')))
+    .filter(Boolean)
+    .map(s => s.toString().toLowerCase());
+  const canAccessSiteExec = Boolean(user?.is_admin) || roleLc === 'site supervisor' || groupNames.includes('site supervisor');
 
   return (
     <>
@@ -53,14 +62,19 @@ export default function NavRight() {
               (user.role && <Badge bg="secondary" title={user.role}>{String(user.role).toUpperCase()}</Badge>)
             )}
           </div>
+          {canAccessSiteExec && (
+            <Link to="/site-exec-sup" className="btn btn-outline-primary btn-sm" style={{ marginLeft: 8 }}>
+              Supervisor View
+            </Link>
+          )}
           <Button
             variant="danger"
             size="sm"
             onClick={()=>setShowConfirm(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, paddingInline: 10, borderRadius:100 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, paddingInline: 10 }}
             title="Logout"
           >
-            <LogoutRounded fontSize="small" sx={{ color: '#fff' }}/>
+            <LogoutRounded fontSize="small" />
             Logout
           </Button>
         </ListGroup.Item>
