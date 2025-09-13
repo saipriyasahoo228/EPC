@@ -232,13 +232,13 @@ const handleSubmit = async () => {
 
 // 🔹 In your component
 const handleDelete = async (project) => {
-  if (!window.confirm(`Are you sure you want to delete this site execution with projectID: ${project  }?`)) {
+  if (!window.confirm(`Are you sure you want to delete this site execution with siteId: ${project  }?`)) {
     return;
   }
 
   try {
     await deleteSiteExecution(project);
-    alert(`✅ Site execution with projectID: ${project} deleted successfully!`);
+    alert(`✅ Site execution with siteID: ${project} deleted successfully!`);
 
     // 🔹 Refresh the table after delete
     fetchSiteExecutions();
@@ -264,7 +264,7 @@ const handleEdit = (s) => {
   });
 
   setSelectedProjectId(s.project);
-  setEditingId(s.project);   // ✅ use `s.id` instead of `s.project` for PATCH
+  setEditingId(s.site_id);   // ✅ use `s.id` instead of `s.project` for PATCH
   setOpen(true);        // open the form dialog for editing
 };
 
@@ -276,7 +276,7 @@ const quickUpdateStatus = async (s, newStatus) => {
     row.site_id === s.site_id ? { ...row, site_execution_status: newStatus } : row
   )));
   try {
-    await updateSiteExecution(s.project, { site_execution_status: newStatus });
+    await updateSiteExecution(s.site_id, { site_execution_status: newStatus });
   } catch (e) {
     console.error('Failed to update status', e);
     // Revert on failure
@@ -583,7 +583,7 @@ const quickUpdateStatus = async (s, newStatus) => {
                           </DisableIfCannot>
                           <ShowIfCan slug={MODULE_SLUG} action="can_delete">
                           <Tooltip title="Delete">
-                            <IconButton color="error" onClick={() => handleDelete(s.project)}>
+                            <IconButton color="error" onClick={() => handleDelete(s.site_id)}>
                               <Delete sx={{ color: "red" }} />
                             </IconButton>
                           </Tooltip>
@@ -663,7 +663,7 @@ const quickUpdateStatus = async (s, newStatus) => {
                                   <Button fullWidth variant="outlined" size="small" startIcon={<Edit />} onClick={(e) => { e.stopPropagation(); handleEdit(s); }}>Update</Button>
                                   </DisableIfCannot>
                                   <ShowIfCan slug={MODULE_SLUG} action="can_delete">
-                                  <Button fullWidth variant="outlined" color="error" size="small" startIcon={<Delete />} onClick={(e) => { e.stopPropagation(); handleDelete(s.project); }}>Delete</Button>
+                                  <Button fullWidth variant="outlined" color="error" size="small" startIcon={<Delete />} onClick={(e) => { e.stopPropagation(); handleDelete(s.site_id); }}>Delete</Button>
                                   </ShowIfCan>
                                 </Stack>
                               </Stack>
@@ -860,7 +860,7 @@ const quickUpdateStatus = async (s, newStatus) => {
                   : row
               )));
               try {
-                await updateSiteExecution(qaSite.project, { site_issues: ((qaSite.site_issues || '') + (qaSite.site_issues ? '\n' : '') + entry) });
+                await updateSiteExecution(qaSite.site_id, { site_issues: ((qaSite.site_issues || '') + (qaSite.site_issues ? '\n' : '') + entry) });
               } catch (e) {
                 setSiteExecutions(prev);
                 alert('Failed to log issue');
@@ -909,7 +909,7 @@ const quickUpdateStatus = async (s, newStatus) => {
                   : row
               )));
               try {
-                await updateSiteExecution(qaSite.project, { site_issues: ((qaSite.site_issues || '') + (qaSite.site_issues ? '\n' : '') + entry) });
+                await updateSiteExecution(qaSite.site_id, { site_issues: ((qaSite.site_issues || '') + (qaSite.site_issues ? '\n' : '') + entry) });
               } catch (e) {
                 setSiteExecutions(prev);
                 alert('Failed to request materials');
@@ -978,7 +978,7 @@ const quickUpdateStatus = async (s, newStatus) => {
             <ListItemIcon><Edit /></ListItemIcon>
             <ListItemText primary="Update Details" />
           </ListItemButton>
-          <ListItemButton onClick={() => { if (sheetSite) handleDelete(sheetSite.project); setSheetOpen(false); }}>
+          <ListItemButton onClick={() => { if (sheetSite) handleDelete(sheetSite.site_id); setSheetOpen(false); }}>
             <ListItemIcon><Delete color="error" /></ListItemIcon>
             <ListItemText primary="Delete" />
           </ListItemButton>

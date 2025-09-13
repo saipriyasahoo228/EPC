@@ -66,7 +66,7 @@
 //                 animation: 'shimmer 2.5s linear infinite',
 //               }}
 //             >
-//               WELCOME TO EPC HUB
+//               WELCOME TO EPC SYNC
 //             </h4>
 //             <p
 //               style={{
@@ -224,7 +224,7 @@ export default function SignIn1() {
                 animation: 'shimmer 2.5s linear infinite',
               }}
             >
-              WELCOME TO EPC HUB
+              WELCOME TO EPC SYNC
             </h4>
             <p
               style={{
