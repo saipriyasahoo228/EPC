@@ -93,3 +93,24 @@ export const updateReceivable = async (invoiceId, updatedData) => {
   const response = await api.patch(`/account/receivable/${invoiceId}/`, updatedData);
   return response.data;
 };
+//POST api for financial report
+export const createFinancialReport = async (data) => {
+  const response = await api.post("/account/financial-report/", data);
+  return response.data;
+};
+// GET all financial reports
+export const getFinancialReports = async () => {
+  const response = await api.get("/account/financial-report/");
+  return response.data;
+};
+//Delete api for financial report
+export const deleteFinancialReport = async (reportId) => {
+  const response = await api.delete(`/account/financial-report/${reportId}/`);
+  return response.data;
+};
+// Update api for financial report
+export const updateFinancialReport = async (reportId, data) => {
+  const response = await api.patch(`/account/financial-report/${reportId}/`, data);
+  return response.data;
+};
+

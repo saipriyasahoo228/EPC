@@ -35,8 +35,8 @@ const DesignForm = () => {
   const [formData, setFormData] = useState({});
   const [designs, setDesigns] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [editingId, setEditingId] = useState(null); // null means create mode
-  const [mode, setMode] = useState('create'); // or 'edit'
+  const [editingId, setEditingId] = useState(null);
+  const [mode, setMode] = useState('create'); 
   const rowsPerPage = 4;
   const [currentPage, setCurrentPage] = useState(1);
   const [designsPage, setDesignsPage] = useState(1);
@@ -45,7 +45,7 @@ const DesignForm = () => {
 
 
 
-
+//Fetch all accepted project
   useEffect(() => {
   const fetchProjects = async () => {
     try {
@@ -60,7 +60,7 @@ const DesignForm = () => {
 }, []);
 
 //Fetch Designs
-// Define fetchDesigns outside useEffect
+
 const fetchDesigns = async () => {
   try {
     const data = await getDesignPlans();
@@ -70,42 +70,29 @@ const fetchDesigns = async () => {
   }
 };
 
-// Run once when component mounts
+
 useEffect(() => {
   fetchDesigns();
 }, []);
 
 
 //  Handle Submit Logic
-
 const handleSubmit = async () => {
   const data = new FormData();
-
-  // Required: Numeric PK for ForeignKey
   data.append('project', selectedProjectId);
-
-  // Design Info
   data.append('design_name', formData.designName);
   data.append('design_type', formData.designType);
   data.append('prepared_by', formData.preparedBy);
   data.append('version_number', formData.versionNumber);
-
-  // Optional fields
   data.append('reviewed_by', formData.reviewedBy || '');
   data.append('approval_status', formData.approvalStatus || 'Pending');
   data.append('approval_date', formData.approvalDate || '');
-
-  // Budget / Requirements
   data.append('compliance_standard', formData.complianceStandard);
   data.append('design_constraints', formData.designConstraints);
   data.append('estimated_budget', formData.estimatedBudget);
   data.append('resource_requirements', formData.resourceRequirements);
-
-  // Completion / Status
   data.append('design_completion_date', formData.designCompletionDate);
   data.append('status', formData.status);
-
-  // File upload
   if (formData.blueprint) {
     data.append('blueprint', formData.blueprint);
   } else if (!editingId) {
@@ -218,7 +205,6 @@ const handleDelete = async (designId) => {
 };
 
 //Handle Open Form
-
 const handleOpenForm = (projectId) => {
   setMode('create'); // ✅ Explicitly set to create mode
   setSelectedProjectId(projectId);
@@ -453,7 +439,19 @@ const paginatedDesigns = filteredDesigns.slice(
 </Grid>
 
 
-      <Dialog open={open} onClose={handleClose} fullWidth>
+     <Dialog
+  open={open}
+  onClose={handleClose}
+  fullWidth
+  maxWidth="xl" // makes it extra wide
+  PaperProps={{
+    style: {
+      width: "70%",   // adjust width
+      height: "97vh",   // fullscreen height
+      
+    },
+  }}
+>
   <DialogTitle>Enter Design Details</DialogTitle>
   <DialogContent sx={{ position: 'relative' }}>
   <IconButton
@@ -474,7 +472,7 @@ const paginatedDesigns = filteredDesigns.slice(
       {/* Project Info */}
       <Grid item xs={12}>
         <h3 style={{ color: '#7267ef' }}>Project Information</h3>
-        <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+        <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
         <Grid container spacing={2}>
           <Grid item xs={6}>
             <label htmlFor="projectId">Project ID</label>
@@ -492,7 +490,7 @@ const paginatedDesigns = filteredDesigns.slice(
       {/* Design Info */}
       <Grid item xs={12}>
         <h3 style={{ color: '#7267ef' }}>Design Information</h3>
-        <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+        <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
         <Grid container spacing={2}>
           <Grid item xs={6}>
             <label htmlFor="designName">Design Name</label>
@@ -517,7 +515,7 @@ const paginatedDesigns = filteredDesigns.slice(
       {/* Approval Info */}
       <Grid item xs={12}>
         <h3 style={{ color: '#7267ef' }}>Approval Information</h3>
-        <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+        <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
         <Grid container spacing={2}>
           <Grid item xs={6}>
             <label htmlFor="preparedBy">Prepared By</label>
@@ -547,7 +545,7 @@ const paginatedDesigns = filteredDesigns.slice(
       {/* Budget/Requirements */}
       <Grid item xs={12}>
         <h3 style={{ color: '#7267ef' }}>Budget and Requirements</h3>
-        <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+        <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
         <Grid container spacing={2}>
           <Grid item xs={6}>
             <label htmlFor="complianceStandard">Compliance Standard</label>
@@ -571,7 +569,7 @@ const paginatedDesigns = filteredDesigns.slice(
       {/* Status & Completion */}
       <Grid item xs={12}>
         <h3 style={{ color: '#7267ef' }}>Status and Actions</h3>
-        <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+        <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
         <Grid container spacing={2}>
           <Grid item xs={6}>
             <label htmlFor="designCompletionDate">Design Completion Date</label>

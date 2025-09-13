@@ -431,7 +431,20 @@ const paginatedFeasibility = filteredFeasibility.slice(
         </Grid>
       </Grid>
 
-      <Dialog open={open} onClose={handleClose} fullWidth>
+      {/* <Dialog open={open} onClose={handleClose} fullWidth> */}
+        <Dialog
+        open={open}
+        onClose={handleClose}
+        fullWidth
+        maxWidth="xl" // makes it extra wide
+        PaperProps={{
+          style: {
+            width: "70%",   // adjust width
+            height: "97vh",   // fullscreen height
+            
+          },
+        }}
+      >
         <DialogTitle>Enter Feasibility Study Details</DialogTitle>
         <DialogContent sx={{ position: 'relative' }}>
           <IconButton
@@ -452,8 +465,8 @@ const paginatedFeasibility = filteredFeasibility.slice(
 
               {/* Feasibility Study Information */}
               <Grid item xs={12}>
-                <h3 style={{ color: '#7267ef' }}>Feasibility Study Information</h3>
-                <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+                <h3 style={{ color: '#7267ef' }}>Feasibility Study Information & Documents</h3>
+                <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
                     <label htmlFor="projectId">Project ID</label>
@@ -480,14 +493,9 @@ const paginatedFeasibility = filteredFeasibility.slice(
                       ))}
                     </select>
                   </Grid>
-                </Grid>
-              </Grid>
-
-              {/* Upload Reports */}
-              <Grid item xs={12}>
-                <h3 style={{ color: '#7267ef' }}>Reports and Documents</h3>
-                <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
-              <input
+                  <Grid item xs={6}>
+                    <label>Upload</label>
+                      <input
   type="file"
   className="input"
   ref={fileInputRef} // needed for reset
@@ -498,16 +506,17 @@ const paginatedFeasibility = filteredFeasibility.slice(
     }));
   }}
 />
-
-
-
+                  </Grid>
+                </Grid>
               </Grid>
+
+              
 
               
 {/* //         Risk and Compliance */}
          <Grid item xs={12}>
            <h3 style={{ color: '#7267ef' }}>Risk and Compliance</h3>
-           <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+           <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
            <Grid container spacing={2}>
              <Grid item xs={6}>
                <label htmlFor="riskAssessment">Risk Assessment</label>
@@ -523,7 +532,7 @@ const paginatedFeasibility = filteredFeasibility.slice(
          {/* Financial Info */}
         <Grid item xs={12}>
            <h3 style={{ color: '#7267ef' }}>Financial Information</h3>           
-           <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+           <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
            <Grid container spacing={2}>
              <Grid item xs={6}>
                <label htmlFor="projectedROI">Projected ROI (%)</label>
@@ -533,25 +542,18 @@ const paginatedFeasibility = filteredFeasibility.slice(
                <label htmlFor="estimatedCompletionTime">Estimated Completion Time (Months/Years)</label>
                <input type="number" id="estimatedCompletionTime" name="estimatedCompletionTime" className="input" value={formData.estimatedCompletionTime || ''} onChange={handleChange} />
             </Grid>
-           </Grid>
-         </Grid>
-
-         {/* Recommendations */}
-         <Grid item xs={12}>
-           <h3 style={{ color: '#7267ef' }}>Recommendations</h3>
-           <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
-           <Grid container spacing={2}>
-             <Grid item xs={12}>
+            <Grid item xs={6}>
                <label htmlFor="recommendations">Recommendations</label>
                <textarea id="recommendations" name="recommendations" className="input" rows={3} value={formData.recommendations || ''} onChange={handleChange} />
              </Grid>
            </Grid>
          </Grid>
 
+
          {/* Approval Info */}
          <Grid item xs={12}>
-           <h3 style={{ color: '#7267ef' }}>Approval Information</h3>
-           <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+           <h3 style={{ color: '#7267ef' }}>Approval Information & Study Status</h3>
+           <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
            <Grid container spacing={2}>
              <Grid item xs={6}>
                <label htmlFor="approvalStatus">Approval Status</label>
@@ -565,14 +567,6 @@ const paginatedFeasibility = filteredFeasibility.slice(
                <label htmlFor="approvalDate">Approval Date</label>               
                <input type="date" id="approvalDate" name="approvalDate" className="input" value={formData.approvalDate || ''} onChange={handleChange} />
              </Grid>
-           </Grid>
-         </Grid>
-
-         {/* Study Status */}
-         <Grid item xs={12}>
-           <h3 style={{ color: '#7267ef' }}>Study Status</h3>
-           <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
-           <Grid container spacing={2}>
              <Grid item xs={6}>
                <label htmlFor="status">Status</label>
                <select id="status" name="status" className="input" value={formData.status || ''} onChange={handleChange}>
@@ -583,6 +577,7 @@ const paginatedFeasibility = filteredFeasibility.slice(
              </Grid>
            </Grid>
          </Grid>
+
 
             </Grid>
           </Box>
