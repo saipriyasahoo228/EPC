@@ -22,6 +22,7 @@ import 'jspdf-autotable';
 import CloseIcon from '@mui/icons-material/Close';
 import { createInventoryItem, getInventoryItems,deleteInventoryItem, updateInventoryItem } from '../../allapi/inventory';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+import { Maximize2, Minimize2 } from "lucide-react";
 
 const ItemMaster = () => {
   const MODULE_SLUG = 'inventory';
@@ -29,6 +30,8 @@ const ItemMaster = () => {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState(null); // To track the item being edited
   const [items, setItems] = useState([]);
+  const [isModalMaximized, setIsModalMaximized] = useState(false);
+
   const [formData, setFormData] = useState({
   itemName: '',
   category: '',
@@ -40,6 +43,11 @@ const ItemMaster = () => {
   storageLocation: '',
   itemStatus: 'Active',
 });
+
+
+const toggleModalSize = () => {
+    setIsModalMaximized(!isModalMaximized);
+  };
 
 
 const fetchItems = async () => {
@@ -246,7 +254,25 @@ const handleSubmit = async () => {
       </ShowIfCan>
 
       {/* Form Popup */}
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+<Dialog
+             open={open}
+             onClose={handleClose}
+             fullWidth
+             maxWidth="xl"
+             PaperProps={{
+               style: isModalMaximized
+                 ? {
+                     width: "100%",
+                     height: "100vh", // fullscreen
+                     margin: 0,
+                   }
+                 : {
+                     width: "70%",
+                     height: "97vh", // default size
+                   },
+             }}
+           >
+
       <DialogTitle sx={{ backgroundColor: '#f3f3f3', color: '#7267ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
   {editItem ? 'Edit Inventory Item' : 'Add Inventory Item'}
   <IconButton onClick={handleClose} sx={{ color: '#7267ef' }}>
@@ -254,7 +280,24 @@ const handleSubmit = async () => {
   </IconButton>
 </DialogTitle>
 
-        <DialogContent>
+        <DialogContent
+                  sx={{
+                    position: "relative",
+                    overflowY: "auto", // ensures internal scrolling
+                  }}
+                >
+               <IconButton
+                    aria-label="toggle-size"
+                    onClick={toggleModalSize}
+                    sx={{
+                      position: "absolute",
+                      right: 40,
+                      top: 8,
+                      color: (theme) => theme.palette.grey[600],
+                    }}
+                  >
+                    {isModalMaximized ? <Minimize2 /> : <Maximize2 />}
+                  </IconButton>
           <Grid container spacing={2} direction="column" sx={{ mt: 1 }}>
             
             <Grid item xs={12}>

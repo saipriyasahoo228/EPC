@@ -23,6 +23,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering"; 
 import { createProject,fetchConstructionProjects,deleteConstructionProject ,updateConstructionProject} from "../../allapi/construction"; 
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
+import { Maximize2, Minimize2 } from "lucide-react";
+
 
 
 
@@ -36,7 +38,10 @@ const ProjectManagement = () => {
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [project, setProject] = useState([]);
   const [constructionProjects, setConstructionProjects] = useState([]);
-  const [isEditing, setIsEditing] = useState(false); // new state
+  const [isEditing, setIsEditing] = useState(false); 
+  const [isModalMaximized, setIsModalMaximized] = useState(false);
+
+
   const [formData, setFormData] = useState({
   project: "",                // project_id
   projectName: "",
@@ -52,6 +57,13 @@ const ProjectManagement = () => {
   projectMilestones: "",
   resourceAllocation: ""
 });
+
+
+const toggleModalSize = () => {
+    setIsModalMaximized(!isModalMaximized);
+  };
+
+
 
 
 //All accepted projects 
@@ -359,9 +371,45 @@ const handleDelete = async (projectId) => {
 </Grid>
 
 
-      <Dialog open={open} onClose={handleClose} fullWidth>
+     
+<Dialog
+             open={open}
+             onClose={handleClose}
+             fullWidth
+             maxWidth="xl"
+             PaperProps={{
+               style: isModalMaximized
+                 ? {
+                     width: "100%",
+                     height: "100vh", // fullscreen
+                     margin: 0,
+                   }
+                 : {
+                     width: "70%",
+                     height: "97vh", // default size
+                   },
+             }}
+           >
+
   <DialogTitle>Enter Project Details</DialogTitle>
-  <DialogContent sx={{ position: 'relative' }}>
+  <DialogContent
+                  sx={{
+                    position: "relative",
+                    overflowY: "auto", // ensures internal scrolling
+                  }}
+                >
+               <IconButton
+                    aria-label="toggle-size"
+                    onClick={toggleModalSize}
+                    sx={{
+                      position: "absolute",
+                      right: 40,
+                      top: 8,
+                      color: (theme) => theme.palette.grey[600],
+                    }}
+                  >
+                    {isModalMaximized ? <Minimize2 /> : <Maximize2 />}
+                  </IconButton>
   <IconButton
     aria-label="close"
     onClick={handleClose}
@@ -377,24 +425,17 @@ const handleDelete = async (projectId) => {
   <Box component="form" sx={{ mt: 2 }}>
     <Grid container spacing={3} direction="column">
 
-      {/* Project Info */}
-      <Grid item xs={12}>
-        <h3 style={{ color: '#7267ef' }}>Project ID </h3>
-        <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
-        <Grid container spacing={2}>
-          <Grid item xs={6}>
-            <label htmlFor="projectId">Project ID</label>
-            <input id="projectId" className="input" value={selectedProjectId} disabled />
-          </Grid>
-          
-        </Grid>
-      </Grid>
+      
 
       {/* Design Info */}
       <Grid item xs={12}>
         <h3 style={{ color: '#7267ef' }}>Project Information</h3>
         <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
         <Grid container spacing={2}>
+          <Grid item xs={6}>
+            <label htmlFor="projectId">Project ID</label>
+            <input id="projectId" className="input" value={selectedProjectId} disabled />
+          </Grid>
           <Grid item xs={6}>
             <label htmlFor="projectName">Project Name</label>
             <input id="projectName" name="projectName" className="input" value={formData.projectName || ''} onChange={handleChange} />
@@ -411,6 +452,15 @@ const handleDelete = async (projectId) => {
           <Grid item xs={6}>
             <label htmlFor="projectLocation">Project Location</label>
             <input id="projectLocation" name="projectLocation" className="input" value={formData.projectLocation || ''} onChange={handleChange} />
+          </Grid>
+           <Grid item xs={6}>
+            <label htmlFor="projectStatus">Project Status</label>
+            <select id="projectStatus" name="projectStatus" className="input" value={formData.projectStatus || ''} onChange={handleChange}>
+              <option value="planning">Planning</option>
+              <option value="in progress">In Progress</option>
+              <option value="delayed">Delayed</option>
+              <option value="completed">Completed</option>
+            </select>
           </Grid>
         </Grid>
       </Grid>
@@ -449,15 +499,7 @@ const handleDelete = async (projectId) => {
             <label htmlFor="projectManagerName">Project Manager Name</label>
             <input id="projectManagerName" name="projectManagerName" className="input" value={formData.projectManagerName || ''} onChange={handleChange} />
           </Grid>
-          <Grid item xs={6}>
-            <label htmlFor="projectStatus">Project Status</label>
-            <select id="projectStatus" name="projectStatus" className="input" value={formData.projectStatus || ''} onChange={handleChange}>
-              <option value="planning">Planning</option>
-              <option value="in progress">In Progress</option>
-              <option value="delayed">Delayed</option>
-              <option value="completed">Completed</option>
-            </select>
-          </Grid>
+         
         </Grid>
       </Grid>
 

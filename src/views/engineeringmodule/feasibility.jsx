@@ -23,6 +23,7 @@ import { AddCircle, Edit, Delete ,ArrowBackIos, ArrowForwardIos } from "@mui/ico
 import CloseIcon from '@mui/icons-material/Close';
 import {getProjectsAccept, createFeasibilityStudy, fetchFeasibilityStudies, patchFeasibilityStudy, deleteFeasibilityStudy} from '../../allapi/engineering';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+import { Maximize2, Minimize2 } from "lucide-react";
 
 
 const FeasibilityForm = () => {
@@ -32,21 +33,20 @@ const FeasibilityForm = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
- // const [formData, setFormData] = useState({});
+  const [isModalMaximized, setIsModalMaximized] = useState(false);
   const [feasibilityStudies, setFeasibilityStudies] = useState([]);
-  const [mode, setMode] = useState('create'); // or 'edit'
+  const [mode, setMode] = useState('create'); 
   const rowsPerPage = 4;
   const [currentPage, setCurrentPage] = useState(1);
-  const fileInputRef = useRef(null); // to reset file input
-
+  const fileInputRef = useRef(null);
   const [feasibilityPage, setFeasibilityPage] = useState(1);
   const feasibilityRowsPerPage = 5;
   const [formData, setFormData] = useState({
-  feasibilityStudyId: null,   // will be used only in edit mode
+  feasibilityStudyId: null,   
   studyTitle: "",
   preparedBy: "",
   studyType: "",
-  reports: null,               // file upload
+  reports: null,
   riskAssessment: "",
   regulatoryCompliance: "",
   projectedROI: "",
@@ -230,6 +230,10 @@ const paginatedFeasibility = filteredFeasibility.slice(
   (feasibilityPage - 1) * feasibilityRowsPerPage,
   feasibilityPage * feasibilityRowsPerPage
 );
+
+const toggleModalSize = () => {
+    setIsModalMaximized(!isModalMaximized);
+  };
 
 
   return (
@@ -433,20 +437,42 @@ const paginatedFeasibility = filteredFeasibility.slice(
 
       {/* <Dialog open={open} onClose={handleClose} fullWidth> */}
         <Dialog
-        open={open}
-        onClose={handleClose}
-        fullWidth
-        maxWidth="xl" // makes it extra wide
-        PaperProps={{
-          style: {
-            width: "70%",   // adjust width
-            height: "97vh",   // fullscreen height
-            
-          },
-        }}
-      >
+             open={open}
+             onClose={handleClose}
+             fullWidth
+             maxWidth="xl"
+             PaperProps={{
+               style: isModalMaximized
+                 ? {
+                     width: "100%",
+                     height: "100vh", // fullscreen
+                     margin: 0,
+                   }
+                 : {
+                     width: "70%",
+                     height: "97vh", // default size
+                   },
+             }}
+           >
         <DialogTitle>Enter Feasibility Study Details</DialogTitle>
-        <DialogContent sx={{ position: 'relative' }}>
+         <DialogContent
+                sx={{
+                  position: "relative",
+                  overflowY: "auto", // ensures internal scrolling
+                }}
+              >
+             <IconButton
+                  aria-label="toggle-size"
+                  onClick={toggleModalSize}
+                  sx={{
+                    position: "absolute",
+                    right: 40,
+                    top: 8,
+                    color: (theme) => theme.palette.grey[600],
+                  }}
+                >
+                  {isModalMaximized ? <Minimize2 /> : <Maximize2 />}
+                </IconButton>
           <IconButton
             aria-label="close"
             onClick={handleClose}

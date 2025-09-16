@@ -23,6 +23,8 @@ import { AddCircle, Edit, Delete ,ArrowBackIos, ArrowForwardIos} from "@mui/icon
 import CloseIcon from "@mui/icons-material/Close";
 import { getInventoryItems,createStockReturn,getStockReturns,deleteStockReturn,updateStockReturn } from "../../allapi/inventory";
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
+import { Maximize2, Minimize2 } from "lucide-react";
+
 
 const StockReturn = () => {
   const MODULE_SLUG = 'inventory';
@@ -35,6 +37,8 @@ const StockReturn = () => {
   const [editingId, setEditingId] = useState(null);
   const rowsPerPage = 2;
   const [currentPage, setCurrentPage] = useState(1);
+  const [isModalMaximized, setIsModalMaximized] = useState(false);
+
 
   const [formData, setFormData] = useState({
   itemId: "",
@@ -46,6 +50,14 @@ const StockReturn = () => {
   adjustmentType: "",
   wastageReason: "",
 });
+
+
+const toggleModalSize = () => {
+    setIsModalMaximized(!isModalMaximized);
+  };
+
+
+
 
 // Filter inventory items first
 const filteredInventoryItems = inventoryItems.filter((item) =>
@@ -387,9 +399,44 @@ const handleSubmit = async () => {
         </Grid>
       </Grid>
 
-             <Dialog open={open} onClose={handleClose} fullWidth>
+             <Dialog
+             open={open}
+             onClose={handleClose}
+             fullWidth
+             maxWidth="xl"
+             PaperProps={{
+               style: isModalMaximized
+                 ? {
+                     width: "100%",
+                     height: "100vh", // fullscreen
+                     margin: 0,
+                   }
+                 : {
+                     width: "70%",
+                     height: "97vh", // default size
+                   },
+             }}
+           >
+
         <DialogTitle>Enter Stock Management Details</DialogTitle>
-        <DialogContent sx={{ position: 'relative' }}>
+        <DialogContent
+                  sx={{
+                    position: "relative",
+                    overflowY: "auto", // ensures internal scrolling
+                  }}
+                >
+               <IconButton
+                    aria-label="toggle-size"
+                    onClick={toggleModalSize}
+                    sx={{
+                      position: "absolute",
+                      right: 40,
+                      top: 8,
+                      color: (theme) => theme.palette.grey[600],
+                    }}
+                  >
+                    {isModalMaximized ? <Minimize2 /> : <Maximize2 />}
+                  </IconButton>
            <IconButton
             aria-label="close"
             onClick={handleClose}
@@ -409,7 +456,7 @@ const handleSubmit = async () => {
               {/* Stock Return Information */}
               <Grid item xs={12}>
                 <h3 style={{ color: '#7267ef' }}>Stock Returns Id's </h3>
-                <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+                <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
                     <label htmlFor="itemId">Item ID</label>
@@ -435,98 +482,117 @@ const handleSubmit = async () => {
                   
                 </Grid>
               </Grid>
-              <Grid item xs={12}>
-                <h3 style={{ color: '#7267ef' }}>Stock Return Information</h3>
-                <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
-               <Grid item xs={6}>
-                    <label htmlFor="returnQuantity">Return Quantity</label>
-                    <input 
-                    id="returnQuantity" 
-                    name="returnQuantity" 
-                    className="input" 
-                    value={formData.returnQuantity || ''} 
-                    onChange={handleChange} 
-                    type="number"
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-  <label htmlFor="returnReason">Return Reason</label>
-  <textarea
-    id="returnReason"
-    name="returnReason"
-    className="input"
-    rows={3} // you can adjust the number of visible rows
-    value={formData.returnReason || ''}
-    onChange={handleChange}
-  />
+  
+
+              <Grid item xs={10}>
+  <h3 style={{ color: '#7267ef' }}>Stock Return Information</h3>
+  <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
+
+  {/* First Row */}
+  <Grid container spacing={2}>
+    <Grid item xs={6}>
+      <label htmlFor="returnQuantity">Return Quantity</label>
+      <input
+        id="returnQuantity"
+        name="returnQuantity"
+        className="input"
+        value={formData.returnQuantity || ''}
+        onChange={handleChange}
+        type="number"
+      />
+    </Grid>
+
+    <Grid item xs={6}>
+      <label htmlFor="returnReason">Return Reason</label>
+      <textarea
+        id="returnReason"
+        name="returnReason"
+        className="input"
+        rows={3}
+        value={formData.returnReason || ''}
+        onChange={handleChange}
+      />
+    </Grid>
+  </Grid>
+
+  {/* Second Row */}
+  <Grid container spacing={2} sx={{ mt: 1 }}>
+    <Grid item xs={6}>
+      <label htmlFor="returnBy">Return By</label>
+      <input
+        id="returnBy"
+        name="returnBy"
+        className="input"
+        value={formData.returnBy || ''}
+        onChange={handleChange}
+      />
+    </Grid>
+
+    <Grid item xs={6}>
+      <label htmlFor="returnDate">Return Date</label>
+      <input
+        type="date"
+        id="returnDate"
+        name="returnDate"
+        className="input"
+        value={formData.returnDate || ''}
+        onChange={handleChange}
+      />
+    </Grid>
+  </Grid>
 </Grid>
 
-                  <Grid item xs={6}>
-                    <label htmlFor="returnBy">Return By</label>
-                    <input 
-                    id="returnBy" 
-                    name="returnBy" 
-                    className="input" 
-                    value={formData.returnBy || ''} 
-                    onChange={handleChange} 
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <label htmlFor="returnDate">Return Date</label>
-                    <input 
-                    type="date"
-                    id="returnDate" 
-                    name="returnDate" 
-                    className="input" 
-                    value={formData.returnDate || ''} 
-                    onChange={handleChange} 
-                    />
-                  </Grid>
-              </Grid>
 
-              
+
               <Grid item xs={12}>
-                <h3 style={{ color: '#7267ef' }}>Stock Adjustment info.</h3>
-                <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
-               <Grid item xs={6}>
-                    <label htmlFor="stockAdjustmentID">Stock Adjustment ID</label>
-                    <input 
-                    id="stockAdjustmentID" 
-                    name="stockAdjustmentID" 
-                    className="input" 
-                    value={formData.stockAdjustmentID || ''} 
-                    onChange={handleChange} 
-                    
-                    />
-                  </Grid>
-                 <Grid item xs={6}>
-  <label htmlFor="adjustmentType">Adjustment Type</label>
-  <select
-    id="adjustmentType"
-    name="adjustmentType"
-    className="input"
-    value={formData.adjustmentType || ''}
-    onChange={handleChange}
-  >
-    <option value="">-- Select Adjustment Type --</option>
-    <option value="Addition">Addition</option>
-    <option value="Deduction">Deduction</option>
-    <option value="Scrap">Scrap</option>
-  </select>
+  <h3 style={{ color: '#7267ef' }}>Stock Adjustment Info</h3>
+  <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
+
+  {/* First Row */}
+  <Grid container spacing={2}>
+    <Grid item xs={6}>
+      <label htmlFor="stockAdjustmentID">Stock Adjustment ID</label>
+      <input
+        id="stockAdjustmentID"
+        name="stockAdjustmentID"
+        className="input"
+        value={formData.stockAdjustmentID || ''}
+        onChange={handleChange}
+      />
+    </Grid>
+
+    <Grid item xs={6}>
+      <label htmlFor="adjustmentType">Adjustment Type</label>
+      <select
+        id="adjustmentType"
+        name="adjustmentType"
+        className="input"
+        value={formData.adjustmentType || ''}
+        onChange={handleChange}
+      >
+        <option value="">-- Select Adjustment Type --</option>
+        <option value="Addition">Addition</option>
+        <option value="Deduction">Deduction</option>
+        <option value="Scrap">Scrap</option>
+      </select>
+    </Grid>
+  </Grid>
+
+  {/* Second Row */}
+  <Grid container spacing={2} sx={{ mt: 1 }}>
+    <Grid item xs={6}>
+      <label htmlFor="wastageReason">Wastage Reason</label>
+      <input
+        id="wastageReason"
+        name="wastageReason"
+        className="input"
+        value={formData.wastageReason || ''}
+        onChange={handleChange}
+      />
+    </Grid>
+  </Grid>
 </Grid>
 
-                  <Grid item xs={6}>
-                    <label htmlFor="wastageReason">Wastage Reason</label>
-                    <input 
-            
-                    id="wastageReason" 
-                    name="wastageReason" 
-                    className="input" 
-                    value={formData.wastageReason || ''} 
-                    onChange={handleChange} 
-                    />
-                  </Grid>
-              </Grid>
             </Grid>
           </Box>
         </DialogContent>

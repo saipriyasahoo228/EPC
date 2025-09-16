@@ -1,5 +1,8 @@
 // DesignForm.jsx
 import React, { useState,useEffect } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
+
+
 import {
   Dialog,
   DialogTitle,
@@ -29,6 +32,7 @@ import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermiss
 
 const InventoryManagement = () => {
   const MODULE_SLUG = 'construction';
+  const [isModalMaximized, setIsModalMaximized] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,7 +44,6 @@ const InventoryManagement = () => {
   const [vendors, setVendors] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [editingId, setEditingId] = useState(null);
-
   const [formData, setFormData] = useState({
   materialID: "",       // material (FK → item_id)
   materialName: "",     // material_name
@@ -49,6 +52,10 @@ const InventoryManagement = () => {
   supplierID: "",       // supplier (FK → vendor_id)
   deliveryDate: "",     // delivery_date
 });
+
+const toggleModalSize = () => {
+    setIsModalMaximized(!isModalMaximized);
+  };
 
   
   // Fetch accepted projects from API
@@ -158,39 +165,8 @@ useEffect(() => {
 };
 
 
-//  const handleSubmit = async () => {
-//   try {
-//     const payload = {
-//       material: formData.materialID,          // FK to ItemMaster (item_id)
-//       project: selectedProjectId,             // FK to Project (project_id)
-//       material_name: formData.materialName,   // material_name
-//       quantity_used: formData.quantityUsed,   // quantity_used
-//       reorder_level: formData.reorderLevel,   // reorder_level
-//       supplier: formData.supplierID,          // FK to Vendor (vendor_id)
-//       delivery_date: formData.deliveryDate,   // delivery_date
-//     };
 
-//     const response = await createMaterialInventory(payload);
-//     alert(`✅ Material inventory created!\nID: ${response.id}`);
-
-//     handleClose(); // close dialog
-//     setFormData({
-//       materialID: "",
-//       materialName: "",
-//       quantityUsed: "",
-//       reorderLevel: "",
-//       supplierID: "",
-//       deliveryDate: "",
-//     });
-//      fetchInventory();
-//   } catch (error) {
-//     const msg = error.response?.data
-//       ? JSON.stringify(error.response.data, null, 2)
-//       : error.message;
-//     alert(`❌ Failed to save:\n${msg}`);
-//   }
-// };
-
+//HandleSubmit
 const handleSubmit = async () => {
   try {
     const payload = {
@@ -405,9 +381,44 @@ const filteredInventory = inventory.filter((m) =>
 </Grid>
 
 
-      <Dialog open={open} onClose={handleClose} fullWidth>
+      <Dialog
+             open={open}
+             onClose={handleClose}
+             fullWidth
+             maxWidth="xl"
+             PaperProps={{
+               style: isModalMaximized
+                 ? {
+                     width: "100%",
+                     height: "100vh", // fullscreen
+                     margin: 0,
+                   }
+                 : {
+                     width: "70%",
+                     height: "97vh", // default size
+                   },
+             }}
+           >
+
   <DialogTitle>Enter Project Details</DialogTitle>
-  <DialogContent sx={{ position: 'relative' }}>
+  <DialogContent
+                  sx={{
+                    position: "relative",
+                    overflowY: "auto", // ensures internal scrolling
+                  }}
+                >
+               <IconButton
+                    aria-label="toggle-size"
+                    onClick={toggleModalSize}
+                    sx={{
+                      position: "absolute",
+                      right: 40,
+                      top: 8,
+                      color: (theme) => theme.palette.grey[600],
+                    }}
+                  >
+                    {isModalMaximized ? <Minimize2 /> : <Maximize2 />}
+                  </IconButton>
   <IconButton
     aria-label="close"
     onClick={handleClose}

@@ -22,6 +22,7 @@ import {getProjectsAccept, createDesignPlan, getDesignPlans,updateDesignPlan, de
 import { AddCircle, Edit, Delete , ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+import { Maximize2, Minimize2 } from "lucide-react";
 
 
 
@@ -37,6 +38,7 @@ const DesignForm = () => {
   const [projects, setProjects] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [mode, setMode] = useState('create'); 
+  const [isModalMaximized, setIsModalMaximized] = useState(false);
   const rowsPerPage = 4;
   const [currentPage, setCurrentPage] = useState(1);
   const [designsPage, setDesignsPage] = useState(1);
@@ -261,6 +263,10 @@ const paginatedDesigns = filteredDesigns.slice(
   designsPage * designsRowsPerPage
 );
 
+const toggleModalSize = () => {
+    setIsModalMaximized(!isModalMaximized);
+  };
+
 
   return (
     <>
@@ -440,20 +446,42 @@ const paginatedDesigns = filteredDesigns.slice(
 
 
      <Dialog
-  open={open}
-  onClose={handleClose}
-  fullWidth
-  maxWidth="xl" // makes it extra wide
-  PaperProps={{
-    style: {
-      width: "70%",   // adjust width
-      height: "97vh",   // fullscreen height
-      
-    },
-  }}
->
+      open={open}
+      onClose={handleClose}
+      fullWidth
+      maxWidth="xl"
+      PaperProps={{
+        style: isModalMaximized
+          ? {
+              width: "100%",
+              height: "100vh", // fullscreen
+              margin: 0,
+            }
+          : {
+              width: "70%",
+              height: "97vh", // default size
+            },
+      }}
+    >
   <DialogTitle>Enter Design Details</DialogTitle>
-  <DialogContent sx={{ position: 'relative' }}>
+   <DialogContent
+        sx={{
+          position: "relative",
+          overflowY: "auto", // ensures internal scrolling
+        }}
+      >
+     <IconButton
+          aria-label="toggle-size"
+          onClick={toggleModalSize}
+          sx={{
+            position: "absolute",
+            right: 40,
+            top: 8,
+            color: (theme) => theme.palette.grey[600],
+          }}
+        >
+          {isModalMaximized ? <Minimize2 /> : <Maximize2 />}
+        </IconButton>
   <IconButton
     aria-label="close"
     onClick={handleClose}

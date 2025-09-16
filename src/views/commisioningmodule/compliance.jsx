@@ -1,6 +1,5 @@
-
-
 import React, { useState,useEffect } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import {
   Dialog,
   DialogTitle,
@@ -28,6 +27,7 @@ import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission
 
 const ComplianceForm = () => {
   const MODULE_SLUG = 'commissioning';
+  const [isModalMaximized, setIsModalMaximized] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -39,6 +39,11 @@ const ComplianceForm = () => {
   const [currentEditId, setCurrentEditId] = useState(null);
   const [projects, setProjects] = useState([]);
   const [editingId, setEditingId] = useState(null);
+
+
+  const toggleModalSize = () => {
+    setIsModalMaximized(!isModalMaximized);
+  };
 
 
   // ✅ Fetch accepted projects on mount
@@ -340,11 +345,48 @@ const handleSubmit = async (e) => {
         </Grid>
       </Grid>
 
-      <Dialog open={open} onClose={handleClose} fullWidth>
+      <Dialog
+             open={open}
+             onClose={handleClose}
+             fullWidth
+             maxWidth="xl"
+             PaperProps={{
+               style: isModalMaximized
+                 ? {
+                     width: "100%",
+                     height: "100vh", // fullscreen
+                     margin: 0,
+                   }
+                 : {
+                     width: "70%",
+                     height: "97vh", // default size
+                   },
+             }}
+           >
+
+
+
         <DialogTitle>
           {isEditMode ? "Edit Compliance Details" : "Enter Compliance Details"}
         </DialogTitle>
-        <DialogContent sx={{ position: 'relative' }}>
+        <DialogContent
+                  sx={{
+                    position: "relative",
+                    overflowY: "auto", // ensures internal scrolling
+                  }}
+                >
+               <IconButton
+                    aria-label="toggle-size"
+                    onClick={toggleModalSize}
+                    sx={{
+                      position: "absolute",
+                      right: 40,
+                      top: 8,
+                      color: (theme) => theme.palette.grey[600],
+                    }}
+                  >
+                    {isModalMaximized ? <Minimize2 /> : <Maximize2 />}
+                  </IconButton>
           <IconButton
             aria-label="close"
             onClick={handleClose}
