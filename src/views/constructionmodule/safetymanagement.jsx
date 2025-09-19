@@ -1,6 +1,8 @@
 
 
 import React, { useState,useEffect } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
+
 import {
   Dialog,
   DialogTitle,
@@ -28,6 +30,8 @@ import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermiss
 
 const SafetyManagement = () => {
   const MODULE_SLUG = 'construction';
+  const [isModalMaximized, setIsModalMaximized] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -40,7 +44,11 @@ const SafetyManagement = () => {
   const [safetyRecords, setSafetyRecords] = useState([]);
   const [editingId, setEditingId] = useState(null);
 
-  
+  const toggleModalSize = () => {
+    setIsModalMaximized(!isModalMaximized);
+  };
+
+
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -163,27 +171,7 @@ const handleDelete = async (safetyId) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-// const handleSubmit = async () => {
-//   try {
-//     const payload = {
-//       project: selectedProjectId,
-//       incident_date: formData.incidentDate,
-//       incident_description: formData.incidentDescription,
-//       affected_personnel_id: formData.affectedpersonnelID,
-//       injury_severity: formData.injurySeverity.toLowerCase(),
-//       corrective_measure: formData.correctiveMeasures,
-//       safety_training_conducted: formData.safetyTraining,
-//     };
 
-//     const response = await createSafetyManagement(payload);
-
-//     alert(`✅ Safety Management created! Report ID: ${response.safety_report_id}`);
-//     handleClose();
-//   } catch (error) {
-//     alert("❌ Failed to create Safety Management record. Check console for details.");
-//     console.error("Error:", error);
-//   }
-// };
 const handleSubmit = async () => {
   try {
     const payload = {
@@ -346,11 +334,47 @@ const handleSubmit = async () => {
         </Grid>
       </Grid>
 
-      <Dialog open={open} onClose={handleClose} fullWidth>
+     <Dialog
+             open={open}
+             onClose={handleClose}
+             fullWidth
+             maxWidth="xl"
+             PaperProps={{
+               style: isModalMaximized
+                 ? {
+                     width: "100%",
+                     height: "100vh", // fullscreen
+                     margin: 0,
+                   }
+                 : {
+                     width: "70%",
+                     height: "97vh", // default size
+                   },
+             }}
+           >
+
+
         <DialogTitle>
           {isEditMode ? "Edit Safety Management Details" : "Enter Safety Management Details"}
         </DialogTitle>
-        <DialogContent sx={{ position: 'relative' }}>
+        <DialogContent
+                  sx={{
+                    position: "relative",
+                    overflowY: "auto", // ensures internal scrolling
+                  }}
+                >
+               <IconButton
+                    aria-label="toggle-size"
+                    onClick={toggleModalSize}
+                    sx={{
+                      position: "absolute",
+                      right: 40,
+                      top: 8,
+                      color: (theme) => theme.palette.grey[600],
+                    }}
+                  >
+                    {isModalMaximized ? <Minimize2 /> : <Maximize2 />}
+                  </IconButton>
           <IconButton
             aria-label="close"
             onClick={handleClose}

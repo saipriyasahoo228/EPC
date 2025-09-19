@@ -81,6 +81,7 @@ export const cancelTender = async (tenderId, payload) => {
 //Get all projects
 export const getProjects = async () => {
   const response = await api.get('/tender/project/');
+  console.log("Test GETPROJECT: ", response.data)
   return response.data;
 };
 
@@ -88,3 +89,8 @@ export const patchProject = async (projectId, projectData) => {
   const response = await api.patch(`/tender/project/${projectId}/`, projectData);
   return response.data;
 };
+
+export const projectCost = async()=>{
+  const response = await api.get('/tender/project-costs/');
+  return response.data;
+}

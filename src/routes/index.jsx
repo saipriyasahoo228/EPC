@@ -123,7 +123,8 @@ const SiteSupervisorBlocker = ({ children }) => {
   return <>{children}</>;
 };
 
-const DashboardSales = lazy(() => import('../views/dashboard/DashSales/index'));
+// const DashboardSales = lazy(() => import('../views/dashboard/DashSales'));
+const DashboardSales = lazy(() => import('../views/dashboard/EpcDashboard'));
 const Login = lazy(() => import('../views/auth/login'));
 const Register = lazy(() => import('../views/auth/register'));
 

@@ -69,7 +69,8 @@ const CanAccessSiteExec = ({ children }) => {
   return <>{children}</>;
 };
 
-const DashboardSales = lazy(() => import('../views/dashboard/DashSales/index'));
+// const DashboardSales = lazy(() => import('../views/dashboard/DashSales/index'));
+const DashboardSales = lazy(() => import('../views/dashboard/EpcDashboard'));
 const TenderDetailsEntry = lazy(() => import('../views/tenderallocation/tenderdetails'));
 const ProjectCreation = lazy(()=> import('../views/tenderallocation/projectcreation'));
 const DesignForm = lazy(()=>import('../views/engineeringmodule/design.jsx'));
@@ -83,6 +84,7 @@ const StockMaster = lazy(() =>import('../views/inventrymanagment/stockmaster.jsx
 const StockReturn = lazy(() => import('../views/inventrymanagment/stockreturn.jsx'));
 const InventoryValuationForm = lazy(() =>import('../views/inventrymanagment/stockvaluationandreport.jsx'));
 const ProjectManagement = lazy(()=>import('../views/constructionmodule/projectmanagement.jsx'));
+const Milestone = lazy(()=>import('../views/constructionmodule/milestone.jsx'));
 const SiteExecution = lazy(()=>import('../views/constructionmodule/siteexecution.jsx'));
 const SiteExecutionSupervisor = lazy(()=>import('../views/constructionmodule/siteexecutionsupervisor.jsx'));
 const QualityControl = lazy(()=>import('../views/constructionmodule/qualitycontrol.jsx'));
@@ -246,6 +248,14 @@ const MainRoutes = {
           element:(
             <RequirePermission slug="construction" action="can_read">
               <ProjectManagement/>
+            </RequirePermission>
+          )
+        },
+        {
+          path: '/milestone',
+          element:(
+            <RequirePermission slug="construction" action="can_read">
+              <Milestone/>
             </RequirePermission>
           )
         },

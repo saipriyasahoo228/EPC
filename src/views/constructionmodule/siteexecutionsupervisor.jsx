@@ -50,7 +50,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 
 import { getProjectsAccept } from '../../allapi/engineering';
-import { createSiteExecution, getSiteExecutions, createMaterialInventory } from '../../allapi/construction';
+import { createSiteExecution, getSiteExecutions, createMaterialInventory, getMilestonesByProject } from '../../allapi/construction';
 import { getInventoryItems } from '../../allapi/inventory';
 import { createMaterialProcurement, getMaterialProcurements } from '../../allapi/procurement';
 
@@ -90,6 +90,8 @@ const SiteExecutionSupervisor = () => {
     material_consumption: '',
     site_issues: '',
     site_execution_status: 'on track',
+    progress_percent: '',
+    milestone: '',
   });
 
   // Location
@@ -136,6 +138,9 @@ const SiteExecutionSupervisor = () => {
   const [consumptionItems, setConsumptionItems] = useState([]); // [{ item, quantity }]
   const [consumptionNotes, setConsumptionNotes] = useState('');
   const [savingConsumption, setSavingConsumption] = useState(false);
+  // Milestones
+  const [milestones, setMilestones] = useState([]);
+  const [loadingMilestones, setLoadingMilestones] = useState(false);
 
   const deviceId = useMemo(() => navigator.userAgent || 'unknown', []);
 
@@ -284,6 +289,24 @@ const SiteExecutionSupervisor = () => {
       }
     };
     fetchReports();
+  }, [selectedProjectId]);
+
+  // Load milestones when project changes
+  useEffect(() => {
+    const run = async () => {
+      if (!selectedProjectId) { setMilestones([]); return; }
+      try {
+        setLoadingMilestones(true);
+        const data = await getMilestonesByProject(selectedProjectId);
+        setMilestones(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error('Failed to load milestones', e);
+        setMilestones([]);
+      } finally {
+        setLoadingMilestones(false);
+      }
+    };
+    run();
   }, [selectedProjectId]);
 
   // Material consumption dialog handlers
@@ -601,6 +624,9 @@ const SiteExecutionSupervisor = () => {
     if (!form.work_completed?.trim()) errors.push('Work completed is required');
     if (!form.manpower_utilized || isNaN(Number(form.manpower_utilized))) errors.push('Valid manpower utilized is required');
     if (!form.site_execution_status) errors.push('Status is required');
+    if (!form.milestone) errors.push('Milestone is required');
+    const pct = Number(form.progress_percent);
+    if (form.progress_percent === '' || isNaN(pct) || pct < 0 || pct > 100) errors.push('Valid progress percent (0-100) is required');
     if (errors.length) {
       setSnack({ open: true, severity: 'error', message: errors[0] });
       return false;
@@ -627,6 +653,8 @@ const SiteExecutionSupervisor = () => {
       fd.append('material_consumption', form.material_consumption || '');
       if (form.site_issues) fd.append('site_issues', form.site_issues);
       fd.append('site_execution_status', form.site_execution_status || 'on track');
+      fd.append('progress_percent', String(form.progress_percent || '0'));
+      fd.append('milestone', String(form.milestone));
 
       if (location.latitude != null) fd.append('latitude', String(location.latitude));
       if (location.longitude != null) fd.append('longitude', String(location.longitude));
@@ -653,6 +681,8 @@ const SiteExecutionSupervisor = () => {
         material_consumption: '',
         site_issues: '',
         site_execution_status: 'on track',
+        progress_percent: '',
+        milestone: '',
       });
       setPhotoBlob(null);
       setPhotoPreview('');
@@ -914,7 +944,7 @@ const SiteExecutionSupervisor = () => {
                             </Stack>
                             <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap:'wrap',  alignItems: 'center' }}>
                               {/* <Chip size="medium" variant="outlined" color="secondary" label={`Qty: ${p.quantity_requested}`} /> */}
-                              {/* <Chip size="small" variant="outlined" color="info" label={`Unit Cost: ${p.unit_price || '-'}`} /> */}
+                              {/* <Chip size="small" variant="outlined" color="info" label={`Unit: ${p.unit_price || '-'}`} /> */}
                               {/* <Chip size="small" variant="outlined" color="success" label={`Total Cost: ${p.total_cost || '-'}`} /> */}
                               <Typography color="text.secondary" variant="caption" sx={{ fontWeight: 700 }} >Qty: {p.quantity_requested}</Typography>
                               <Typography variant="caption" >Unit Cost: {formatINR(p.unit_price)}</Typography>
@@ -995,6 +1025,34 @@ const SiteExecutionSupervisor = () => {
                     <TextField label="Manpower Utilized" required type="number" fullWidth size="small" value={form.manpower_utilized} onChange={(e) => setField('manpower_utilized', e.target.value)} />
                     <TextField label="Equipment Used" required fullWidth size="small" multiline minRows={2} value={form.equipment_used} onChange={(e) => setField('equipment_used', e.target.value)} />
                     <TextField label="Weather Conditions" required fullWidth size="small" value={form.weather_conditions} onChange={(e) => setField('weather_conditions', e.target.value)} />
+                    <Autocomplete
+                      options={milestones}
+                      getOptionLabel={(o) => o?.name ? `${o.name}` : ''}
+                      loading={loadingMilestones}
+                      value={milestones.find(m => String(m.id) === String(form.milestone)) || null}
+                      onChange={(e, val) => setField('milestone', val?.id || '')}
+                      isOptionEqualToValue={(opt, val) => String(opt.id) === String(val.id)}
+                      disabled={!selectedProjectId}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Milestone"
+                          required
+                          size="small"
+                          helperText={!selectedProjectId ? 'Select a project to load milestones' : ''}
+                        />
+                      )}
+                    />
+                    <TextField
+                      label="Progress (%)"
+                      required
+                      type="number"
+                      inputProps={{ min: 0, max: 100 }}
+                      fullWidth
+                      size="small"
+                      value={form.progress_percent}
+                      onChange={(e) => setField('progress_percent', e.target.value)}
+                    />
                   </>
                 )}
 
@@ -1077,6 +1135,8 @@ const SiteExecutionSupervisor = () => {
                       <Typography variant="body2"><strong>Issues:</strong> {form.site_issues || '-'}</Typography>
                       <Typography variant="body2"><strong>Location:</strong> {location.latitude && location.longitude ? `${location.latitude}, ${location.longitude}` : '-'}</Typography>
                       <Typography variant="body2"><strong>Photo:</strong> {photoPreview ? 'Attached' : 'Not attached'}</Typography>
+                      <Typography variant="body2"><strong>Milestone:</strong> {(() => { const m = milestones.find(x => String(x.id) === String(form.milestone)); return m ? `${m.name} (#${m.id})` : '-'; })()}</Typography>
+                      <Typography variant="body2"><strong>Progress:</strong> {form.progress_percent !== '' ? `${form.progress_percent}%` : '-'}</Typography>
                     </Stack>
                   </>
                 )}
@@ -1213,6 +1273,25 @@ const SiteExecutionSupervisor = () => {
                       <Stack direction="row" spacing={1} alignItems="center">
                         <ConstructionIcon sx={{ fontSize: 16 }} />
                         <Typography variant="body2"><strong>Project:</strong> {reportFocus.project}</Typography>
+                      </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <BuildIcon sx={{ fontSize: 16 }} />
+                        <Typography variant="body2">
+                          <strong>Milestone:</strong> {(() => {
+                            const m = milestones.find(x => String(x.id) === String(reportFocus.milestone));
+                            return m ? `${m.name} (#${m.id})` : (reportFocus.milestone ? `#${reportFocus.milestone}` : '—');
+                          })()}
+                        </Typography>
+                      </Stack>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Stack spacing={0.5}>
+                        <Typography variant="body2"><strong>Progress:</strong> {reportFocus.progress_percent != null ? `${reportFocus.progress_percent}%` : '—'}</Typography>
+                        {reportFocus.progress_percent != null && (
+                          <LinearProgress variant="determinate" value={Number(reportFocus.progress_percent) || 0} />
+                        )}
                       </Stack>
                     </Grid>
                   </Grid>

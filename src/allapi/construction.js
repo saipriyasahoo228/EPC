@@ -18,6 +18,7 @@ export const createProject = async (formData) => {
 export const fetchConstructionProjects = async () => {
   try {
     const response = await api.get("/construction/project-management/");
+    console.log("Check: FETCHCONSTPROJ", response.data);
     return response.data;
   } catch (error) {
     console.error("❌ Error fetching construction projects:", error.response?.data || error.message);
@@ -250,6 +251,74 @@ export const updateMaterialInventory = async (id, updatedData) => {
     return response.data;
   } catch (error) {
     console.error("❌ Error updating material inventory:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Create Milestone (POST)
+export const createMilestone = async (data) => {
+  try {
+    const response = await api.post("/construction/milestone/", data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error creating milestone:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Get all Milestones (GET)
+export const getMilestones = async () => {
+  try {
+    const response = await api.get("/construction/milestone/");
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching milestones:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Get Milestones by Project ID (GET with query param)
+export const getMilestonesByProject = async (projectId) => {
+  try {
+    const response = await api.get(`/construction/milestone/`, {
+      params: { project_id: projectId },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching milestones by project:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Get single Milestone by ID (GET)
+export const getMilestoneById = async (milestoneId) => {
+  try {
+    const response = await api.get(`/construction/milestone/${milestoneId}/`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching milestone by id:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Update Milestone (PATCH)
+export const updateMilestone = async (milestoneId, payload) => {
+  try {
+    const response = await api.patch(`/construction/milestone/${milestoneId}/`, payload);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error updating milestone:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Delete Milestone (DELETE)
+export const deleteMilestone = async (milestoneId) => {
+  try {
+    const response = await api.delete(`/construction/milestone/${milestoneId}/`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error deleting milestone:", error.response?.data || error.message);
     throw error;
   }
 };

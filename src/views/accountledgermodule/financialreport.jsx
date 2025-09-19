@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState ,useEffect} from 'react';
 import {
   Button,
   Dialog,
@@ -22,6 +22,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import CloseIcon from '@mui/icons-material/Close';
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
+import { createFinancialReport,getFinancialReports,deleteFinancialReport,updateFinancialReport } from "../../allapi/account";
 
 const FinancialReports = () => {
   const MODULE_SLUG = 'account_ledger';
@@ -39,6 +40,19 @@ const FinancialReports = () => {
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  const fetchFinancialReports = async () => {
+  try {
+    const data = await getFinancialReports();
+    setReports(data);
+  } catch (err) {
+    console.error("Error fetching reports:", err);
+  }
+};
+
+useEffect(() => {
+  fetchFinancialReports();
+}, []);
 
   const handleOpen = (item = null) => {
     setEditItem(item);
@@ -58,6 +72,23 @@ const FinancialReports = () => {
 
   const handleClose = () => setOpen(false);
 
+
+  const handleEdit = (report) => {
+  setEditItem(report); // store the selected report for update
+
+  setFormData({
+    reportId: report.report_id || "",  
+    reportType: report.report_type || "",       // backend uses snake_case
+    generatedDate: report.generated_date || "",
+    preparedBy: report.prepared_by || "",
+    approvalStatus: report.approval_status || "",
+    comments: report.comments || "",
+  });
+
+  setOpen(true); // open the dialog
+};
+
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -66,33 +97,59 @@ const FinancialReports = () => {
   const generateReportId = () => {
     const year = new Date().getFullYear();
     const nextId = reports.length + 1;
-    return `REP-${year}-${String(nextId).padStart(3, '0')}`;
+    return `REP-${year}-${String(nextId).padStart(4, '0')}`;
   };
+//HandleSubmit Logic
+  const handleSubmit = async () => {
+  try {
+    const payload = {
+      report_type: formData.reportType,
+      generated_date: formData.generatedDate,
+      prepared_by: formData.preparedBy,
+      approval_status: formData.approvalStatus,
+      comments: formData.comments,
+    };
 
-  const handleSubmit = () => {
     if (editItem) {
-      const updated = reports.map((item) =>
-        item.reportId === editItem.reportId ? { ...item, ...formData } : item
-      );
-      setReports(updated);
+      // 🔹 update case
+      const updatedReport = await updateFinancialReport(editItem.report_id, payload);
+      alert(`Report ${updatedReport.report_id} updated successfully`);
     } else {
-      const newReport = {
-        reportId: generateReportId(),
-        ...formData,
-      };
-      setReports([...reports, newReport]);
+      // 🔹 create case
+      const savedReport = await createFinancialReport(payload);
+      alert(`Report ${savedReport.report_id} created successfully`);
     }
-    handleClose();
-    setEditItem(null);
-  };
 
- const handleDelete = (id) => {
-  const confirmDelete = window.confirm("Are you sure you want to delete this report?");
-  if (confirmDelete) {
-    const updated = reports.filter((item) => item.reportId !== id);
-    setReports(updated);
+    handleClose();
+    fetchFinancialReports(); // refresh list after action
+  } catch (err) {
+    console.error("Error saving financial report:", err);
+    alert("Something went wrong while saving the financial report");
   }
 };
+
+
+
+
+ const handleDelete = async (reportId) => {
+  const confirmDelete = window.confirm(
+    `Are you sure you want to delete Financial Report: ${reportId}?`
+  );
+
+  if (!confirmDelete) return;
+
+  try {
+    await deleteFinancialReport(reportId);
+    fetchFinancialReports(); // refresh list
+
+    // ✅ Show success message
+    alert(`Report ${reportId} deleted successfully`);
+  } catch (err) {
+    console.error("Error deleting report:", err);
+    alert("Failed to delete report");
+  }
+};
+
 
 
   const filteredReports = reports.filter((r) =>
@@ -134,14 +191,26 @@ const FinancialReports = () => {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} direction="column" sx={{ mt: 1 }}>
-            <Grid item xs={12}><label>Report ID (Auto)</label><input className="input" disabled value={editItem ? editItem.reportId : generateReportId()} /></Grid>
+            <Grid item xs={12}>
+              <label>Report ID (Auto)</label>
+              <input className="input" 
+              disabled 
+               value={formData.reportId || generateReportId()}
+              />
+              </Grid>
             <Grid item xs={12}><label>Report Type</label>
-              <select className="input" name="reportType" value={formData.reportType} onChange={handleChange}>
-                <option value="">Select</option>
-                <option value="Income Statement">Income Statement</option>
-                <option value="Balance Sheet">Balance Sheet</option>
-                <option value="Cash Flow">Cash Flow</option>
-              </select>
+              <select
+  className="input"
+  name="reportType"
+  value={formData.reportType}
+  onChange={handleChange}
+>
+  <option value="">Select</option>
+  <option value="Balance Sheet">Balance Sheet</option>
+  <option value="Income Statement">Income Statement</option>
+  <option value="Cash Flow Statement">Cash Flow Statement</option>
+</select>
+
             </Grid>
             <Grid item xs={12}><label>Generated Date</label><input type="date" className="input" name="generatedDate" value={formData.generatedDate} onChange={handleChange} /></Grid>
             <Grid item xs={12}><label>Prepared By</label><input className="input" name="preparedBy" value={formData.preparedBy} onChange={handleChange} /></Grid>
@@ -209,21 +278,21 @@ const FinancialReports = () => {
           <TableBody>
             {filteredReports.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((item, index) => (
               <TableRow key={index}>
-                <TableCell>{item.reportId}</TableCell>
-                <TableCell>{item.reportType}</TableCell>
-                <TableCell>{item.generatedDate}</TableCell>
-                <TableCell>{item.preparedBy}</TableCell>
-                <TableCell>{item.approvalStatus}</TableCell>
-                <TableCell>{item.comments}</TableCell>
+                <TableCell>{item.report_id}</TableCell>
+        <TableCell>{item.report_type}</TableCell>
+        <TableCell>{item.generated_date}</TableCell>
+        <TableCell>{item.prepared_by}</TableCell>
+        <TableCell>{item.approval_status}</TableCell>
+        <TableCell>{item.comments}</TableCell>
                 <TableCell>
                 <DisableIfCannot slug={MODULE_SLUG} action="can_update">
 
-                  <IconButton color="warning" onClick={() => handleOpen(item)}>
+                  <IconButton color="warning" onClick={() => handleEdit(item)}>
                     <Edit sx={{ color: 'orange' }} />
                   </IconButton>
                   </DisableIfCannot>
                   <ShowIfCan slug={MODULE_SLUG} action="can_delete">
-                  <IconButton color="error" onClick={() => handleDelete(item.reportId)}>
+                  <IconButton color="error" onClick={() => handleDelete(item.report_id)}>
                     <Delete sx={{ color: 'red' }} />
                   </IconButton>
                   </ShowIfCan>

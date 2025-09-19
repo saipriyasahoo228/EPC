@@ -20,6 +20,8 @@ import {
 import { Edit, Delete } from '@mui/icons-material';
 import { getStockManagement ,submitValuationReport,getValuationReports,deleteValuationReport } from "../../allapi/inventory";
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+import { Maximize2, Minimize2 } from "lucide-react";
+
 
 
 const InventoryValuationForm = () => {
@@ -27,6 +29,8 @@ const InventoryValuationForm = () => {
   const [open, setOpen] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
   const [stockOptions, setStockOptions] = useState([]);
+  const [isModalMaximized, setIsModalMaximized] = useState(false);
+
   const [formData, setFormData] = useState({
     valuationMethod: '',
     stockId:'',
@@ -46,6 +50,11 @@ const InventoryValuationForm = () => {
   const lowStockAlertsRef = useRef(null);
   const excessStockAlertsRef = useRef(null);
   const monthlyStockReportRef = useRef(null);
+
+  const toggleModalSize = () => {
+    setIsModalMaximized(!isModalMaximized);
+  };
+
 
   useEffect(() => {
   const fetchStockIds = async () => {
@@ -186,9 +195,44 @@ useEffect(() => {
         Add Inventory Valuation
       </Button>
       </ShowIfCan>
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+             open={open}
+            
+             fullWidth
+             maxWidth="xl"
+             PaperProps={{
+               style: isModalMaximized
+                 ? {
+                     width: "100%",
+                     height: "100vh", // fullscreen
+                     margin: 0,
+                   }
+                 : {
+                     width: "70%",
+                     height: "97vh", // default size
+                   },
+             }}
+           >
+
         <DialogTitle>Inventory Valuation & Reporting</DialogTitle>
-        <DialogContent dividers>
+       <DialogContent
+                  sx={{
+                    position: "relative",
+                    overflowY: "auto", // ensures internal scrolling
+                  }}
+                >
+               <IconButton
+                    aria-label="toggle-size"
+                    onClick={toggleModalSize}
+                    sx={{
+                      position: "absolute",
+                      right: 40,
+                      top: 8,
+                      color: (theme) => theme.palette.grey[600],
+                    }}
+                  >
+                    {isModalMaximized ? <Minimize2 /> : <Maximize2 />}
+                  </IconButton>
           <Grid container spacing={2} direction="column">
             <Grid item>
               <Typography variant="subtitle2">Valuation Method</Typography>

@@ -24,6 +24,8 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import { getInventoryItems,createStock,getStockManagement ,deleteStock,updateStock } from "../../allapi/inventory";
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+import { Maximize2, Minimize2 } from "lucide-react";
+
 
 
 const StockMaster = () => {
@@ -35,8 +37,13 @@ const StockMaster = () => {
   const [selectedItemId, setSelectedItemId] = useState("");
   const [formData, setFormData] = useState({});
   const [stockmanagement, setStockManagement] = useState([]);
-  //const [stockList, setStockList] = useState([]);
+  const [isModalMaximized, setIsModalMaximized] = useState(false);
+
   
+
+const toggleModalSize = () => {
+    setIsModalMaximized(!isModalMaximized);
+  };
 
 
 
@@ -391,9 +398,44 @@ const handleDelete = async (stockManagementId) => {
         </Grid>
       </Grid>
 
-             <Dialog open={open} onClose={handleClose} fullWidth>
+             <Dialog
+             open={open}
+             onClose={handleClose}
+             fullWidth
+             maxWidth="xl"
+             PaperProps={{
+               style: isModalMaximized
+                 ? {
+                     width: "100%",
+                     height: "100vh", // fullscreen
+                     margin: 0,
+                   }
+                 : {
+                     width: "70%",
+                     height: "97vh", // default size
+                   },
+             }}
+           >
+
         <DialogTitle>Enter Stock Management Details</DialogTitle>
-        <DialogContent sx={{ position: 'relative' }}>
+        <DialogContent
+                  sx={{
+                    position: "relative",
+                    overflowY: "auto", // ensures internal scrolling
+                  }}
+                >
+               <IconButton
+                    aria-label="toggle-size"
+                    onClick={toggleModalSize}
+                    sx={{
+                      position: "absolute",
+                      right: 40,
+                      top: 8,
+                      color: (theme) => theme.palette.grey[600],
+                    }}
+                  >
+                    {isModalMaximized ? <Minimize2 /> : <Maximize2 />}
+                  </IconButton>
            <IconButton
             aria-label="close"
             onClick={handleClose}
@@ -413,7 +455,7 @@ const handleDelete = async (stockManagementId) => {
               {/* Stock Information */}
               <Grid item xs={12}>
                 <h3 style={{ color: '#7267ef' }}>Stock Id's Information</h3>
-                <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+                <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
                     <label htmlFor="itemId">Item ID</label>
@@ -441,7 +483,7 @@ const handleDelete = async (stockManagementId) => {
               </Grid>
               <Grid item xs={12}>
                 <h3 style={{ color: '#7267ef' }}>Stock Information</h3>
-                <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+                <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
                <Grid item xs={6}>
                     <label htmlFor="openingStock">Opening Stock</label>
                     <input 
@@ -479,7 +521,7 @@ const handleDelete = async (stockManagementId) => {
               
               <Grid item xs={12}>
                 <h3 style={{ color: '#7267ef' }}>Stock Balance and Valuations</h3>
-                <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+                <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
                <Grid item xs={6}>
                     <label htmlFor="stockBalance">Stock Balance</label>
                     <input 

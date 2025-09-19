@@ -119,13 +119,13 @@ const menuItems = {
     },
     {
       id: 'inventry',
-      title: 'INVENTRY MASTER',
+      title: 'INVENTORY MASTER',
       type: 'group',
       icon: 'icon-ui',
       children: [
         {
           id: 'inventrymanage',
-          title: 'Inventry Management',
+          title: 'Inventory Management',
           type: 'collapse',
           icon: 'material-icons-two-tone',
           iconname: 'history_edu',
@@ -150,7 +150,7 @@ const menuItems = {
             },
             {
               id: 'valuation',
-              title: 'Inventry Valuation & Reporting',
+              title: 'Inventory Valuation & Reporting',
               type: 'item',
               url: '/stock valuation and report'
             }
@@ -176,6 +176,12 @@ const menuItems = {
               title: 'Project Management',
               type: 'item',
               url: '/projectmanagement'
+            },
+            {
+              id: 'milestone',
+              title: 'Milestones',
+              type: 'item',
+              url: '/milestone'
             },
             {
               id: 'siteexecution',

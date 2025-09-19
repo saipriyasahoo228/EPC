@@ -4,6 +4,8 @@
   "private": true,
   "homepage": "https://saipriyasahoo228.github.io/EPC",
   "dependencies": {
+    "@casl/ability": "^6.7.3",
+    "@casl/react": "^5.0.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^7.0.2",

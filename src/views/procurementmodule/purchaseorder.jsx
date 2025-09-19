@@ -21,6 +21,8 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getMaterialProcurements ,createPurchaseOrder, getPurchaseOrders, deletePurchaseOrder,updatePurchaseOrder,getVendors } from '../../allapi/procurement';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+import { Maximize2, Minimize2 } from "lucide-react";
+
 
 const PurchaseOrder = () => {
   const MODULE_SLUG = 'procurement';
@@ -30,6 +32,7 @@ const PurchaseOrder = () => {
   const [open, setOpen] = useState(false);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isModalMaximized, setIsModalMaximized] = useState(false);
   const [vendors, setVendors] = useState([]);
 
 
@@ -52,6 +55,10 @@ const PurchaseOrder = () => {
   const [procurements, setProcurements] = useState([]);
   
   const [selectedProjectIndex, setSelectedProjectIndex] = useState(0); // Default to first project
+
+  const toggleModalSize = () => {
+    setIsModalMaximized(!isModalMaximized);
+  };
 
 
  //Fetch projectID,purchaseorderID and procurementID
@@ -363,9 +370,45 @@ const handleDelete = async (po_id) => {
         </Grid>
       </Grid>
 
-      <Dialog open={open} onClose={handleClose} fullWidth>
+      <Dialog
+             open={open}
+             onClose={handleClose}
+             fullWidth
+             maxWidth="xl"
+             PaperProps={{
+               style: isModalMaximized
+                 ? {
+                     width: "100%",
+                     height: "100vh", // fullscreen
+                     margin: 0,
+                   }
+                 : {
+                     width: "70%",
+                     height: "97vh", // default size
+                   },
+             }}
+           >
+
+
         <DialogTitle>Enter Purchase Order Details</DialogTitle>
-        <DialogContent sx={{ position: 'relative' }}>
+        <DialogContent
+                  sx={{
+                    position: "relative",
+                    overflowY: "auto", // ensures internal scrolling
+                  }}
+                >
+               <IconButton
+                    aria-label="toggle-size"
+                    onClick={toggleModalSize}
+                    sx={{
+                      position: "absolute",
+                      right: 40,
+                      top: 8,
+                      color: (theme) => theme.palette.grey[600],
+                    }}
+                  >
+                    {isModalMaximized ? <Minimize2 /> : <Maximize2 />}
+                  </IconButton>
           <IconButton
             aria-label="close"
             onClick={handleClose}
@@ -383,7 +426,7 @@ const handleDelete = async (po_id) => {
     {/* Non-editable fields */}
     <Grid item xs={12}>
       <h3 style={{ color: '#7267ef' }}>Purchase Order & Vendor info..</h3>
-      <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+      <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
       <Grid container spacing={2}>
   <Grid item xs={6}>
     <label htmlFor="purchaseOrderId">Purchase Order ID</label>
@@ -449,7 +492,7 @@ const handleDelete = async (po_id) => {
     {/* Material Information */}
     <Grid item xs={12}>
       <h3 style={{ color: '#7267ef' }}>Material Information & Payment..</h3>
-      <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+      <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
       <Grid container spacing={2}>
         
         <Grid item xs={6}>
@@ -501,7 +544,7 @@ const handleDelete = async (po_id) => {
     {/* Total Cost & Other Info */}
     <Grid item xs={12}>
       <h3 style={{ color: '#7267ef' }}>Tax & Order Status..</h3>
-      <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+      <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
       <Grid container spacing={2}>
       <Grid item xs={6}>
   <label htmlFor="taxDetails">Tax Details</label>
