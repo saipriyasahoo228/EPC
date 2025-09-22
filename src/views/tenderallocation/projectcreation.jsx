@@ -461,6 +461,7 @@ const ProjectCreation = () => {
               <TableCell>{proj.job_allocation_date || '-'}</TableCell>
               <TableCell>{proj.allocation_state || '-'}</TableCell>
               <TableCell>{proj.security_money_refund_date || '-'}</TableCell>
+              <TableCell>{typeof proj.security_money_amount === 'number' ? `₹ ${proj.security_money_amount}` : (proj.security_money_amount || '-')}</TableCell>
               <TableCell>{proj.description || '-'}</TableCell>
               <TableCell>
                 {proj.status === 'Accept' ? (
@@ -499,10 +500,11 @@ const ProjectCreation = () => {
           <TableCell sx={{ color: '#7267ef' }}>Govt Project ID</TableCell>
           <TableCell sx={{ color: '#7267ef' }}>Job Allocation Date</TableCell>
           <TableCell sx={{ color: '#7267ef' }}>Allocation State</TableCell>
-          <TableCell sx={{ color: '#7267ef' }}>Refund Date</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Security Deposit Refund Date</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Security Money Amount</TableCell>
           <TableCell sx={{ color: '#7267ef' }}>Cancellation Note</TableCell>
           <TableCell sx={{ color: '#7267ef' }}>Status</TableCell>
-          <TableCell align="right" sx={{ color: '#7267ef' }}>Users</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Users</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -515,6 +517,7 @@ const ProjectCreation = () => {
               <TableCell>{proj.job_allocation_date || '-'}</TableCell>
               <TableCell>{proj.allocation_state || '-'}</TableCell>
               <TableCell>{proj.security_money_refund_date || '-'}</TableCell>
+              <TableCell>{proj.security_money_amount || '-'}</TableCell>
               <TableCell>{proj.description || '-'}</TableCell>
               <TableCell>
                 {proj.status === 'Accept' ? (
@@ -589,6 +592,8 @@ const ProjectCreation = () => {
       <li><strong>Amount:</strong> ₹{selectedTender?.emd_details?.amount}</li>
       <li><strong>Validity:</strong> {selectedTender?.emd_details?.validity}</li>
       <li><strong>Conditions:</strong> {selectedTender?.emd_details?.conditions}</li>
+      <li><strong>Refund Date:</strong> {selectedTender?.emd_details?.refund_date || '-'}</li>
+      <li><strong>Is Refunded:</strong> {typeof selectedTender?.emd_details?.is_refunded === 'boolean' ? (selectedTender.emd_details.is_refunded ? 'Yes' : 'No') : '-'}</li>
     </ul>
 
     <Typography><strong>Authority:</strong> {selectedTender?.authority}</Typography>
