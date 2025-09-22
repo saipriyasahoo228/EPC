@@ -1,0 +1,1 @@
+import{A as e}from"./main-BIxdd69i.js";const n=async s=>(await e.post("/user/register/",s)).data,o=async()=>(await e.get("/user/get/")).data,p=async s=>(await e.get(`/user/get/${s}/`)).data,c=async(s,t)=>(await e.put(`/user/update/${s}/`,t)).data,u=async()=>(await e.get("/user/get-groups/")).data;export{u as a,p as b,n as c,o as g,c as u};

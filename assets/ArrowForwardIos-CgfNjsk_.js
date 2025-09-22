@@ -1,1 +1,0 @@
-import{j as o}from"./main-IxGEKZMA.js";import{s as r}from"./TableRow-CRAT5KT_.js";const t=r(o.jsx("path",{d:"M11.67 3.87 9.9 2.1 0 12l9.9 9.9 1.77-1.77L3.54 12z"})),p=r(o.jsx("path",{d:"M6.23 20.23 8 22l10-10L8 2 6.23 3.77 14.46 12z"}));export{t as A,p as a};
