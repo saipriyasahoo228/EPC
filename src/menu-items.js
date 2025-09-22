@@ -202,6 +202,12 @@ const menuItems = {
               url: '/safetymanagement'
             },
             {
+              id: 'safetyexpense',
+              title: 'Safety Expense',
+              type: 'item',
+              url: '/safetyexpense'
+            },
+            {
               id: 'material',
               title: 'Material & Inventry Management',
               type: 'item',

@@ -212,6 +212,117 @@ export const updateSafetyManagement = async (safety_report_id, payload) => {
   }
 };
 
+// POST /construction/safety-expense/
+export const createSafetyExpense = async (data) => {
+  try {
+    const response = await api.post("/construction/safety-expense/", data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error creating safety expense:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// GET /construction/safety-expense/
+export const getSafetyExpenses = async () => {
+  try {
+    const response = await api.get("/construction/safety-expense/");
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching safety expenses:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// GET /construction/safety-expense/:id/
+export const getSafetyExpenseById = async (expenseId) => {
+  try {
+    const response = await api.get(`/construction/safety-expense/${expenseId}/`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching safety expense by id:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// PATCH /construction/safety-expense/:id/
+export const updateSafetyExpense = async (expenseId, payload) => {
+  try {
+    const response = await api.patch(`/construction/safety-expense/${expenseId}/`, payload);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error updating safety expense:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// DELETE /construction/safety-expense/:id/
+export const deleteSafetyExpense = async (expenseId) => {
+  try {
+    const response = await api.delete(`/construction/safety-expense/${expenseId}/`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error deleting safety expense:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// ========================= Other Expense =========================
+// POST /construction/other-expense/
+export const createOtherExpense = async (data) => {
+  try {
+    const response = await api.post("/construction/other-expense/", data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error creating other expense:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// GET /construction/other-expense/
+export const getOtherExpenses = async () => {
+  try {
+    const response = await api.get("/construction/other-expense/");
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching other expenses:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// GET /construction/other-expense/:id/
+export const getOtherExpenseById = async (expenseId) => {
+  try {
+    const response = await api.get(`/construction/other-expense/${expenseId}/`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching other expense by id:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// PATCH /construction/other-expense/:id/
+export const updateOtherExpense = async (expenseId, payload) => {
+  try {
+    const response = await api.patch(`/construction/other-expense/${expenseId}/`, payload);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error updating other expense:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// DELETE /construction/other-expense/:id/
+export const deleteOtherExpense = async (expenseId) => {
+  try {
+    const response = await api.delete(`/construction/other-expense/${expenseId}/`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error deleting other expense:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
 //post api for material inventory
 export const createMaterialInventory = async (data) => {
   try {
@@ -322,3 +433,5 @@ export const deleteMilestone = async (milestoneId) => {
     throw error;
   }
 };
+
+
