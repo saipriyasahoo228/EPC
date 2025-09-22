@@ -90,6 +90,7 @@ const SiteExecutionSupervisor = lazy(()=>import('../views/constructionmodule/sit
 const QualityControl = lazy(()=>import('../views/constructionmodule/qualitycontrol.jsx'));
 const SafetyManagement = lazy(() =>import('../views/constructionmodule/safetymanagement.jsx'));
 const SafetyExpense = lazy(() =>import('../views/constructionmodule/safetyexpense.jsx'));
+const OtherExpense = lazy(() =>import('../views/constructionmodule/otherexpense.jsx'));
 const InventoryManagement = lazy(()=>import('../views/constructionmodule/inventorymanagement.jsx'));
 const Testing = lazy(()=>import('../views/commisioningmodule/testing.jsx'));
 const HandoverProcess = lazy(()=>import('../views/commisioningmodule/handoverprocess.jsx'));
@@ -289,6 +290,14 @@ const MainRoutes = {
           element:(
             <RequirePermission slug="construction" action="can_read">
               <SafetyExpense/>
+            </RequirePermission>
+          )
+        },
+        {
+          path: '/otherexpense',
+          element:(
+            <RequirePermission slug="construction" action="can_read">
+              <OtherExpense/>
             </RequirePermission>
           )
         },

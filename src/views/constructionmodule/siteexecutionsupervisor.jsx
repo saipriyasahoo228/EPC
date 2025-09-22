@@ -48,6 +48,8 @@ import MyLocationIcon from '@mui/icons-material/MyLocation';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
+import LogoutRounded from '@mui/icons-material/LogoutRounded';
+import { logout } from 'auth';
 
 import { getProjectsAccept } from '../../allapi/engineering';
 import { createSiteExecution, getSiteExecutions, createMaterialInventory, getMilestonesByProject } from '../../allapi/construction';
@@ -133,6 +135,8 @@ const SiteExecutionSupervisor = () => {
     unit_price: '',
     requested_by: '',
   });
+  // Logout confirm dialog
+  const [logoutOpen, setLogoutOpen] = useState(false);
   // Material consumption (selection from inventory with quantities)
   const [consumptionOpen, setConsumptionOpen] = useState(false);
   const [consumptionItems, setConsumptionItems] = useState([]); // [{ item, quantity }]
@@ -777,6 +781,11 @@ const SiteExecutionSupervisor = () => {
           <Typography variant="h6" sx={{ flex: 1, color: 'text.primary', fontWeight: 600 }}>
             Site Execution Supervisor
           </Typography>
+          <Tooltip title="Logout">
+            <IconButton color="error" size="small" onClick={() => setLogoutOpen(true)}>
+              <LogoutRounded fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Chip
             label={statusOptions.find(s => s.key === form.site_execution_status)?.label || 'Status'}
             color="primary"
@@ -1537,11 +1546,24 @@ const SiteExecutionSupervisor = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeMaterials}>Cancel</Button>
-          <ShowIfCan slug="procurement" action="can_create">
+          <ShowIfCan slug="construction" action="can_create">
             <Button variant="contained" onClick={submitMaterials}>Submit Request</Button>
           </ShowIfCan>
         </DialogActions>
       </Dialog>
+
+      {/* Logout Confirm Dialog */}
+      <Dialog open={logoutOpen} onClose={() => setLogoutOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirm Logout</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">Are you sure you want to logout?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLogoutOpen(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={logout}>Logout</Button>
+        </DialogActions>
+      </Dialog>
+
       </Box>
     </ThemeProvider>
   );

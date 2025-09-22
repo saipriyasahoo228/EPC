@@ -23,20 +23,18 @@ import { Maximize2, Minimize2 } from "lucide-react";
 
 import {
   fetchConstructionProjects,
-  getSafetyManagements,
-  getSafetyExpenses,
-  getSafetyExpenseById,
-  createSafetyExpense,
-  updateSafetyExpense,
-  deleteSafetyExpense,
+  getOtherExpenses,
+  getOtherExpenseById,
+  createOtherExpense,
+  updateOtherExpense,
+  deleteOtherExpense,
 } from "../../allapi/construction";
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 
-const SafetyExpense = () => {
+const OtherExpense = () => {
   const MODULE_SLUG = "construction";
 
   const [constructionProjects, setConstructionProjects] = useState([]);
-  const [safetyMgmt, setSafetyMgmt] = useState([]);
   const [expenses, setExpenses] = useState([]);
 
   const [searchProjects, setSearchProjects] = useState("");
@@ -48,11 +46,9 @@ const SafetyExpense = () => {
   const [editingId, setEditingId] = useState(null);
 
   // For form
-  const [selectedProjectCode, setSelectedProjectCode] = useState(""); // PRJ- code
   const [formData, setFormData] = useState({
     expense_type: "",
     project: "",
-    safety_management: "",
     amount: "",
     description: "",
     date_incurred: "",
@@ -63,23 +59,21 @@ const SafetyExpense = () => {
     setOpen(false);
     setIsEditing(false);
     setEditingId(null);
-    setFormData({ expense_type: "", project: "", safety_management: "", amount: "", description: "", date_incurred: "" });
+    setFormData({ expense_type: "", project: "", amount: "", description: "", date_incurred: "" });
   };
 
-  // Load projects, safety mgmt, expenses
+  // Load projects and expenses
   useEffect(() => {
     (async () => {
       try {
-        const [cons, sm, exp] = await Promise.all([
+        const [cons, exp] = await Promise.all([
           fetchConstructionProjects(),
-          getSafetyManagements(),
-          getSafetyExpenses(),
+          getOtherExpenses(),
         ]);
         setConstructionProjects(cons || []);
-        setSafetyMgmt(sm || []);
         setExpenses(exp || []);
       } catch (e) {
-        console.error("❌ Error loading safety expense deps:", e);
+        console.error("❌ Error loading other expense deps:", e);
       }
     })();
   }, []);
@@ -98,26 +92,18 @@ const SafetyExpense = () => {
     if (!searchExpenses) return expenses;
     const q = searchExpenses.toLowerCase();
     return (expenses || []).filter((e) =>
-      [e.expense_type, e.project, e.safety_management, e.amount, e.description, e.date_incurred]
+      [e.expense_type, e.project, e.amount, e.description, e.date_incurred]
         .filter(Boolean)
         .some((v) => v.toString().toLowerCase().includes(q))
     );
   }, [expenses, searchExpenses]);
 
-  // Safety Mgmt options filtered by selected PRJ code
-  const safetyOptionsForProject = useMemo(() => {
-    if (!selectedProjectCode) return safetyMgmt;
-    return (safetyMgmt || []).filter((s) => String(s.project) === String(selectedProjectCode));
-  }, [safetyMgmt, selectedProjectCode]);
-
   const handleOpenCreate = (projectCode) => {
-    setSelectedProjectCode(projectCode || "");
     setIsEditing(false);
     setEditingId(null);
     setFormData({
       expense_type: "",
       project: projectCode || "",
-      safety_management: "",
       amount: "",
       description: "",
       date_incurred: "",
@@ -127,14 +113,12 @@ const SafetyExpense = () => {
 
   const handleEdit = async (row) => {
     try {
-      const data = await getSafetyExpenseById(row.id);
+      const data = await getOtherExpenseById(row.id);
       setIsEditing(true);
       setEditingId(row.id);
-      setSelectedProjectCode(data.project || "");
       setFormData({
         expense_type: data.expense_type || "",
         project: data.project || "",
-        safety_management: data.safety_management || "",
         amount: String(data.amount || ""),
         description: data.description || "",
         date_incurred: (data.date_incurred || "").slice(0, 10),
@@ -147,11 +131,11 @@ const SafetyExpense = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm(`Delete safety expense ID: ${id}?`)) return;
+    if (!window.confirm(`Delete other expense ID: ${id}?`)) return;
     try {
-      await deleteSafetyExpense(id);
+      await deleteOtherExpense(id);
       alert("✅ Deleted successfully");
-      const list = await getSafetyExpenses();
+      const list = await getOtherExpenses();
       setExpenses(list || []);
     } catch (e) {
       console.error("❌ Delete failed:", e);
@@ -169,30 +153,29 @@ const SafetyExpense = () => {
       const payload = {
         expense_type: formData.expense_type,
         project: formData.project, // PRJ- code as per API
-        safety_management: formData.safety_management,
         amount: Number(formData.amount || 0),
         description: formData.description || null,
         date_incurred: formData.date_incurred || null,
       };
 
       if (isEditing && editingId) {
-        await updateSafetyExpense(editingId, payload);
-        alert("Safety expense updated");
+        await updateOtherExpense(editingId, payload);
+        alert("Other expense updated");
       } else {
-        await createSafetyExpense(payload);
-        alert("Safety expense created");
+        await createOtherExpense(payload);
+        alert("Other expense created");
       }
 
       handleClose();
-      const list = await getSafetyExpenses();
+      const list = await getOtherExpenses();
       setExpenses(list || []);
     } catch (error) {
-      console.error("❌ Error submitting safety expense:", error);
+      console.error("❌ Error submitting other expense:", error);
       const backendMessage =
         error.response?.data?.message ||
         error.response?.data?.detail ||
         JSON.stringify(error.response?.data || "Server error");
-      alert(`❌ Failed to save Safety Expense.\n\nError: ${backendMessage}`);
+      alert(`❌ Failed to save Other Expense.\n\nError: ${backendMessage}`);
     }
   };
 
@@ -204,7 +187,7 @@ const SafetyExpense = () => {
   return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>
-        Safety Expenses
+        Other Expenses
       </Typography>
 
       {/* Project list with Add action */}
@@ -265,11 +248,11 @@ const SafetyExpense = () => {
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: "#fff", border: "1px solid #ccc" }}>
             <Typography variant="h6" gutterBottom>
-              SAFETY EXPENSES
+              OTHER EXPENSES
             </Typography>
             <input
               type="text"
-              placeholder="Search Safety Expenses"
+              placeholder="Search Other Expenses"
               value={searchExpenses}
               onChange={(e) => setSearchExpenses(e.target.value)}
               className="input"
@@ -285,7 +268,6 @@ const SafetyExpense = () => {
                     <TableCell sx={{ color: "#7267ef" }}><strong>Project Name</strong></TableCell>
                     <TableCell sx={{ color: "#7267ef" }}><strong>Expense Type</strong></TableCell>
                     <TableCell sx={{ color: "#7267ef" }}><strong>Amount</strong></TableCell>
-                    <TableCell sx={{ color: "#7267ef" }}><strong>Safety Management</strong></TableCell>
                     <TableCell sx={{ color: "#7267ef" }}><strong>Date Incurred</strong></TableCell>
                     <TableCell sx={{ color: "#7267ef" }}><strong>Description</strong></TableCell>
                     <TableCell sx={{ color: "#660000" }}><strong>Actions</strong></TableCell>
@@ -299,7 +281,6 @@ const SafetyExpense = () => {
                       <TableCell>{projectCodeToName(e.project)}</TableCell>
                       <TableCell>{e.expense_type}</TableCell>
                       <TableCell>₹ {Number(e.amount || 0).toLocaleString("en-IN")}</TableCell>
-                      <TableCell>{e.safety_management || "-"}</TableCell>
                       <TableCell>{(e.date_incurred || "").slice(0, 10)}</TableCell>
                       <TableCell>{e.description || "-"}</TableCell>
                       <TableCell>
@@ -335,7 +316,7 @@ const SafetyExpense = () => {
             : { width: "70%", height: "90vh" },
         }}
       >
-        <DialogTitle>{isEditing ? "Edit Safety Expense" : "Create Safety Expense"}</DialogTitle>
+        <DialogTitle>{isEditing ? "Edit Other Expense" : "Create Other Expense"}</DialogTitle>
         <DialogContent sx={{ position: "relative", overflowY: "auto" }}>
           <IconButton
             aria-label="toggle-size"
@@ -365,33 +346,12 @@ const SafetyExpense = () => {
                       name="project"
                       className="input"
                       value={formData.project}
-                      onChange={(e) => {
-                        setFormData({ ...formData, project: e.target.value, safety_management: "" });
-                        setSelectedProjectCode(e.target.value);
-                      }}
+                      onChange={handleChange}
                     >
                       <option value="">Select Project</option>
                       {(constructionProjects || []).map((p) => (
                         <option key={p.project} value={p.project}>
                           {p.project} {p.project_name ? `— ${p.project_name}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <label htmlFor="safety_management">Safety Management</label>
-                    <select
-                      id="safety_management"
-                      name="safety_management"
-                      className="input"
-                      value={formData.safety_management}
-                      onChange={handleChange}
-                      disabled={!formData.project}
-                    >
-                      <option value="">Select Safety Report</option>
-                      {(safetyOptionsForProject || []).map((s) => (
-                        <option key={s.safety_report_id} value={s.safety_report_id}>
-                          {s.safety_report_id}
                         </option>
                       ))}
                     </select>
@@ -443,5 +403,5 @@ const SafetyExpense = () => {
   );
 };
 
-export default SafetyExpense;
+export default OtherExpense;
 
