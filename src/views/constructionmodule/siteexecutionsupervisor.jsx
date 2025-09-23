@@ -1512,15 +1512,29 @@ const SiteExecutionSupervisor = () => {
                       </Stack>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <GroupIcon sx={{ fontSize: 16 }} />
-                        <Typography variant="body2"><strong>Labour Usage:</strong></Typography>
-                        {(() => {
-                          const list = Array.isArray(reportFocus.labour_usage) ? reportFocus.labour_usage : [];
-                          const totalWorkers = list.reduce((acc, it) => acc + (Number(it.number_of_workers) || 0), 0);
-                          const label = list.length ? `${list.length} entries${totalWorkers ? ` • ${totalWorkers} workers` : ''}` : '—';
-                          return <Chip size="small" color="secondary" variant="outlined" label={label} />;
-                        })()}
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <GroupIcon sx={{ fontSize: 16, mt: 0.4 }} />
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" sx={{ mb: 0.25 }}><strong>Labour Usage:</strong></Typography>
+                          {(() => {
+                            const list = Array.isArray(reportFocus.labour_usage) ? reportFocus.labour_usage : [];
+                            if (!list.length) return <Typography variant="body2" color="text.secondary">—</Typography>;
+                            return (
+                              <Stack spacing={0.25}>
+                                {list.map((e, i) => {
+                                  const lr = (labourResources || []).find((x) => String(x.id) === String(e.labour_resource));
+                                  const label = lr ? resourceLabel(lr) : (e.labour_resource ? `Resource #${e.labour_resource}` : '(No Resource)');
+                                  const when = e.date ? (() => { const d = new Date(e.date); return isNaN(d) ? e.date : d.toLocaleString(); })() : '—';
+                                  return (
+                                    <Typography key={i} variant="body2" color="text.secondary">
+                                      • {label}: {e.number_of_workers ?? '—'} workers, {e.work_hours ?? '—'} hrs, {when}
+                                    </Typography>
+                                  );
+                                })}
+                              </Stack>
+                            );
+                          })()}
+                        </Box>
                       </Stack>
                     </Grid>
                     <Grid item xs={12} sm={6}>
