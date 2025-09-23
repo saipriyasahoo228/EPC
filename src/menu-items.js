@@ -218,6 +218,12 @@ const menuItems = {
               title: 'Material & Inventry Management',
               type: 'item',
               url: '/materials & inventorymanagement'
+            },
+            {
+              id: 'labour',
+              title: 'Labour Management',
+              type: 'item',
+              url: '/labourmanagement'
             }
           ]
         }

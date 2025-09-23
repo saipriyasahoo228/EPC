@@ -53,6 +53,7 @@ export const updateConstructionProject = (projectId, formData) => {
 //POST API for site-execution
 export const createSiteExecution = async (formData) => {
   try {
+    console.log("Check: CREATESITEEXEC", formData);
     const response = await api.post(
       "/construction/site-execution/",  
       formData
@@ -319,6 +320,117 @@ export const deleteOtherExpense = async (expenseId) => {
     return response.data;
   } catch (error) {
     console.error("❌ Error deleting other expense:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// ========================= Labour Category =========================
+// POST /construction/labour-category/
+export const createLabourCategory = async (data) => {
+  try {
+    const response = await api.post("/construction/labour-category/", data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error creating labour category:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// GET /construction/labour-category/
+export const getLabourCategories = async () => {
+  try {
+    const response = await api.get("/construction/labour-category/");
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching labour categories:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// GET /construction/labour-category/:id/
+export const getLabourCategoryById = async (id) => {
+  try {
+    const response = await api.get(`/construction/labour-category/${id}/`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching labour category by id:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// PATCH /construction/labour-category/:id/
+export const updateLabourCategory = async (id, payload) => {
+  try {
+    const response = await api.patch(`/construction/labour-category/${id}/`, payload);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error updating labour category:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// DELETE /construction/labour-category/:id/
+export const deleteLabourCategory = async (id) => {
+  try {
+    const response = await api.delete(`/construction/labour-category/${id}/`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error deleting labour category:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// POST /construction/labour-resource/
+export const createLabourResource = async (data) => {
+  try {
+    const response = await api.post("/construction/labour-resource/", data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error creating labour resource:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// GET /construction/labour-resource/
+export const getLabourResources = async () => {
+  try {
+    const response = await api.get("/construction/labour-resource/");
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching labour resources:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// GET /construction/labour-resource/:id/
+export const getLabourResourceById = async (id) => {
+  try {
+    const response = await api.get(`/construction/labour-resource/${id}/`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching labour resource by id:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// PATCH /construction/labour-resource/:id/
+export const updateLabourResource = async (id, payload) => {
+  try {
+    const response = await api.patch(`/construction/labour-resource/${id}/`, payload);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error updating labour resource:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// DELETE /construction/labour-resource/:id/
+export const deleteLabourResource = async (id) => {
+  try {
+    const response = await api.delete(`/construction/labour-resource/${id}/`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error deleting labour resource:", error.response?.data || error.message);
     throw error;
   }
 };
