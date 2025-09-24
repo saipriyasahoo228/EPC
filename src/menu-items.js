@@ -12,7 +12,7 @@ const menuItems = {
           title: 'Dashboard',
           type: 'item',
           icon: 'material-icons-two-tone',
-          iconname: 'home',
+          iconname: 'dashboard',
           url: '/dashboard'
         }
       ]
@@ -28,7 +28,7 @@ const menuItems = {
           title: 'Tender Allocation',
           type: 'collapse',
           icon: 'material-icons-two-tone',
-          iconname: 'home',
+          iconname: 'assignment',
           children: [
             {
               id: 'tenderdetails',
@@ -57,7 +57,7 @@ const menuItems = {
           title: 'Engineering Module',
           type: 'collapse',
           icon: 'material-icons-two-tone',
-          iconname: 'history_edu',
+          iconname: 'engineering',
           children: [
             {
               id: 'design',
@@ -87,7 +87,7 @@ const menuItems = {
           title: 'Procurement Module',
           type: 'collapse',
           icon: 'material-icons-two-tone',
-          iconname: 'history_edu',
+          iconname: 'shopping_cart',
           children: [
             {
               id: 'vender',
@@ -128,7 +128,7 @@ const menuItems = {
           title: 'Inventory Management',
           type: 'collapse',
           icon: 'material-icons-two-tone',
-          iconname: 'history_edu',
+          iconname: 'storefront',
           children: [
             {
               id: 'item',
@@ -169,7 +169,7 @@ const menuItems = {
           title: 'Construction Module',
           type: 'collapse',
           icon: 'material-icons-two-tone',
-          iconname: 'history_edu',
+          iconname: 'construction',
           children: [
             {
               id: 'project',
@@ -240,7 +240,7 @@ const menuItems = {
           title: 'Commission Management',
           type: 'collapse',
           icon: 'material-icons-two-tone',
-          iconname: 'history_edu',
+          iconname: 'fact_check',
           children: [
             {
               id: 'testing',
@@ -281,7 +281,7 @@ const menuItems = {
           title: 'Maintenance Module',
           type: 'collapse',
           icon: 'material-icons-two-tone',
-          iconname: 'history_edu',
+          iconname: 'handyman',
           children: [
             {
               id: 'assets',
@@ -322,7 +322,7 @@ const menuItems = {
           title: 'Account Ledger Module',
           type: 'collapse',
           icon: 'material-icons-two-tone',
-          iconname: 'history_edu',
+          iconname: 'account_balance',
           children: [
             {
               id: 'general',
@@ -363,7 +363,7 @@ const menuItems = {
           title: 'Access Control & User',
           type: 'collapse',
           icon: 'material-icons-two-tone',
-          iconname: 'history_edu',
+          iconname: 'admin_panel_settings',
           children: [
             {
               id: 'guest',
