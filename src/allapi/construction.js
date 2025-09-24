@@ -547,3 +547,14 @@ export const deleteMilestone = async (milestoneId) => {
 };
 
 
+// GET /construction/labour-usage/vendor-report/
+export const getLabourUsageVendorReport = async (params = {}) => {
+  try {
+    const response = await api.get("/construction/labour-usage/vendor-report/", { params });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching labour usage vendor report:", error.response?.data || error.message);
+    throw error;
+  }
+};
+

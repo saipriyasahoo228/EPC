@@ -33,9 +33,12 @@ import {
   createLabourResource,
   updateLabourResource,
   deleteLabourResource,
+  getLabourUsageVendorReport,
 } from "../../allapi/construction";
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 import { getVendors } from "../../allapi/procurement";
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const LabourManagement = () => {
   const MODULE_SLUG = "construction";
@@ -49,6 +52,12 @@ const LabourManagement = () => {
   const [categories, setCategories] = useState([]);
   const [resources, setResources] = useState([]);
   const [vendors, setVendors] = useState([]);
+
+  // Vendor-level Labour Usage Report state
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportData, setReportData] = useState([]);
+  const [reportVendor, setReportVendor] = useState('');
 
   // Search
   const [searchCategories, setSearchCategories] = useState("");
@@ -68,6 +77,121 @@ const LabourManagement = () => {
   const [resForm, setResForm] = useState({ category_id: "", vendor: "", is_company: false });
 
   const toggleModalSize = () => setIsModalMaximized((v) => !v);
+
+  // Helpers
+  const toTitle = (s) => (typeof s === 'string' ? s.replace(/\w\S*/g, (t) => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()) : s);
+
+  // Fetch Vendor Labour Usage Report
+  const fetchVendorReport = async () => {
+    setReportLoading(true);
+    try {
+      const params = {};
+      if (reportVendor) params.vendor_id = reportVendor;
+      const data = await getLabourUsageVendorReport(params);
+      setReportData(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('❌ Failed to fetch vendor report:', e);
+      alert('Failed to load vendor report');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const openVendorReport = async () => {
+    setReportOpen(true);
+    // Load immediately for quick preview
+    fetchVendorReport();
+  };
+
+  // Generate PDF using jsPDF + autoTable
+  const generatePdf = () => {
+    if (!reportData.length) return;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const marginX = 40;
+    const marginY = 40;
+    const lineGap = 18;
+
+    const vendorName = reportVendor ? (vendors.find(v=>String(v.vendor_id)===String(reportVendor))?.vendor_name || reportVendor) : 'All Vendors';
+    let y = marginY;
+
+    // Header
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('Vendor Labour Usage Report', marginX, y);
+    y += lineGap;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, marginX, y);
+    y += lineGap;
+    doc.text(`Vendor Filter: ${vendorName}`, marginX, y);
+    y += lineGap;
+
+    reportData.forEach((v, idx) => {
+      if (idx > 0) {
+        doc.addPage();
+        y = marginY;
+      }
+      // Vendor header
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text(`${v.vendor_name || 'Unknown Vendor'} ${v.vendor_id ? `(${v.vendor_id})` : ''}`, marginX, y);
+      y += lineGap - 2;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Total Workers: ${v.total_workers ?? '-'}`, marginX, y);
+      doc.text(`Total Hours: ${v.total_work_hours ?? '-'}`, marginX + 180, y);
+      doc.text(`Total Effort: ${v.total_effort ?? '-'}`, marginX + 320, y);
+      y += lineGap;
+
+      // Breakdown table
+      if (v.categories) {
+        const rows = [];
+        Object.entries(v.categories).forEach(([cat, catData]) => {
+          const subs = (catData?.subcategories) ? Object.entries(catData.subcategories) : [];
+          if (!subs.length) {
+            rows.push([toTitle(cat), '—', catData?.total_workers ?? '-', '—']);
+          } else {
+            subs.forEach(([sub, subData]) => {
+              rows.push([toTitle(cat), toTitle(sub), subData?.total_workers ?? '-', (subData?.details || []).length]);
+            });
+          }
+        });
+        autoTable(doc, {
+          startY: y,
+          head: [['Category', 'Subcategory', 'Total Workers', 'Entries']],
+          body: rows,
+          styles: { fontSize: 9 },
+          headStyles: { fillColor: [246, 247, 251], textColor: 20 },
+          margin: { left: marginX, right: marginX },
+        });
+        y = doc.lastAutoTable.finalY + 12;
+      }
+
+      // Details table
+      const detailRows = (v.details || []).map(d => [
+        d.site_execution || '-',
+        d.project || '-',
+        toTitle(d.category || '-'),
+        toTitle(d.subcategory || '-'),
+        d.number_of_workers ?? '-',
+        d.work_hours ?? '-',
+        d.total_effort ?? '-',
+        d.date ? new Date(d.date).toLocaleString() : '-',
+      ]);
+      autoTable(doc, {
+        startY: y,
+        head: [['Site', 'Project', 'Category', 'Subcategory', '# Workers', 'Hours', 'Total Effort', 'Date']],
+        body: detailRows,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [246, 247, 251], textColor: 20 },
+        margin: { left: marginX, right: marginX },
+      });
+      y = doc.lastAutoTable.finalY + 12;
+    });
+
+    const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    doc.save(`Vendor-Labour-Usage-Report-${ts}.pdf`);
+  };
 
   // Load data
   const loadAll = async () => {
@@ -225,9 +349,14 @@ const LabourManagement = () => {
 
   return (
     <>
-      <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>
-        Labour Management
-      </Typography>
+      <Box sx={{ mt: 5, mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+        <Typography variant="h5" gutterBottom sx={{ m: 0 }}>
+          Labour Management
+        </Typography>
+        <Button variant="contained" onClick={openVendorReport} sx={{ background: 'linear-gradient(90deg, #7267ef, #5e8bee)' }}>
+          Vendor Labour Usage Report
+        </Button>
+      </Box>
 
       {/* Labour Categories */}
       <Grid container spacing={2} direction="column" sx={{ mb: 2 }}>
@@ -402,6 +531,139 @@ const LabourManagement = () => {
               {isCatEditing ? 'Update Category' : 'Submit Category'}
             </Button>
           </DisableIfCannot>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog: Vendor-Level Labour Usage Report */}
+      <Dialog open={reportOpen} onClose={() => setReportOpen(false)} fullWidth maxWidth="lg">
+        <DialogTitle>Vendor-Level Labour Usage Report</DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={2} alignItems="center" sx={{ mb: 1 }}>
+            <Grid item xs={12} sm={6} md={4}>
+              <label htmlFor="vendorFilter">Filter by Vendor</label>
+              <select
+                id="vendorFilter"
+                className="input"
+                value={reportVendor}
+                onChange={(e)=> setReportVendor(e.target.value)}
+                style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }}
+              >
+                <option value="">All Vendors</option>
+                {(vendors || []).map(v => (
+                  <option key={v.vendor_id} value={v.vendor_id}>
+                    {v.vendor_id} {v.vendor_name ? `— ${v.vendor_name}` : ''}
+                  </option>
+                ))}
+              </select>
+            </Grid>
+            <Grid item xs={12} sm={6} md={8} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', sm: 'flex-end' }, gap: 1 }}>
+              <Button variant="outlined" onClick={fetchVendorReport} disabled={reportLoading}>
+                {reportLoading ? 'Loading…' : 'Generate'}
+              </Button>
+              <Button variant="contained" onClick={generatePdf} disabled={reportLoading || !reportData.length}>
+                Download PDF
+              </Button>
+            </Grid>
+          </Grid>
+
+          {reportLoading ? (
+            <Typography variant="body2" color="text.secondary">Loading report…</Typography>
+          ) : (
+            <Box>
+              {reportData.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">No data</Typography>
+              ) : (
+                <Grid container spacing={2}>
+                  {reportData.map((v, idx) => (
+                    <Grid item xs={12} key={idx}>
+                      <Paper sx={{ p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                            {v.vendor_name || 'Unknown Vendor'} {v.vendor_id ? `(${v.vendor_id})` : ''}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            <Box className="chip">Total Workers: {v.total_workers ?? '-'}</Box>
+                            <Box className="chip">Total Hours: {v.total_work_hours ?? '-'}</Box>
+                            <Box className="chip">Total Effort: {v.total_effort ?? '-'}</Box>
+                          </Box>
+                        </Box>
+                        {v.categories ? (
+                          <TableContainer component={Paper} sx={{ mt: 1, boxShadow: 'none', border: '1px solid #eee' }}>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>Category</TableCell>
+                                  <TableCell>Subcategory</TableCell>
+                                  <TableCell>Total Workers</TableCell>
+                                  <TableCell>Entries</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {Object.entries(v.categories).map(([cat, catData]) => {
+                                  const subs = (catData?.subcategories) ? Object.entries(catData.subcategories) : [];
+                                  if (!subs.length) {
+                                    return (
+                                      <TableRow key={`${cat}-row`}>
+                                        <TableCell>{toTitle(cat)}</TableCell>
+                                        <TableCell>—</TableCell>
+                                        <TableCell>{catData?.total_workers ?? '-'}</TableCell>
+                                        <TableCell>—</TableCell>
+                                      </TableRow>
+                                    );
+                                  }
+                                  return subs.map(([sub, subData]) => (
+                                    <TableRow key={`${cat}-${sub}`}>
+                                      <TableCell>{toTitle(cat)}</TableCell>
+                                      <TableCell>{toTitle(sub)}</TableCell>
+                                      <TableCell>{subData?.total_workers ?? '-'}</TableCell>
+                                      <TableCell>{(subData?.details || []).length}</TableCell>
+                                    </TableRow>
+                                  ));
+                                })}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        ) : null}
+                        <TableContainer component={Paper} sx={{ mt: 1, boxShadow: 'none', border: '1px solid #eee' }}>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Site</TableCell>
+                                <TableCell>Project</TableCell>
+                                <TableCell>Category</TableCell>
+                                <TableCell>Subcategory</TableCell>
+                                <TableCell># Workers</TableCell>
+                                <TableCell>Hours</TableCell>
+                                <TableCell>Total Effort</TableCell>
+                                <TableCell>Date</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {(v.details || []).map((d, i) => (
+                                <TableRow key={i}>
+                                  <TableCell>{d.site_execution || '-'}</TableCell>
+                                  <TableCell>{d.project || '-'}</TableCell>
+                                  <TableCell>{toTitle(d.category || '-')}</TableCell>
+                                  <TableCell>{toTitle(d.subcategory || '-')}</TableCell>
+                                  <TableCell>{d.number_of_workers ?? '-'}</TableCell>
+                                  <TableCell>{d.work_hours ?? '-'}</TableCell>
+                                  <TableCell>{d.total_effort ?? '-'}</TableCell>
+                                  <TableCell>{d.date ? new Date(d.date).toLocaleString() : '-'}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setReportOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
