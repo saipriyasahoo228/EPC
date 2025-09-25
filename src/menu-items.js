@@ -91,7 +91,7 @@ const menuItems = {
           children: [
             {
               id: 'vender',
-              title: 'Vender Managment',
+              title: 'Vendor Management',
               type: 'item',
               url: '/vendor details'
             },
@@ -215,7 +215,7 @@ const menuItems = {
             },
             {
               id: 'material',
-              title: 'Material & Inventry Management',
+              title: 'Material & Inventory Management',
               type: 'item',
               url: '/materials & inventorymanagement'
             },
