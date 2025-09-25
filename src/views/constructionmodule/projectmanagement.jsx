@@ -54,7 +54,7 @@ const ProjectManagement = () => {
   projectManagerName: "",
   projectStatus: "planning",  // default
   projectBudget: "",
-  projectMilestones: "",
+  // projectMilestones: "",
   resourceAllocation: ""
 });
 
@@ -131,7 +131,7 @@ const handleEdit = (project) => {
     projectManagerName: project.project_manager_name,
     projectStatus: project.project_status,
     projectBudget: project.project_budget,
-    projectMilestones: project.project_milestones,
+    // projectMilestones: project.project_milestones,
     resourceAllocation: project.resource_allocation,
   });
   setSelectedProjectId(project.project); // backend project ID
@@ -164,7 +164,7 @@ const handleSubmit = async () => {
       project_manager_name: formData.projectManagerName,
       project_status: formData.projectStatus?.toLowerCase() || "planning",
       project_budget: formData.projectBudget,
-      project_milestones: formData.projectMilestones,
+      // project_milestones: formData.projectMilestones,
       resource_allocation: formData.resourceAllocation,
     };
 
@@ -192,7 +192,7 @@ const handleSubmit = async () => {
       projectManagerName: "",
       projectStatus: "planning",
       projectBudget: "",
-      projectMilestones: "",
+      // projectMilestones: "",
       resourceAllocation: "",
     });
     setSelectedProjectId("");
@@ -327,7 +327,7 @@ const handleDelete = async (projectId) => {
               <TableCell sx={{color:'#7267ef'}}><strong>Project Manager Name</strong></TableCell>
               <TableCell sx={{color:'#7267ef'}}><strong>Project Status</strong></TableCell>
               <TableCell sx={{color:'#7267ef'}}><strong>Project Budget</strong></TableCell>
-              <TableCell sx={{color:'#7267ef'}}><strong>Project Milestones</strong></TableCell>
+              {/* <TableCell sx={{color:'#7267ef'}}><strong>Project Milestones</strong></TableCell> */}
               <TableCell sx={{color:'#7267ef'}}><strong>Resource Allocation</strong></TableCell>
               <TableCell sx={{color:'#660000'}}><strong>Actions</strong></TableCell>
             </TableRow>
@@ -346,7 +346,7 @@ const handleDelete = async (projectId) => {
       <TableCell>{p.project_manager_name}</TableCell>
       <TableCell>{p.project_status}</TableCell>
       <TableCell>{p.project_budget}</TableCell>
-      <TableCell>{p.project_milestones}</TableCell>
+      {/* <TableCell>{p.project_milestones}</TableCell> */}
       <TableCell>{p.resource_allocation}</TableCell>
       <TableCell>
         <DisableIfCannot slug={MODULE_SLUG} action="can_update">
@@ -513,10 +513,10 @@ const handleDelete = async (projectId) => {
             <input id="projectBudget" name="projectBudget" className="input" value={formData.projectBudget || ''} onChange={handleChange} />
           </Grid>
          
-          <Grid item xs={6}>
+          {/* <Grid item xs={6}>
             <label htmlFor="projectMilestones">Project Milestone</label>
             <input id="projectMilestones" name="projectMilestones" className="input" value={formData.projectMilestones || ''} onChange={handleChange} />
-          </Grid>
+          </Grid> */}
           <Grid item xs={6}>
             <label htmlFor="resourceAllocation">Resource Allocation</label>
             <input id="resourceAllocation" name="resourceAllocation" className="input"  value={formData.resourceAllocation || ''} onChange={handleChange} />
