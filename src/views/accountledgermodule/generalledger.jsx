@@ -22,6 +22,7 @@ import 'jspdf-autotable';
 import CloseIcon from '@mui/icons-material/Close';
 import { createLedger, getLedgers, updateLedger, deleteLedger } from '../../allapi/account';
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 const AccountLedger = () => {
   const MODULE_SLUG = 'account_ledger';
@@ -296,7 +297,7 @@ const AccountLedger = () => {
               .map((item, i) => (
                 <TableRow key={i}>
                   <TableCell>{item.ledger_id}</TableCell>
-                  <TableCell>{item.transaction_date}</TableCell>
+                  <TableCell>{formatDateDDMMYYYY(item.transaction_date)}</TableCell>
                   <TableCell>{item.account_name}</TableCell>
                   <TableCell>{item.account_type}</TableCell>
                   <TableCell>{item.debit_amount}</TableCell>

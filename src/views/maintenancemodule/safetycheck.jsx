@@ -22,7 +22,7 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getAssets ,createCompliance,getCompliances,deleteCompliance,updateCompliance} from "../../allapi/maintenance";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
-
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const SafetyCheck = () => {
@@ -274,13 +274,13 @@ const handleSubmit = async () => {
                     <TableRow key={i}>
                       <TableCell>{t.asset}</TableCell>
                       <TableCell>{t.compliance_id}</TableCell>
-                      <TableCell>{t.inspection_date}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(t.inspection_date)}</TableCell>
                       <TableCell>{t.inspection_type}</TableCell>
                       <TableCell>{t.inspector_id}</TableCell>
                       <TableCell>{t.regulatory_standards}</TableCell>
                       <TableCell>{t.non_compliance_issues}</TableCell>
                       <TableCell>{t.corrective_action_plan}</TableCell>
-                      <TableCell>{t.certification_expiry_date}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(t.certification_expiry_date)}</TableCell>
                     
                       <TableCell>
                       <DisableIfCannot slug={MODULE_SLUG} action="can_update">
