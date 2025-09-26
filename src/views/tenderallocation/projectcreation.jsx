@@ -268,6 +268,17 @@ const ProjectCreation = () => {
       }
 
       if (mode === 'cancel') {
+        // Validate required fields for cancel mode
+        if (!formData.refundDate || !formData.cancellationNote) {
+          alert('Please fill in Security Money Refund Date and Cancellation Notes.');
+          if (!formData.refundDate) {
+            refundDateRef?.current?.focus();
+          } else {
+            cancellationNoteRef?.current?.focus();
+          }
+          return;
+        }
+
         const payload = {
           status: 'Cancel',
           security_money_refund_date: formData.refundDate,
@@ -609,7 +620,7 @@ const ProjectCreation = () => {
             <>
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={12}>
-                  <label htmlFor="jobAllocationDate">Job Allocation Date</label>
+                  <label htmlFor="jobAllocationDate">Job Allocation Date <span style={{ color: 'red' }}>*</span></label>
                   <input
                     type="date"
                     id="jobAllocationDate"
@@ -621,7 +632,7 @@ const ProjectCreation = () => {
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <label htmlFor="govtProjectId">Govt. Project ID</label>
+                  <label htmlFor="govtProjectId">Govt. Project ID <span style={{ color: 'red' }}>*</span></label>
                   <input
                     type="text"
                     id="govtProjectId"
@@ -634,7 +645,7 @@ const ProjectCreation = () => {
                 </Grid>
               
                 <Grid item xs={12}>
-                  <label htmlFor="allocationStatus">Status</label>
+                  <label htmlFor="allocationStatus">Status <span style={{ color: 'red' }}>*</span></label>
                   <select
                     id="allocationStatus"
                     value={formData.allocationStatus}
@@ -651,9 +662,9 @@ const ProjectCreation = () => {
               
             </>
           ) : (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
-                <label htmlFor="refundDate">Security Money Refund Date</label>
+           <Grid container spacing={2} sx={{ mt: 1 }}>
+             <Grid item xs={12}>
+                <label htmlFor="refundDate">Security Money Refund Date <span style={{ color: 'red' }}>*</span></label>
                 <input
                   type="date"
                   id="refundDate"
@@ -665,7 +676,7 @@ const ProjectCreation = () => {
                 />
               </Grid>
               <Grid item xs={12}>
-                <label htmlFor="cancellationNote">Cancellation Notes</label>
+                <label htmlFor="cancellationNote">Cancellation Notes <span style={{ color: 'red' }}>*</span></label>
                 <textarea
                   id="cancellationNote"
                   rows={3}

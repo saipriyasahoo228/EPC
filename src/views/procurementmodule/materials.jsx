@@ -21,6 +21,7 @@ import { AddCircle, Edit, Delete,ArrowBackIos, ArrowForwardIos  } from "@mui/ico
 import CloseIcon from '@mui/icons-material/Close';
 import {getProjectsAccept } from '../../allapi/engineering';
 import {createMaterialProcurement, getMaterialProcurements,deleteProcurement,updateMaterialProcurement } from '../../allapi/procurement';
+import { getInventoryItems } from '../../allapi/inventory';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
 import { formatDateDDMMYYYY } from '../../utils/date';
@@ -61,6 +62,8 @@ const MaterialForm = () => {
   });
   
   const [procurements, setProcurements] = useState([]);
+  const [inventoryItems, setInventoryItems] = useState([]);
+  const [materialLookup, setMaterialLookup] = useState('');
   
 
   const toggleModalSize = () => {
@@ -113,30 +116,68 @@ useEffect(() => {
 }, []);
 
 
-
-
-// Handle input changes
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-  
-    setFormData((prevFormData) => {
-      const updatedFormData = {
-        ...prevFormData,
-        [name]: value,
-      };
-  
-      // Auto-calculate total cost if quantity or unit price changes
-      if (name === 'quantity' || name === 'unitPrice') {
-        const quantity = parseFloat(updatedFormData.quantity) || 0;
-        const unitPrice = parseFloat(updatedFormData.unitPrice) || 0;
-        const totalCost = (quantity * unitPrice).toFixed(2); // Calculate total cost and keep it two decimal places
-        updatedFormData.totalCost = totalCost; // Update total cost in the form data
-      }
-  
-      return updatedFormData;
-    });
+useEffect(() => {
+  const loadInventoryItems = async () => {
+    try {
+      const data = await getInventoryItems();
+      setInventoryItems(data);
+    } catch (error) {
+      console.error('Failed to load inventory items:', error);
+    }
   };
-  
+
+  loadInventoryItems();
+}, []);
+
+
+const handleChange = (event) => {
+  const { name, value } = event.target;
+
+  setFormData((prevFormData) => {
+    const updatedFormData = {
+      ...prevFormData,
+      [name]: value,
+    };
+
+    // Auto-calculate total cost if quantity or unit price changes
+    if (name === 'quantity' || name === 'unitPrice') {
+      const quantity = parseFloat(updatedFormData.quantity) || 0;
+      const unitPrice = parseFloat(updatedFormData.unitPrice) || 0;
+      const totalCost = (quantity * unitPrice).toFixed(2);
+      updatedFormData.totalCost = totalCost;
+    }
+
+    return updatedFormData;
+  });
+};
+
+const handleMaterialLookupChange = (event) => {
+  const value = event.target.value;
+  setMaterialLookup(value);
+
+  const parsedCode = value.includes(' - ')
+    ? value.split(' - ')[0].trim()
+    : value.trim();
+
+  const matchedItem = inventoryItems.find(
+    (item) => item.item_id === parsedCode || `${item.item_id} - ${item.item_name}` === value.trim()
+  );
+
+  if (matchedItem) {
+    setFormData((prev) => ({
+      ...prev,
+      materialCode: matchedItem.item_id,
+      materialName: matchedItem.item_name,
+    }));
+  } else {
+    setFormData((prev) => ({
+      ...prev,
+      materialCode: '',
+      materialName: '',
+    }));
+  }
+};
+
 const handleOpenForm = (projectId) => {
   const yearPrefix = new Date().getFullYear();
   const nextProcurementNumber = procurements.length + 1;
@@ -160,6 +201,7 @@ const handleOpenForm = (projectId) => {
     //purchaseOrder: '',
   });
 
+  setMaterialLookup('');
   setMode('create'); // ✅ Set mode
   setOpen(true);
 };
@@ -171,6 +213,26 @@ const handleClose = () => setOpen(false);
 
 
 const handleSubmit = async () => {
+  if (!formData.materialCode || !formData.materialName) {
+    alert('Please select a material from the list.');
+    return;
+  }
+
+  if (!formData.quantity || isNaN(Number(formData.quantity)) || Number(formData.quantity) <= 0) {
+    alert('Please enter the requested quantity (must be greater than 0).');
+    return;
+  }
+
+  if (!formData.requestedBy || !formData.requestedBy.trim()) {
+    alert('Please specify who requested the material.');
+    return;
+  }
+
+  if (!formData.requestDate) {
+    alert('Please select the request date.');
+    return;
+  }
+
   const form = new FormData();
 
   form.append('project', formData.projectId);
@@ -217,6 +279,7 @@ const handleSubmit = async () => {
     setSelectedProjectId(null);
     setOpen(false);
     setMode('create'); // reset to create mode
+    setMaterialLookup('');
 
     if (typeof fetchProcurements === 'function') {
       await fetchProcurements();
@@ -257,6 +320,11 @@ const handleSubmit = async () => {
     //purchaseOrder: procurement.purchase_order,
   });
 
+  setMaterialLookup(
+    procurement.material_code && procurement.material_name
+      ? `${procurement.material_code} - ${procurement.material_name}`
+      : procurement.material_code || ''
+  );
   setMode('update'); // Use this instead of setIsEditing(true)
   setOpen(true);     // Open the Dialog/Form
 };
@@ -544,6 +612,27 @@ const paginatedMaterial = filteredProcurements.slice(
       <h3 style={{ color: '#7267ef' }}>Material Information</h3>
       <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
       <Grid container spacing={2}>
+        <Grid item xs={12}>
+          <label htmlFor="materialLookup">Search Material (Code - Name)</label>
+          <input
+            list="materialOptions"
+            id="materialLookup"
+            name="materialLookup"
+            className="input"
+            value={materialLookup}
+            onChange={handleMaterialLookupChange}
+            placeholder="Type to search e.g., ITM-2025-0001"
+            autoComplete="off"
+          />
+          <datalist id="materialOptions">
+            {inventoryItems.map((item) => (
+              <option
+                key={item.item_id}
+                value={`${item.item_id} - ${item.item_name}`}
+              />
+            ))}
+          </datalist>
+        </Grid>
         <Grid item xs={6}>
           <label htmlFor="materialName">Material Name</label>
           <input
@@ -551,7 +640,8 @@ const paginatedMaterial = filteredProcurements.slice(
             name="materialName"
             className="input"
             value={formData.materialName || ''}
-            onChange={handleChange}
+            readOnly
+            disabled
           />
         </Grid>
         <Grid item xs={6}>
@@ -561,17 +651,20 @@ const paginatedMaterial = filteredProcurements.slice(
             name="materialCode"
             className="input"
             value={formData.materialCode || ''}
-            onChange={handleChange}
+            readOnly
+            disabled
           />
         </Grid>
         <Grid item xs={6}>
-          <label htmlFor="quantity">Quantity</label>
+          <label htmlFor="quantity">Quantity <span style={{color: 'red'}}>*</span></label>
           <input
+            type="number"
             id="quantity"
             name="quantity"
             className="input"
             value={formData.quantity || ''}
             onChange={handleChange}
+            min={0}
           />
         </Grid>
         <Grid item xs={6}>
@@ -603,7 +696,7 @@ const paginatedMaterial = filteredProcurements.slice(
   />
 </Grid>
         <Grid item xs={6}>
-          <label htmlFor="requestedBy">Requested By</label>
+          <label htmlFor="requestedBy">Requested By <span style={{color: 'red'}}>*</span></label>
           <input
             id="requestedBy"
             name="requestedBy"
@@ -613,7 +706,7 @@ const paginatedMaterial = filteredProcurements.slice(
           />
         </Grid>
         <Grid item xs={6}>
-          <label htmlFor="requestDate">Request Date</label>
+          <label htmlFor="requestDate">Request Date <span style={{color: 'red'}}>*</span></label>
           <input
             type="date"
             id="requestDate"

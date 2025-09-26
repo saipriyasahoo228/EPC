@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Pencil, Trash, Download, Maximize2, Minimize2 } from "lucide-react";
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
-import { Button, Badge } from '@mui/material';
+// Removed unused MUI imports for Button/Badge (we render row-level AuditTrail buttons instead)
 import AuditTrail from './tenderaudit';
 import { createTender, getTenders, updateTender, deleteTender } from '../../allapi/tenderAllocation'
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
@@ -409,14 +409,7 @@ const handleSubmit = async () => {
             Add Tender Details
           </button>
         </ShowIfCan>
-        <Badge 
-          badgeContent={auditTrail.length} 
-          color="primary" 
-          overlap="circular"
-          style={{ marginLeft: '1rem' }}
-        >
-          <AuditTrail auditTrail={auditTrail} />
-        </Badge>
+        {/* Row-level AuditTrail buttons are rendered in the table under Actions */}
       </div>
 
       {showModal && (
@@ -491,7 +484,7 @@ const handleSubmit = async () => {
             {/* Grid layout for form fields */}
             <div style={modalGridStyle}>
               <div>
-                <label>Tender Ref. No.</label>
+                <label>Tender Ref. No. <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   ref={(el) => inputRefs.current[0] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[1]?.focus()}
@@ -504,7 +497,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Location</label>
+                <label>Location <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   ref={(el) => inputRefs.current[1] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[2]?.focus()}
@@ -516,7 +509,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Release Date</label>
+                <label>Release Date <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   type="date" 
                   ref={(el) => inputRefs.current[2] = el}
@@ -529,7 +522,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Tender Value</label>
+                <label>Tender Value <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   type="number" 
                   ref={(el) => (inputRefs.current[3] = el)}
@@ -546,7 +539,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Amount</label>
+                <label>Amount <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   ref={(el) => inputRefs.current[4] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[5]?.focus()}
@@ -559,7 +552,7 @@ const handleSubmit = async () => {
               </div>
 
               <div>
-                <label>Validity Period</label>
+                <label>Validity Period <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   ref={(el) => inputRefs.current[5] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[6]?.focus()}
@@ -572,7 +565,7 @@ const handleSubmit = async () => {
               </div>
               
               <div style={fullWidthFieldStyle}>
-                <label>Conditions</label>
+                <label>Conditions <span style={{ color: 'red' }}>*</span></label>
                 <textarea 
                   ref={(el) => inputRefs.current[6] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[7]?.focus()}
@@ -612,7 +605,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Authority</label>
+                <label>Authority <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   ref={(el) => inputRefs.current[9] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[10]?.focus()}
@@ -624,7 +617,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Contact</label>
+                <label>Contact <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   ref={(el) => inputRefs.current[10] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[11]?.focus()}
@@ -636,7 +629,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Authorized Personnel</label>
+                <label>Authorized Personnel <span style={{ color: 'red' }}>*</span></label>
                 <input
                   ref={(el) => inputRefs.current[11] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[12]?.focus()} 
@@ -648,7 +641,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Start Date</label>
+                <label>Start Date <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   ref={(el) => inputRefs.current[12] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[13]?.focus()}
@@ -661,7 +654,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>End Date</label>
+                <label>End Date <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   ref={(el) => inputRefs.current[13] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[14]?.focus()}
@@ -674,7 +667,7 @@ const handleSubmit = async () => {
               </div>
               
               <div style={fullWidthFieldStyle}>
-                <label>Tender Description</label>
+                <label>Tender Description <span style={{ color: 'red' }}>*</span></label>
                 <textarea 
                   ref={(el) => inputRefs.current[14] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[15]?.focus()}
@@ -687,7 +680,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Status</label>
+                <label>Status <span style={{ color: 'red' }}>*</span></label>
                 <select 
                   ref={(el) => inputRefs.current[15] = el}
                   name="status" 
@@ -850,6 +843,7 @@ const handleSubmit = async () => {
                       <button
                         onClick={() => handleEdit(tender.tender_id)}
                         style={actionBtnStyleBlue}
+                        title="Edit Tender"
                       >
                         <Pencil size={18} color="#7267ef" />
                       </button>
@@ -858,10 +852,15 @@ const handleSubmit = async () => {
                       <button
                         onClick={() => handleDelete(tender.tender_id)}
                         style={actionBtnStyleRed}
+                        title="Delete Tender"
                       >
                         <Trash size={18} color="#800000" />
                       </button>
                     </ShowIfCan>
+                    {/* View Audit Trail for this tender */}
+                    <div style={{ display: 'inline-block', marginLeft: '4px' }}>
+                      <AuditTrail tenderId={tender.tender_id} triggerVariant="icon" />
+                    </div>
                   </td>
                 </tr>
               ))}

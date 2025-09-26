@@ -86,6 +86,7 @@ const toggleModalSize = () => {
   
     // Open form with a new vendor ID
     const handleOpenForm = (projectId) => {
+        setMode('create');
         setSelectedProjectId(projectId);
       
         // Determine the next vendor ID
@@ -95,7 +96,19 @@ const toggleModalSize = () => {
       
         const vendorId = `${yearPrefix}-VND-${formattedNumber}`;
       
-        setFormData({ vendorId });
+        setFormData({
+          vendorId,
+          vendorName: '',
+          contactPerson: '',
+          phoneNumber: '',
+          email: '',
+          address: '',
+          vendorRating: '',
+          complianceStatus: '',
+          approvedSupplier: '',
+          paymentTerms: '',
+          contractExpiryDate: '',
+        });
         setOpen(true);
       };
       
@@ -127,6 +140,27 @@ const toggleModalSize = () => {
 
 
 const handleSubmit = async () => {
+  if (!formData.complianceStatus) {
+    alert('Please select a compliance status before submitting.');
+    return;
+  }
+
+  const ratingNumber = Number(formData.vendorRating);
+  if (!ratingNumber || ratingNumber < 1 || ratingNumber > 5) {
+    alert('Vendor rating must be a number between 1 and 5.');
+    return;
+  }
+
+  if (!formData.contractExpiryDate) {
+    alert('Please select a contract expiry date.');
+    return;
+  }
+
+  if (!formData.paymentTerms || !formData.paymentTerms.trim()) {
+    alert('Please enter payment terms.');
+    return;
+  }
+
   const form = new FormData();
 
   form.append('project', selectedProjectId);
@@ -237,14 +271,18 @@ const handleDelete = async (vendorId) => {
     phoneNumber: vendor.phone_number || '',
     email: vendor.email || '',
     address: vendor.address || '',
-    vendorRating: vendor.vendor_rating || '',
+    vendorRating: vendor.vendor_rating !== undefined && vendor.vendor_rating !== null
+      ? vendor.vendor_rating.toString()
+      : '',
     complianceStatus: vendor.compliance_status || '',
     approvedSupplier:
       vendor.approved_supplier !== undefined
         ? vendor.approved_supplier.toString()
         : '',
     paymentTerms: vendor.payment_terms || '',
-    contractExpiryDate: vendor.contract_expiry_date || '',
+    contractExpiryDate: vendor.contract_expiry_date
+      ? new Date(vendor.contract_expiry_date).toISOString().slice(0, 10)
+      : '',
   });
 
   setMode('edit'); // Optional: to control button label
@@ -537,7 +575,7 @@ const paginatedVendor = filteredVendors.slice(
                         <input id="projectId" className="input" value={selectedProjectId} disabled />
                       </Grid>
             <Grid item xs={6}>
-              <label htmlFor="vendorName">Vendor Name</label>
+              <label htmlFor="vendorName">Vendor Name <span style={{color: 'red'}}>*</span></label>
               <input
                 id="vendorName"
                 name="vendorName"
@@ -547,7 +585,7 @@ const paginatedVendor = filteredVendors.slice(
               />
             </Grid>
             <Grid item xs={6}>
-              <label htmlFor="contactPerson">Contact Person</label>
+              <label htmlFor="contactPerson">Contact Person <span style={{color: 'red'}}>*</span></label>
               <input
                 id="contactPerson"
                 name="contactPerson"
@@ -566,7 +604,7 @@ const paginatedVendor = filteredVendors.slice(
           <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
           <Grid container spacing={2}>
             <Grid item xs={6}>
-              <label htmlFor="email">Email Address</label>
+              <label htmlFor="email">Email Address <span style={{color: 'red'}}>*</span></label>
               <input
                 id="email"
                 name="email"
@@ -577,7 +615,7 @@ const paginatedVendor = filteredVendors.slice(
               />
             </Grid>
              <Grid item xs={6}>
-              <label htmlFor="phoneNumber">Phone Number</label>
+              <label htmlFor="phoneNumber">Phone Number <span style={{color: 'red'}}>*</span></label>
               <input
                 id="phoneNumber"
                 name="phoneNumber"
@@ -587,7 +625,7 @@ const paginatedVendor = filteredVendors.slice(
               />
             </Grid>
             <Grid item xs={6}>
-              <label htmlFor="address">Address</label>
+              <label htmlFor="address">Address <span style={{color: 'red'}}>*</span></label>
               <textarea
                 id="address"
                 name="address"
@@ -598,7 +636,7 @@ const paginatedVendor = filteredVendors.slice(
               />
             </Grid>
             <Grid item xs={6}>
-              <label htmlFor="vendorRating">Vendor Rating</label>
+              <label htmlFor="vendorRating">Vendor Rating <span style={{color: 'red'}}>*</span></label>
               <input
                 type="number"
                 id="vendorRating"
@@ -611,7 +649,7 @@ const paginatedVendor = filteredVendors.slice(
               />
             </Grid>
             <Grid item xs={6}>
-  <label htmlFor="complianceStatus">Compliance Status</label>
+  <label htmlFor="complianceStatus">Compliance Status <span style={{color: 'red'}}>*</span></label>
   <select
     id="complianceStatus"
     name="complianceStatus"
@@ -650,7 +688,7 @@ const paginatedVendor = filteredVendors.slice(
 
             </Grid>
             <Grid item xs={6}>
-              <label htmlFor="paymentTerms">Payment Terms</label>
+              <label htmlFor="paymentTerms">Payment Terms <span style={{color: 'red'}}>*</span></label>
               <input
                 id="paymentTerms"
                 name="paymentTerms"
@@ -660,7 +698,7 @@ const paginatedVendor = filteredVendors.slice(
               />
             </Grid>
             <Grid item xs={6}>
-              <label htmlFor="contractExpiryDate">Contract Expiry Date</label>
+              <label htmlFor="contractExpiryDate">Contract Expiry Date <span style={{color: 'red'}}>*</span></label>
               <input
                 type="date"
                 id="contractExpiryDate"

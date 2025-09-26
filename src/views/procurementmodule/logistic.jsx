@@ -232,6 +232,41 @@ const handleOpenForm = (index) => {
 // };
 
 const handleSubmit = async () => {
+  if (!formData.transportId || !formData.transportId.trim()) {
+    alert('Please provide the transport provider ID.');
+    return;
+  }
+
+  if (!formData.vehicleDetails || !formData.vehicleDetails.trim()) {
+    alert('Please enter the vehicle details.');
+    return;
+  }
+
+  if (!formData.driverName || !formData.driverName.trim()) {
+    alert('Please enter the driver name.');
+    return;
+  }
+
+  if (!formData.dispatchDate) {
+    alert('Please select the dispatch date.');
+    return;
+  }
+
+  if (!formData.expectedArrivalDate) {
+    alert('Please select the expected delivery date.');
+    return;
+  }
+
+  if (!formData.actualArrivalDate) {
+    alert('Please select the actual delivery date.');
+    return;
+  }
+
+  if (!formData.deliveryLocation || !formData.deliveryLocation.trim()) {
+    alert('Please enter the delivery location.');
+    return;
+  }
+
   try {
     const payload = {
       po_number: formData.purchaseOrderId,
@@ -615,7 +650,7 @@ const handleEdit = (index) => {
       <Grid container spacing={2}>
         
         <Grid item xs={6}>
-          <label htmlFor="transportId">Transport provider Id</label>
+          <label htmlFor="transportId">Transport Provider ID <span style={{color: 'red'}}>*</span></label>
           <input
           
             id="transportId"
@@ -626,7 +661,7 @@ const handleEdit = (index) => {
           />
         </Grid>
         <Grid item xs={6}>
-          <label htmlFor="vehicleDetails">Vehicle Details</label>
+          <label htmlFor="vehicleDetails">Vehicle Details <span style={{color: 'red'}}>*</span></label>
           <input
             id="vehicleDetails"
             name="vehicleDetails"
@@ -636,7 +671,7 @@ const handleEdit = (index) => {
           />
         </Grid>
         <Grid item xs={6}>
-          <label htmlFor="driverName">Driver Name</label>
+          <label htmlFor="driverName">Driver Name <span style={{color: 'red'}}>*</span></label>
           <input
             id="driverName"
             name="driverName"
@@ -654,7 +689,7 @@ const handleEdit = (index) => {
       <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
       <Grid container spacing={2}>
       <Grid item xs={6}>
-  <label htmlFor="dispatchDate">Dispatch Date</label>
+  <label htmlFor="dispatchDate">Dispatch Date <span style={{color: 'red'}}>*</span></label>
   <input
     type="date"
     id="dispatchDate"
@@ -666,7 +701,7 @@ const handleEdit = (index) => {
   />
 </Grid>
 <Grid item xs={6}>
-  <label htmlFor="expectedArrivalDate">Expected Arrival Date</label>
+  <label htmlFor="expectedArrivalDate">Expected Arrival Date <span style={{color: 'red'}}>*</span></label>
   <input
     type="date"
     id="expectedArrivalDate"
@@ -678,7 +713,7 @@ const handleEdit = (index) => {
   />
 </Grid>
 <Grid item xs={6}>
-  <label htmlFor="actualArrivalDate">Actual Arrival Date</label>
+  <label htmlFor="actualArrivalDate">Actual Arrival Date <span style={{color: 'red'}}>*</span></label>
   <input
     type="date"
     id="actualArrivalDate"
@@ -690,7 +725,7 @@ const handleEdit = (index) => {
   />
 </Grid>
 <Grid item xs={6}>
-  <label htmlFor="deliveryLocation">Delivery Location</label>
+  <label htmlFor="deliveryLocation">Delivery Location <span style={{color: 'red'}}>*</span></label>
   <input
     
     id="deliveryLocation"

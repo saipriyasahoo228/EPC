@@ -166,6 +166,31 @@ useEffect(() => {
 const handleSubmit = async (e) => {
   e.preventDefault();
 
+  if (!formData.orderDate) {
+    alert('Please select the order date.');
+    return;
+  }
+
+  if (!formData.deliveryDate) {
+    alert('Please select the delivery date.');
+    return;
+  }
+
+  if (!formData.totalOrderValue || Number(formData.totalOrderValue) <= 0) {
+    alert('Please enter the total order value (must be greater than 0).');
+    return;
+  }
+
+  if (!formData.paymentTerms || !formData.paymentTerms.trim()) {
+    alert('Please enter the payment terms.');
+    return;
+  }
+
+  if (!formData.taxDetails || !formData.taxDetails.trim()) {
+    alert('Please enter the tax details.');
+    return;
+  }
+
   const payload = {
     vendor: formData.vendorId,
     procurement: formData.procurementId,
@@ -497,7 +522,7 @@ const handleDelete = async (po_id) => {
       <Grid container spacing={2}>
         
         <Grid item xs={6}>
-          <label htmlFor="orderDate">Order Date </label>
+          <label htmlFor="orderDate">Order Date <span style={{color: 'red'}}>*</span></label>
           <input
             type="date"
             id="orderDate"
@@ -508,7 +533,7 @@ const handleDelete = async (po_id) => {
           />
         </Grid>
          <Grid item xs={6}>
-          <label htmlFor="deliveryDate">Dalivery Date </label>
+          <label htmlFor="deliveryDate">Delivery Date <span style={{color: 'red'}}>*</span></label>
           <input
             type="date"
             id="deliveryDate"
@@ -519,7 +544,7 @@ const handleDelete = async (po_id) => {
           />
         </Grid>
         <Grid item xs={6}>
-          <label htmlFor="totalOrderValue">Total Order Value</label>
+          <label htmlFor="totalOrderValue">Total Order Value <span style={{color: 'red'}}>*</span></label>
           <input
             type="number"
             id="totalOrderValue"
@@ -530,7 +555,7 @@ const handleDelete = async (po_id) => {
           />
         </Grid>
         <Grid item xs={6}>
-          <label htmlFor="paymentTerms">Payment Terms</label>
+          <label htmlFor="paymentTerms">Payment Terms <span style={{color: 'red'}}>*</span></label>
           <input
             id="paymentTerms"
             name="paymentTerms"
@@ -548,7 +573,7 @@ const handleDelete = async (po_id) => {
       <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
       <Grid container spacing={2}>
       <Grid item xs={6}>
-  <label htmlFor="taxDetails">Tax Details</label>
+  <label htmlFor="taxDetails">Tax Details <span style={{color: 'red'}}>*</span></label>
   <input
     id="taxDetails"
     name="taxDetails"
