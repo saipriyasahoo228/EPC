@@ -24,6 +24,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import {getProjectsAccept, createFeasibilityStudy, fetchFeasibilityStudies, patchFeasibilityStudy, deleteFeasibilityStudy} from '../../allapi/engineering';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const FeasibilityForm = () => {
@@ -386,12 +387,12 @@ const toggleModalSize = () => {
                       <TableCell>{study.estimated_completion_time}</TableCell>
                       <TableCell>{study.recommendations}</TableCell>
                       <TableCell>{study.approval_status}</TableCell>
-                      <TableCell>{study.approval_date}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(study.approval_date)}</TableCell>
                       <TableCell>{study.status}</TableCell>
 
                       <TableCell>
   {/* Edit Button */}
-  <DisableIfCannot slug={MODULE_SLUG} action="can_edit">
+  <DisableIfCannot slug={MODULE_SLUG} action="can_update">
   <IconButton color="warning" onClick={() => handleEdit(study)}>
     <Edit sx={{ color: "orange" }} />
   </IconButton>

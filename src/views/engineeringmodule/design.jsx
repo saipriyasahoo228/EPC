@@ -23,6 +23,7 @@ import { AddCircle, Edit, Delete , ArrowBackIos, ArrowForwardIos } from "@mui/ic
 import CloseIcon from '@mui/icons-material/Close';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 
@@ -393,12 +394,12 @@ const toggleModalSize = () => {
       <TableCell>{d.prepared_by}</TableCell>
       <TableCell>{d.reviewed_by}</TableCell>
       <TableCell>{d.approval_status}</TableCell>
-      <TableCell>{d.approval_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(d.approval_date)}</TableCell>
       <TableCell>{d.compliance_standard}</TableCell>
       <TableCell>{d.design_constraints}</TableCell>
       <TableCell>{d.estimated_budget}</TableCell>
       <TableCell>{d.resource_requirements}</TableCell>
-      <TableCell>{d.design_completion_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(d.design_completion_date)}</TableCell>
       <TableCell>{d.status}</TableCell>
       <TableCell>
         <DisableIfCannot slug={MODULE_SLUG} action="can_update">

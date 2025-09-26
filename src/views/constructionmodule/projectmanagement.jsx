@@ -24,6 +24,7 @@ import { getProjectsAccept } from "../../allapi/engineering";
 import { createProject,fetchConstructionProjects,deleteConstructionProject ,updateConstructionProject} from "../../allapi/construction"; 
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 import { Maximize2, Minimize2 } from "lucide-react";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 
@@ -340,8 +341,8 @@ const handleDelete = async (projectId) => {
       <TableCell>{p.project_type}</TableCell>
       <TableCell>{p.client_name}</TableCell>
       <TableCell>{p.project_location}</TableCell>
-      <TableCell>{p.start_date}</TableCell>
-      <TableCell>{p.end_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(p.start_date)}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(p.end_date)}</TableCell>
       <TableCell>{p.project_manager_id}</TableCell>
       <TableCell>{p.project_manager_name}</TableCell>
       <TableCell>{p.project_status}</TableCell>

@@ -25,6 +25,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering";
 import {createQualityControl,getQualityControls,updateQualityControl,deleteQualityControl} from "../../allapi/construction";
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 const QualityControl = () => {
   const MODULE_SLUG = 'construction';
@@ -308,7 +309,7 @@ useEffect(() => {
                     <TableRow key={i}>
                       <TableCell>{q.project}</TableCell>
                       <TableCell>{q.qc_id}</TableCell>
-                      <TableCell>{q.inspection_date}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(q.inspection_date)}</TableCell>
                       <TableCell>{q.inspection_type}</TableCell>
                       <TableCell>{q.inspector_id}</TableCell>
                       <TableCell>{q.test_results}</TableCell>
@@ -316,7 +317,7 @@ useEffect(() => {
                       <TableCell>{q.defects_identified}</TableCell>
                       <TableCell>{q.corrective_actions}</TableCell>
                       <TableCell>{q.approval_status}</TableCell>
-                      <TableCell>{q.next_inspection_date}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(q.next_inspection_date)}</TableCell>
                       <TableCell>
 
                       <DisableIfCannot slug={MODULE_SLUG} action="can_update">

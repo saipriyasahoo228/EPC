@@ -22,6 +22,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { getMaterialProcurements ,createPurchaseOrder, getPurchaseOrders, deletePurchaseOrder,updatePurchaseOrder,getVendors } from '../../allapi/procurement';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const PurchaseOrder = () => {
@@ -339,8 +340,8 @@ const handleDelete = async (po_id) => {
           <TableCell>{p.po_number}</TableCell>
           <TableCell>{p.vendor}</TableCell>
           <TableCell>{p.procurement}</TableCell>
-          <TableCell>{p.order_date}</TableCell>
-          <TableCell>{p.delivery_date}</TableCell>
+          <TableCell>{formatDateDDMMYYYY(p.order_date)}</TableCell>
+          <TableCell>{formatDateDDMMYYYY(p.delivery_date)}</TableCell>
           <TableCell>{p.total_order_value}</TableCell>
           <TableCell>{p.payment_terms}</TableCell>
           <TableCell>{p.tax_details}</TableCell>

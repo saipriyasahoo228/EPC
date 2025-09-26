@@ -6,6 +6,7 @@ import { Button, Badge } from '@mui/material';
 import AuditTrail from './tenderaudit';
 import { createTender, getTenders, updateTender, deleteTender } from '../../allapi/tenderAllocation'
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 const TenderDetailsEntry = () => {
   const MODULE_SLUG = 'tender_allocation';
@@ -830,18 +831,18 @@ const handleSubmit = async () => {
                   <td style={tableCellStyle}>{tender.tender_id}</td>
                   <td style={tableCellStyle}>{tender.tender_ref_no}</td>
                   <td style={tableCellStyle}>{tender.location}</td>
-                  <td style={tableCellStyle}>{tender.release_date}</td>
+                  <td style={tableCellStyle}>{formatDateDDMMYYYY(tender.release_date)}</td>
                   <td style={tableCellStyle}>{tender.tender_value}</td>
                   <td style={tableCellStyle}>{tender.emd_details?.amount}</td>
-                  <td style={tableCellStyle}>{tender.emd_details?.validity}</td>
+                  <td style={tableCellStyle}>{formatDateDDMMYYYY(tender.emd_details?.validity)}</td>
                   <td style={tableCellStyle}>{tender.emd_details?.conditions}</td>
-                  <td style={tableCellStyle}>{tender.emd_details?.refund_date}</td>
+                  <td style={tableCellStyle}>{formatDateDDMMYYYY(tender.emd_details?.refund_date)}</td>
                   <td style={tableCellStyle}>{typeof tender.emd_details?.is_refunded === 'boolean' ? (tender.emd_details.is_refunded ? 'Yes' : 'No') : ''}</td>
                   <td style={tableCellStyle}>{tender.authority}</td>
                   <td style={tableCellStyle}>{tender.contact}</td>
                   <td style={tableCellStyle}>{tender.authorized_personnel}</td>
-                  <td style={tableCellStyle}>{tender.start_date}</td>
-                  <td style={tableCellStyle}>{tender.end_date}</td>
+                  <td style={tableCellStyle}>{formatDateDDMMYYYY(tender.start_date)}</td>
+                  <td style={tableCellStyle}>{formatDateDDMMYYYY(tender.end_date)}</td>
                   <td style={tableCellStyle}>{tender.tender_description}</td>
                   <td style={tableCellStyle}>{tender.status}</td>
                   <td style={tableCellStyle}>

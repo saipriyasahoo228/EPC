@@ -23,6 +23,7 @@ import {getProjectsAccept } from '../../allapi/engineering';
 import {createMaterialProcurement, getMaterialProcurements,deleteProcurement,updateMaterialProcurement } from '../../allapi/procurement';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const MaterialForm = () => {
@@ -412,10 +413,10 @@ const paginatedMaterial = filteredProcurements.slice(
       <TableCell>{p.unit_price}</TableCell>
       <TableCell>{p.total_cost}</TableCell>
       <TableCell>{p.requested_by}</TableCell>
-      <TableCell>{p.request_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(p.request_date)}</TableCell>
       <TableCell>{p.approval_status}</TableCell>
       <TableCell>{p.payment_status}</TableCell>
-      <TableCell>{p.expected_delivery_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(p.expected_delivery_date)}</TableCell>
       <TableCell>
       <DisableIfCannot slug={MODULE_SLUG} action="can_update">
 

@@ -24,6 +24,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { getInventoryItems,createStockReturn,getStockReturns,deleteStockReturn,updateStockReturn } from "../../allapi/inventory";
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 import { Maximize2, Minimize2 } from "lucide-react";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const StockReturn = () => {
@@ -371,7 +372,7 @@ const handleSubmit = async () => {
       <TableCell>{item.return_quantity}</TableCell>
       <TableCell>{item.return_reason}</TableCell>
       <TableCell>{item.returned_by}</TableCell>
-      <TableCell>{item.return_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(item.return_date)}</TableCell>
       <TableCell>{item.stock_adjustment_id}</TableCell>
       <TableCell>{item.adjustment_type}</TableCell>
       <TableCell>{item.wastage_reason}</TableCell>

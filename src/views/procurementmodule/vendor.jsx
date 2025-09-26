@@ -24,6 +24,7 @@ import {getProjectsAccept} from '../../allapi/engineering';
 import {createVendor,getVendors,deleteVendor,updateVendor} from '../../allapi/procurement';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 
@@ -419,7 +420,7 @@ const paginatedVendor = filteredVendors.slice(
         <TableCell>{v.compliance_status}</TableCell>
         <TableCell>{v.approvedSupplier ? "Yes" : "No"}</TableCell>
         <TableCell>{v.payment_terms}</TableCell>
-        <TableCell>{v.contract_expiry_date}</TableCell>
+        <TableCell>{formatDateDDMMYYYY(v.contract_expiry_date)}</TableCell>
         <TableCell>
         <DisableIfCannot slug={MODULE_SLUG} action="can_update">
           <IconButton color="warning" onClick={() => handleEdit(v)}>

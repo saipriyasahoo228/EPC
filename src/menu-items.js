@@ -262,7 +262,7 @@ const menuItems = {
             },
             {
               id: 'system',
-              title: 'Syatem Integration',
+              title: 'System Integration',
               type: 'item',
               url: '/systemintegration'
             }

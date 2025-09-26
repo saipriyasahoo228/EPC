@@ -39,6 +39,7 @@ import { getTenders,getTenderbyID,createProjectFromTender,cancelTender,getProjec
 import { getUser, getGroups } from '../../allapi/user';
 import { getEffectiveUserPermissions } from '../../allapi/access';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+import { formatDateDDMMYYYY } from '../../utils/date';
 const ProjectCreation = () => {
   const MODULE_SLUG = 'tender_allocation';
   const today = new Date().toISOString().split('T')[0];
@@ -458,9 +459,9 @@ const ProjectCreation = () => {
              
               <TableCell>{proj.project_id || '-'}</TableCell>
               <TableCell>{proj.govt_project_id || '-'}</TableCell>
-              <TableCell>{proj.job_allocation_date || '-'}</TableCell>
+              <TableCell>{proj.job_allocation_date ? formatDateDDMMYYYY(proj.job_allocation_date) : '-'}</TableCell>
               <TableCell>{proj.allocation_state || '-'}</TableCell>
-              <TableCell>{proj.security_money_refund_date || '-'}</TableCell>
+              <TableCell>{proj.security_money_refund_date ? formatDateDDMMYYYY(proj.security_money_refund_date) : '-'}</TableCell>
               <TableCell>{typeof proj.security_money_amount === 'number' ? `₹ ${proj.security_money_amount}` : (proj.security_money_amount || '-')}</TableCell>
               <TableCell>{proj.description || '-'}</TableCell>
               <TableCell>
@@ -514,9 +515,9 @@ const ProjectCreation = () => {
               <TableCell>{proj.tender}</TableCell>
               <TableCell>{proj.project_id || '-'}</TableCell>
               <TableCell>{proj.govt_project_id || '-'}</TableCell>
-              <TableCell>{proj.job_allocation_date || '-'}</TableCell>
+              <TableCell>{proj.job_allocation_date ? formatDateDDMMYYYY(proj.job_allocation_date) : '-'}</TableCell>
               <TableCell>{proj.allocation_state || '-'}</TableCell>
-              <TableCell>{proj.security_money_refund_date || '-'}</TableCell>
+              <TableCell>{proj.security_money_refund_date ? formatDateDDMMYYYY(proj.security_money_refund_date) : '-'}</TableCell>
               <TableCell>{proj.security_money_amount || '-'}</TableCell>
               <TableCell>{proj.description || '-'}</TableCell>
               <TableCell>
@@ -584,23 +585,23 @@ const ProjectCreation = () => {
     <Typography><strong>Tender ID:</strong> {selectedTender?.tender_id}</Typography>
     <Typography><strong>Reference No:</strong> {selectedTender?.tender_ref_no}</Typography>
     <Typography><strong>Location:</strong> {selectedTender?.location}</Typography>
-    <Typography><strong>Release Date:</strong> {selectedTender?.release_date}</Typography>
+    <Typography><strong>Release Date:</strong> {formatDateDDMMYYYY(selectedTender?.release_date)}</Typography>
     <Typography><strong>Tender Value:</strong> ₹{selectedTender?.tender_value}</Typography>
 
     <Typography><strong>EMD Details:</strong></Typography>
     <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
       <li><strong>Amount:</strong> ₹{selectedTender?.emd_details?.amount}</li>
-      <li><strong>Validity:</strong> {selectedTender?.emd_details?.validity}</li>
+      <li><strong>Validity:</strong> {formatDateDDMMYYYY(selectedTender?.emd_details?.validity)}</li>
       <li><strong>Conditions:</strong> {selectedTender?.emd_details?.conditions}</li>
-      <li><strong>Refund Date:</strong> {selectedTender?.emd_details?.refund_date || '-'}</li>
+      <li><strong>Refund Date:</strong> {selectedTender?.emd_details?.refund_date ? formatDateDDMMYYYY(selectedTender?.emd_details?.refund_date) : '-'}</li>
       <li><strong>Is Refunded:</strong> {typeof selectedTender?.emd_details?.is_refunded === 'boolean' ? (selectedTender.emd_details.is_refunded ? 'Yes' : 'No') : '-'}</li>
     </ul>
 
     <Typography><strong>Authority:</strong> {selectedTender?.authority}</Typography>
     <Typography><strong>Contact:</strong> {selectedTender?.contact}</Typography>
     <Typography><strong>Authorized Personnel:</strong> {selectedTender?.authorized_personnel}</Typography>
-    <Typography><strong>Start Date:</strong> {selectedTender?.start_date}</Typography>
-    <Typography><strong>End Date:</strong> {selectedTender?.end_date}</Typography>
+    <Typography><strong>Start Date:</strong> {formatDateDDMMYYYY(selectedTender?.start_date)}</Typography>
+    <Typography><strong>End Date:</strong> {formatDateDDMMYYYY(selectedTender?.end_date)}</Typography>
     <Typography><strong>Description:</strong> {selectedTender?.tender_description}</Typography>
     <Typography><strong>Status:</strong> {selectedTender?.status}</Typography>
   </>

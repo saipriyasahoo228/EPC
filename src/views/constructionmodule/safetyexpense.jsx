@@ -31,6 +31,7 @@ import {
   deleteSafetyExpense,
 } from "../../allapi/construction";
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 const SafetyExpense = () => {
   const MODULE_SLUG = "construction";
@@ -300,7 +301,7 @@ const SafetyExpense = () => {
                       <TableCell>{e.expense_type}</TableCell>
                       <TableCell>₹ {Number(e.amount || 0).toLocaleString("en-IN")}</TableCell>
                       <TableCell>{e.safety_management || "-"}</TableCell>
-                      <TableCell>{(e.date_incurred || "").slice(0, 10)}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(e.date_incurred)}</TableCell>
                       <TableCell>{e.description || "-"}</TableCell>
                       <TableCell>
                         <DisableIfCannot slug={MODULE_SLUG} action="can_update">

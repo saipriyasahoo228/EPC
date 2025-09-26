@@ -22,6 +22,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { getMaterialProcurements , createLogistics,fetchLogistics,deleteLogistics,updateLogistics} from "../../allapi/procurement";
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 
@@ -475,9 +476,9 @@ const handleEdit = (index) => {
                       <TableCell>{p.transportId}</TableCell>
                       <TableCell>{p.vehicleDetails}</TableCell>
                       <TableCell>{p.driverName}</TableCell>
-                      <TableCell>{p.dispatchDate}</TableCell>
-                      <TableCell>{p.expectedArrivalDate}</TableCell>
-                      <TableCell>{p.actualArrivalDate}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(p.dispatchDate)}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(p.expectedArrivalDate)}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(p.actualArrivalDate)}</TableCell>
                       <TableCell>{p.deliveryLocation}</TableCell>
                       <TableCell>{p.shippingStatus}</TableCell>
                       <TableCell>{p.damageReport}</TableCell>
