@@ -23,7 +23,10 @@ import { AddCircle, Edit, Delete , ArrowBackIos, ArrowForwardIos } from "@mui/ic
 import CloseIcon from '@mui/icons-material/Close';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
-
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 
 
@@ -268,6 +271,67 @@ const toggleModalSize = () => {
   };
 
 
+
+  const downloadPDF = (designs) => {
+  const doc = new jsPDF("l", "mm", "a4"); // landscape
+  doc.setFontSize(16);
+  doc.text("All Designs Report", 14, 15);
+
+  const tableColumn = [
+    "Project",
+    "Design ID",
+    "Name",
+    "Type",
+    "Version",
+    "Prepared By",
+    "Reviewed By",
+    "Approval Status",
+    "Approval Date",
+    "Compliance Standard",
+    "Constraints",
+    "Budget",
+    "Resources",
+    "Completion Date",
+    "Status",
+  ];
+
+  const tableRows = designs.map((d) => [
+    d.project,
+    d.design_id,
+    d.design_name,
+    d.design_type,
+    d.version_number,
+    d.prepared_by,
+    d.reviewed_by,
+    d.approval_status,
+    d.approval_date,
+    d.compliance_standard,
+    d.design_constraints,
+    d.estimated_budget,
+    d.resource_requirements,
+    d.design_completion_date,
+    d.status,
+  ]);
+
+  autoTable(doc, {
+    head: [tableColumn],
+    body: tableRows,
+    startY: 25,
+    styles: {
+      fontSize: 6,        // shrink font a bit
+      cellPadding: 2,
+      cellWidth: "auto",  // auto-adjust column width
+      overflow: "linebreak",
+    },
+    headStyles: { fillColor: [114, 103, 239] },
+    tableWidth: "auto",   // fit entire table to page
+  });
+
+  doc.save("all_designs_report.pdf");
+};
+
+
+
   return (
     <>
       <Typography variant="h5"  gutterBottom sx={{ mt: 5 }} >Design Management</Typography>
@@ -351,6 +415,12 @@ const toggleModalSize = () => {
       <Grid container spacing={2}>
   <Grid item xs={12}>
     <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+       <Button
+      startIcon={<DownloadIcon />}
+      onClick={() => downloadPDF(designs)}
+    >
+    
+    </Button>
       <Typography variant="h6" gutterBottom>SUBMITTED DESIGNS</Typography>
       <input
         type="text"
@@ -359,6 +429,7 @@ const toggleModalSize = () => {
         onChange={(e) => setSearchQuery(e.target.value)}
         className="input"
       />
+     
 
       <TableContainer sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd' }}>
         <Table stickyHeader>

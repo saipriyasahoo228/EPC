@@ -24,6 +24,10 @@ import CloseIcon from '@mui/icons-material/Close';
 import {getProjectsAccept, createFeasibilityStudy, fetchFeasibilityStudies, patchFeasibilityStudy, deleteFeasibilityStudy} from '../../allapi/engineering';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 
 const FeasibilityForm = () => {
@@ -211,6 +215,64 @@ const handleDelete = async (feasibilityStudyId) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
   
+  const downloadPDF = (feasibilityStudies) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All Feasibility Report", 14, 15);
+  
+    const tableColumn = [
+  "Project ID",
+  "Feasibility Study ID",
+  "Study Title",
+  "Study Type",
+  "Prepared By",
+  "Risk Assessment",
+  "Regulatory Compliance",
+  "Projected ROI (%)",
+  "Est. Completion Time",
+  "Recommendations",
+  "Approval Status",
+  "Approval Date",
+  "Status",
+  "Actions",
+];
+
+  
+   const tableRows = feasibilityStudies.map((study) => [
+  study.project,
+  study.feasibility_study_id,
+  study.study_title,
+  study.study_type,
+  study.prepared_by,
+  study.risk_assessment,
+  study.regulatory_compliance,
+  study.projected_roi,
+  study.estimated_completion_time,
+  study.recommendations,
+  study.approval_status,
+  study.approval_date,
+  study.status,
+]);
+
+  
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
+    });
+  
+    doc.save("feasibility report.pdf");
+  };
+  
+  
   
 
 
@@ -343,7 +405,12 @@ const toggleModalSize = () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+             <Button
+                  startIcon={<DownloadIcon />}
+                  onClick={() => downloadPDF(feasibilityStudies)}
+                ></Button>
             <Typography variant="h6" gutterBottom>SUBMITTED FEASIBILITY STUDIES</Typography>
+            
             <input
               type="text"
               placeholder="Search Feasibility Studies"

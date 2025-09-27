@@ -54,8 +54,20 @@ export const createMaterialProcurement = async (formData) => {
   }
 };
 
-//Get api for procurement details
+//Get api for procurement details project-wise
 export const getMaterialProcurements = async () => {
+  try {
+    const response = await api.get('/procurement/material-procurement/project-wise/');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching material procurements:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+//Get material details 
+export const getMaterial = async () => {
   try {
     const response = await api.get('/procurement/material/');
     return response.data;
@@ -64,7 +76,6 @@ export const getMaterialProcurements = async () => {
     throw error;
   }
 };
-
 
 // PATCH Material Procurement with FormData
 export const updateMaterialProcurement = async (procurementId, formData) => {

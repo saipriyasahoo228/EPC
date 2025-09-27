@@ -24,8 +24,10 @@ import {getProjectsAccept} from '../../allapi/engineering';
 import {createVendor,getVendors,deleteVendor,updateVendor} from '../../allapi/procurement';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
-
-
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 const VendorForm = () => {
     // Initialize state variables
@@ -43,11 +45,6 @@ const VendorForm = () => {
     const [isModalMaximized, setIsModalMaximized] = useState(false);
     const [vendorPage, setVendorPage] = useState(1);
     const vendorRowsPerPage = 5;
-    
-    
-
-
-
     const [formData, setFormData] = useState({
         vendorId: '',
         vendorName: '',
@@ -268,6 +265,64 @@ const paginatedVendor = filteredVendors.slice(
   (vendorPage - 1) * vendorRowsPerPage,
   vendorPage * vendorRowsPerPage
 );
+
+
+
+const downloadPDF = (vendors) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All Feasibility Report", 14, 15);
+  
+   const tableColumn = [
+  "Project",
+  "Vendor ID",
+  "Vendor Name",
+  "Contact Person",
+  "Phone Number",
+  "Email",
+  "Address",
+  "Rating",
+  "Compliance Status",
+  "Approved Supplier",
+  "Payment Terms",
+  "Contract Expiry Date",
+];
+
+  
+   const tableRows = vendors.map((v) => [
+  v.project,
+  v.vendor_id,
+  v.vendor_name,
+  v.contact_person,
+  v.phone_number,
+  v.email,
+  v.address,
+  v.vendor_rating,
+  v.compliance_status,
+  v.approvedSupplier ? "Yes" : "No",
+  v.payment_terms,
+  v.contract_expiry_date,
+]);
+
+
+  
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
+    });
+  
+    doc.save("vendor report.pdf");
+  };
+  
     
   
 
@@ -378,6 +433,10 @@ const paginatedVendor = filteredVendors.slice(
       <Grid container spacing={2}>
   <Grid item xs={12}>
     <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+      <Button
+          startIcon={<DownloadIcon />}
+          onClick={() => downloadPDF(vendors)}
+          ></Button>
       <Typography variant="h6" gutterBottom>SUBMITTED VENDOR RECORDS</Typography>
       <input
         type="text"

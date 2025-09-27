@@ -19,9 +19,12 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
-import { getMaterialProcurements ,createPurchaseOrder, getPurchaseOrders, deletePurchaseOrder,updatePurchaseOrder,getVendors } from '../../allapi/procurement';
+import { getMaterialProcurements ,createPurchaseOrder, getPurchaseOrders, deletePurchaseOrder,updatePurchaseOrder,getVendors ,getMaterial} from '../../allapi/procurement';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import DownloadIcon from "@mui/icons-material/Download";
 
 
 const PurchaseOrder = () => {
@@ -65,7 +68,7 @@ const PurchaseOrder = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getMaterialProcurements();
+        const data = await getMaterial();
         setProcurements(data);
       } catch (error) {
         console.error('Failed to fetch procurements:', error);
@@ -248,6 +251,62 @@ const handleDelete = async (po_id) => {
     )
   );
 
+
+  
+  const downloadPDF = (purchaseOrders) => {
+      const doc = new jsPDF("l", "mm", "a4"); // landscape
+      doc.setFontSize(16);
+      doc.text("All Purchase Order Report", 14, 15);
+    
+     const tableColumn = [
+  "PO Number",
+  "Vendor",
+  "Procurement",
+  "Order Date",
+  "Delivery Date",
+  "Total Order Value",
+  "Payment Terms",
+  "Tax Details",
+  "Order Status",
+  "Invoice ID",
+];
+
+  
+    const tableRows = purchaseOrders.map((p) => [
+  p.po_number,
+  p.vendor,
+  p.procurement,
+  p.order_date,
+  p.delivery_date,
+  p.total_order_value,
+  p.payment_terms,
+  p.tax_details,
+  p.order_status,
+  p.invoice_id,
+]);
+
+  
+    
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 25,
+        styles: {
+          fontSize: 6,        // shrink font a bit
+          cellPadding: 2,
+          cellWidth: "auto",  // auto-adjust column width
+          overflow: "linebreak",
+        },
+        headStyles: { fillColor: [114, 103, 239] },
+        tableWidth: "auto",   // fit entire table to page
+      });
+    
+      doc.save("purchase_report.pdf");
+    };
+    
+      
+    
+
   return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Purchase Order</Typography>
@@ -307,6 +366,10 @@ const handleDelete = async (po_id) => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+            <Button
+                      startIcon={<DownloadIcon />}
+                      onClick={() => downloadPDF(purchaseOrders)}
+                      ></Button>
             <Typography variant="h6" gutterBottom>SUBMITTED PURCHASE RECORDS</Typography>
             <input
               type="text"

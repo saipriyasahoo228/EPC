@@ -17,18 +17,23 @@ import {
   TableContainer,
   Paper,
 } from "@mui/material";
-import { AddCircle, Edit, Delete,ArrowBackIos, ArrowForwardIos  } from "@mui/icons-material";
+import { AddCircle, Edit, Delete,ArrowBackIos, ArrowForwardIos ,Download  } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import {getProjectsAccept } from '../../allapi/engineering';
 import {createMaterialProcurement, getMaterialProcurements,deleteProcurement,updateMaterialProcurement } from '../../allapi/procurement';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import DownloadIcon from "@mui/icons-material/Download";
+
 
 
 const MaterialForm = () => {
   const MODULE_SLUG = 'procurement';
   const [searchTerm, setSearchTerm] = useState('');
   const [projects, setProjects] = useState([]);
+  const [procurements, setProcurements] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -59,12 +64,77 @@ const MaterialForm = () => {
     //purchaseOrder:'',
   });
   
-  const [procurements, setProcurements] = useState([]);
+  
   
 
   const toggleModalSize = () => {
     setIsModalMaximized(!isModalMaximized);
   };
+
+
+
+const handleDownloadPDF = (projectData) => {
+  const doc = new jsPDF("p", "mm", "a4");
+
+  // Header: Company info on left, PO info on right
+  doc.setFontSize(14);
+  doc.text("Your Company Name", 14, 20);
+  doc.setFontSize(10);
+  doc.text("Address Line 1, City, Country", 14, 26);
+  doc.text("Phone: +91-XXXXXXXXXX", 14, 32);
+
+  // Draw vertical line separating header
+  doc.setLineWidth(0.5);
+  doc.line(140, 10, 140, 40); // x1, y1, x2, y2
+
+  doc.setFontSize(12);
+ 
+  doc.text(`Date: ${projectData.procurements[0].request_date}`, 145, 26);
+  doc.text(`Project: ${projectData.project_id}`, 145, 32);
+ 
+  // Table of procurements
+  const tableColumns = [
+   
+    "Material Name",
+    "Material Code",
+    "Qty",
+    "Unit Price",
+    "Total Cost",
+    
+  ];
+
+  const tableRows = projectData.procurements.map((p) => [
+   
+    p.material_name,
+    p.material_code,
+    p.quantity_requested,
+    p.unit_price,
+    p.total_cost,
+  
+  ]);
+
+  autoTable(doc, {
+    head: [tableColumns],
+    body: tableRows,
+    startY: 50,
+    styles: { fontSize: 10 },
+    headStyles: { fillColor: [114, 103, 239] },
+    theme: "plain",
+  });
+
+  // Total Cost at bottom
+  const finalY = doc.lastAutoTable.finalY + 10;
+  doc.setFontSize(12);
+  doc.text(`Total Cost: Rs ${projectData.total_cost.toFixed(2)} `, 14, finalY);
+
+  // Footer for signatures
+  doc.setFontSize(10);
+  doc.text("Prepared By: ________________", 14, finalY + 15);
+  doc.text("Reviewed By: ________________", 80, finalY + 15);
+  doc.text("Authorized Signatory: ________________", 140, finalY + 15);
+
+  doc.save(`Purchase_Order_${projectData.project_id}.pdf`);
+};
 
 
   
@@ -101,6 +171,7 @@ const MaterialForm = () => {
 const fetchProcurements = async () => {
   try {
     const data = await getMaterialProcurements();
+    console.log(data)
     setProcurements(data);
   } catch (error) {
     console.error('❌ Error loading procurements:', error);
@@ -110,6 +181,7 @@ const fetchProcurements = async () => {
 useEffect(() => {
   fetchProcurements(); // ✅ called when the component mounts
 }, []);
+
 
 
 
@@ -372,6 +444,10 @@ const paginatedMaterial = filteredProcurements.slice(
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+            <Button
+          startIcon={<DownloadIcon />}
+          // onClick={downloadPDF}
+          ></Button>
             <Typography variant="h6" gutterBottom>SUBMITTED MATERIALS PROCUREMENT RECORDS</Typography>
             <input
         type="text"
@@ -380,7 +456,7 @@ const paginatedMaterial = filteredProcurements.slice(
         onChange={(e) => setSearchQuery(e.target.value)}
         className="input"
       />
-            <TableContainer sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd' }}>
+            {/* <TableContainer sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd' }}>
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
@@ -428,13 +504,94 @@ const paginatedMaterial = filteredProcurements.slice(
           <Delete sx={{ color: "red" }} />
         </IconButton>
         </ShowIfCan>
+       <IconButton color="primary" onClick={() => handleDownloadPDF(p)}>
+    <Download sx={{ color: "blue" }} />
+  </IconButton>
       </TableCell>
     </TableRow>
   ))}
 </TableBody>
 
               </Table>
-            </TableContainer>
+            </TableContainer> */}
+
+            <TableContainer sx={{ maxHeight: 500, overflow: 'auto', border: '1px solid #ddd' }}>
+    <Table stickyHeader size="small">
+      <TableHead>
+        <TableRow>
+          <TableCell sx={{ color: '#7267ef' }}>Procurement ID</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Purchase Order ID</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Material Name</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Material Code</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Quantity</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Unit Price</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Total Cost</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Requested By</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Request Date</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Approval Status</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Payment Status</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Expected Delivery</TableCell>
+          <TableCell sx={{ color: '#660000' }}>Actions</TableCell>
+        </TableRow>
+      </TableHead>
+
+      <TableBody>
+        {procurements.map((project) => (
+          <React.Fragment key={project.project_id}>
+            {/* Project Header Row */}
+            <TableRow sx={{ backgroundColor: "#f0f0f0" }}>
+              <TableCell colSpan={10} sx={{ fontWeight: "bold" }}>
+                Project: {project.project_id} | Total Cost: ₹{project.total_cost} | Status: {project.project_status}
+              </TableCell>
+              <TableCell colSpan={3} align="right">
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  onClick={() => handleDownloadPDF(project)}
+                >
+                  Download Project PDF
+                </Button>
+              </TableCell>
+            </TableRow>
+
+            {/* Procurement Rows */}
+            {project.procurements?.map((p) => (
+              <TableRow key={p.procurement_id}>
+                <TableCell>{p.procurement_id}</TableCell>
+                <TableCell>{p.purchase_order || '-'}</TableCell>
+                <TableCell>{p.material_name}</TableCell>
+                <TableCell>{p.material_code}</TableCell>
+                <TableCell>{p.quantity_requested}</TableCell>
+                <TableCell>{p.unit_price}</TableCell>
+                <TableCell>{p.total_cost}</TableCell>
+                <TableCell>{p.requested_by}</TableCell>
+                <TableCell>{p.request_date}</TableCell>
+                <TableCell>{p.approval_status}</TableCell>
+                <TableCell>{p.payment_status}</TableCell>
+                <TableCell>{p.expected_delivery_date || "N/A"}</TableCell>
+                <TableCell>
+                  <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+                    <IconButton color="warning" onClick={() => handleEdit(p)}>
+                      <Edit sx={{ color: "orange" }} />
+                    </IconButton>
+                  </DisableIfCannot>
+
+                  <ShowIfCan slug={MODULE_SLUG} action="can_delete">
+                    <IconButton color="error" onClick={() => handleDelete(p.procurement_id)}>
+                      <Delete sx={{ color: "red" }} />
+                    </IconButton>
+                  </ShowIfCan>
+                </TableCell>
+              </TableRow>
+            ))}
+          </React.Fragment>
+        ))}
+      </TableBody>
+    </Table>
+  </TableContainer>
+
+
              <Box display="flex" justifyContent="flex-end" alignItems="center" mt={2} pr={2}>
                               <IconButton
                                 disabled={materialPage === 1}
@@ -673,16 +830,6 @@ const paginatedMaterial = filteredProcurements.slice(
         <option value="Partially Paid">Partially Paid</option>
       </select>
     </Grid>
-     {/* <Grid item xs={6}>
-          <label htmlFor="purchaseOrder">Purchase OrderId</label>
-          <input
-            id="purchaseOrder"
-            name="purchaseOrder"
-            className="input"
-            value={formData.purchaseOrder || ''}
-            onChange={handleChange}
-          />
-        </Grid> */}
   </Grid>
 </Grid>
 </Grid>

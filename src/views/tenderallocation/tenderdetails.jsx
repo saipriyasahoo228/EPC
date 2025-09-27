@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Pencil, Trash, Download, Maximize2, Minimize2 } from "lucide-react";
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Button, Badge } from '@mui/material';
 import AuditTrail from './tenderaudit';
 import { createTender, getTenders, updateTender, deleteTender } from '../../allapi/tenderAllocation'
@@ -303,42 +303,59 @@ const handleSubmit = async () => {
   };
 
   // PDF Export functions
-  const downloadPDF = () => {
-    const doc = new jsPDF();
-    const columns = [
-      "Tender ID", "Ref No", "Location", "Release Date", 
-      "Value", "EMD Amount", "EMD Validity", "EMD Conditions", 
-      "Authority", "Contact", "Authorized Personnel", 
-      "Start Date", "End Date", "Description", "Status"
+ const downloadPDF = () => {
+  const doc = new jsPDF();
+  doc.setFontSize(14);
+  doc.text("Tender Report", 14, 15);
+
+  let y = 30; // vertical position
+
+  currentTenders.forEach((tender, index) => {
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Tender #${index + 1}`, 14, y);
+    y += 7;
+
+    doc.setFont("helvetica", "normal");
+
+    const details = [
+      ["Tender ID", tender.tender_id],
+      ["Ref No", tender.tender_ref_no],
+      ["Location", tender.location],
+      ["Release Date", tender.release_date],
+      ["Value", tender.tender_value],
+      ["EMD Amount", tender.emd_details?.amount],
+      ["EMD Validity", tender.emd_details?.validity],
+      ["EMD Conditions", tender.emd_details?.conditions],
+      ["Authority", tender.authority],
+      ["Contact", tender.contact],
+      ["Authorized Personnel", tender.authorized_personnel],
+      ["Start Date", tender.start_date],
+      ["End Date", tender.end_date],
+      ["Description", tender.tender_description],
+      ["Status", tender.status],
     ];
-  
-    const rows = currentTenders.map(tender => [
-      tender.tender_id,
-      tender.tender_ref_no,
-      tender.location,
-      tender.release_date,
-      tender.tender_value,
-      tender.emd_details?.amount,
-      tender.emd_details?.validity,
-      tender.emd_details?.conditions,
-      tender.authority,
-      tender.contact,
-      tender.authorized_personnel,
-      tender.start_date,
-      tender.end_date,
-      tender.tender_description,
-      tender.status
-    ]);
-  
-    doc.autoTable({
-      head: [columns],
-      body: rows,
-      margin: { top: 20 },
-      theme: 'striped',
+
+    details.forEach(([label, value]) => {
+      doc.setFontSize(9); // smaller font for details
+      doc.setFont("helvetica", "bold");
+      doc.text(`${label}:`, 20, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(String(value || ""), 70, y);
+      y += 6;
     });
-  
-    doc.save("tender-report.pdf");
-  };
+
+    y += 4; // extra space before next record
+
+    // Add new page if running out of space
+    if (y > 270) {
+      doc.addPage();
+      y = 30;
+    }
+  });
+
+  doc.save("tender-report.pdf");
+};
 
   const filteredTenders = tenders.filter((d) => {
     const flatValues = [

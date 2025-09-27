@@ -19,9 +19,12 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
-import { getMaterialProcurements , createLogistics,fetchLogistics,deleteLogistics,updateLogistics} from "../../allapi/procurement";
+import { getMaterialProcurements , createLogistics,fetchLogistics,deleteLogistics,updateLogistics,getMaterial} from "../../allapi/procurement";
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
 
 
 
@@ -65,7 +68,7 @@ const LogisticForm = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getMaterialProcurements();
+        const data = await getMaterial();
         setMaterialProjects(data);
         console.log("✅ Material procurements:", data);
       } catch (error) {
@@ -183,53 +186,7 @@ const handleOpenForm = (index) => {
 
  
   //HandleSubmit
-//   const handleSubmit = async () => {
-//   try {
-//     // Build payload for backend
-//     const payload = {
-//       logistics_id: formData.logisticId,         // auto-generated
-//       po_number: formData.purchaseOrderId,       // FK
-//       transport_provider_id: formData.transportId,
-//       vehicle_details: formData.vehicleDetails,
-//       driver_name: formData.driverName,
-//       dispatch_date: formData.dispatchDate,
-//       expected_arrival_date: formData.expectedArrivalDate,
-//       actual_arrival_date: formData.actualArrivalDate || null,
-//       delivery_location: formData.deliveryLocation,
-//       shipping_status: formData.shippingStatus || "In Transit",
-//       damage_report: formData.damageReport || "",
-//     };
-
-//     const response = await createLogistics(payload);
-//     console.log("✅ Logistics created:", response);
-//     alert("Logistics details submitted successfully!");
-
-//     // Reset form
-//     setFormData({
-//       projectId: '',
-//       purchaseOrderId:'',
-//       logisticId: '', // will be regenerated next time
-//       transportId: '',
-//       vehicleDetails:'',
-//       driverName:'',
-//       dispatchDate:'',
-//       expectedArrivalDate:'',
-//       actualArrivalDate:'',
-//       deliveryLocation:'',
-//       shippingStatus:'In Transit',
-//       damageReport:'',
-//     });
-
-//     setOpen(false);
-//     // Optional: refresh logistics list if you have one
-//     loadLogistics();
-
-//   } catch (error) {
-//     console.error("❌ Error creating logistics:", error);
-//     alert(`Error: ${error.message}`);
-//   }
-// };
-
+ 
 const handleSubmit = async () => {
   try {
     const payload = {
@@ -309,37 +266,7 @@ const handleDelete = async (logisticId, index) => {
 
 
 
-  // const handleEdit = (index) => {
-  //   const procurementToEdit = procurements[index];
-  //   setFormData(procurementToEdit);
-  //   setSelectedProcurementIndex(index);
-  //   setOpen(true);
-  // };
-
-//   const handleEdit = (index) => {
-//   const selected = logisticsList?.[index];
-//   if (!selected) return;
-
-//   setSelectedIndex(index);
-//   setIsEditing(true);
-//   setFormData({
-//     projectId: selected.projectId,
-//     procurementId: selected.procurementId,
-//     purchaseOrderId: selected.purchaseOrderId,
-//     logisticId: selected.logisticId, // non-editable
-//     transportId: selected.transportId,
-//     vehicleDetails: selected.vehicleDetails,
-//     driverName: selected.driverName,
-//     dispatchDate: selected.dispatchDate,
-//     expectedArrivalDate: selected.expectedArrivalDate,
-//     actualArrivalDate: selected.actualArrivalDate,
-//     deliveryLocation: selected.deliveryLocation,
-//     shippingStatus: selected.shippingStatus,
-//     damageReport: selected.damageReport,
-//   });
-
-//   setOpen(true);
-// };
+//HandleEdit
 const handleEdit = (index) => {
   const selected = logisticsList?.[index];
   if (!selected) return;
@@ -439,6 +366,10 @@ const handleEdit = (index) => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+            <Button
+          startIcon={<DownloadIcon />}
+          // onClick={downloadPDF}
+          ></Button>
             <Typography variant="h6" gutterBottom>SUBMITTED LOGISTIC RECORDS</Typography>
             <input
               type="text"
