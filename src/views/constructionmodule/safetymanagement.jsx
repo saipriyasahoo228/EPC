@@ -26,7 +26,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering";
 import { createSafetyManagement,getSafetyManagements,deleteSafetyManagement,updateSafetyManagement } from "../../allapi/construction";
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
-
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 const SafetyManagement = () => {
   const MODULE_SLUG = 'construction';
@@ -306,7 +306,7 @@ const handleSubmit = async () => {
         <TableRow key={i}>
           <TableCell>{s.project}</TableCell>
           <TableCell>{s.safety_report_id}</TableCell>
-          <TableCell>{s.incident_date}</TableCell>
+          <TableCell>{formatDateDDMMYYYY(s.incident_date)}</TableCell>
           <TableCell>{s.incident_description}</TableCell>
           <TableCell>{s.affected_personnel_id}</TableCell>
           <TableCell>{s.injury_severity}</TableCell>

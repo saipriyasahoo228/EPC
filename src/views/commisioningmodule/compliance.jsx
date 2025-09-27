@@ -23,7 +23,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering";
 import { createCompliance, updateCompliance, getComplianceList,deleteCompliance} from "../../allapi/commision";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
-
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 const ComplianceForm = () => {
   const MODULE_SLUG = 'commissioning';
@@ -314,14 +314,14 @@ const handleSubmit = async (e) => {
       <TableCell>{c.project}</TableCell>
       <TableCell>{c.compliance_id}</TableCell>
       <TableCell>{c.regulatory_body}</TableCell>
-      <TableCell>{c.inspection_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(c.inspection_date)}</TableCell>
       <TableCell>{c.inspector_name}</TableCell>
       <TableCell>{c.compliance_checklist_id}</TableCell>
       <TableCell>{c.compliance_status}</TableCell>
       <TableCell>{c.non_compliance_issues}</TableCell>
       <TableCell>{c.corrective_action_plan}</TableCell>
       <TableCell>{c.certification_id}</TableCell>
-      <TableCell>{c.certification_expiry_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(c.certification_expiry_date)}</TableCell>
 
       <TableCell>
         <DisableIfCannot slug={MODULE_SLUG} action="can_update">

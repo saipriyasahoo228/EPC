@@ -32,6 +32,7 @@ import {
   fetchConstructionProjects,
 } from "../../allapi/construction";
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 const Milestone = () => {
   const MODULE_SLUG = "construction";
@@ -322,8 +323,8 @@ const Milestone = () => {
                       <TableCell>{projectIdToCode(m.project)}</TableCell>
                       <TableCell>{m.name}</TableCell>
                       <TableCell>{m.description}</TableCell>
-                      <TableCell>{m.start_date?.slice(0, 10)}</TableCell>
-                      <TableCell>{m.end_date?.slice(0, 10)}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(m.start_date)}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(m.end_date)}</TableCell>
                       <TableCell>{titleCase(m.status)}</TableCell>
                       <TableCell sx={{ minWidth: 120 }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>

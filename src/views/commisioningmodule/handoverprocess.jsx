@@ -23,7 +23,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering";
 import { createHandover,getHandovers,updateHandover,deleteHandover } from "../../allapi/commision";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
-
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const HandoverProcess = () => {
@@ -306,7 +306,7 @@ const filteredHandover = handoverprocess.filter((h) =>
           <TableRow key={i}>
             <TableCell>{h.project_id}</TableCell>
             <TableCell>{h.handover_id}</TableCell>
-            <TableCell>{h.handover_date}</TableCell>
+            <TableCell>{formatDateDDMMYYYY(h.handover_date)}</TableCell>
             <TableCell>{h.receiving_department}</TableCell>
             <TableCell>{h.handover_document_id}</TableCell>
             <TableCell>{h.system_component_list}</TableCell>

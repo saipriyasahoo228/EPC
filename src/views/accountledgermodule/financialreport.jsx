@@ -23,6 +23,7 @@ import 'jspdf-autotable';
 import CloseIcon from '@mui/icons-material/Close';
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 import { createFinancialReport,getFinancialReports,deleteFinancialReport,updateFinancialReport } from "../../allapi/account";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 const FinancialReports = () => {
   const MODULE_SLUG = 'account_ledger';
@@ -280,7 +281,7 @@ useEffect(() => {
               <TableRow key={index}>
                 <TableCell>{item.report_id}</TableCell>
         <TableCell>{item.report_type}</TableCell>
-        <TableCell>{item.generated_date}</TableCell>
+        <TableCell>{formatDateDDMMYYYY(item.generated_date)}</TableCell>
         <TableCell>{item.prepared_by}</TableCell>
         <TableCell>{item.approval_status}</TableCell>
         <TableCell>{item.comments}</TableCell>

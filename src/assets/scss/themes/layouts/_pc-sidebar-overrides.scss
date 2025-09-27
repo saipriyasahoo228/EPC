@@ -1,0 +1,136 @@
+// Modern sidebar UI overrides (safe, non-destructive)
+// This file refines the look without touching vendor styles.
+
+.pc-sidebar {
+  // Caption spacing & tone
+  .pc-caption {
+    padding: 16px 20px 8px;
+    letter-spacing: 0.08em;
+    opacity: 0.95;
+  }
+
+  // Base link item: spacing, radii, transitions
+  .pc-navbar > .pc-item > .pc-link {
+    margin: 4px 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    // reserve a bit more space so arrow doesn't wrap
+    padding-right: 18px;
+  }
+
+  // Keep icon, text and arrow on one line; let text truncate gracefully
+  .pc-navbar > .pc-item > .pc-link .pc-mtext {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pc-navbar > .pc-item > .pc-link .pc-arrow {
+    float: none; // override theme float
+    margin-left: auto;
+    flex: 0 0 auto;
+  }
+
+  // Hover state: subtle background, brighter text/icon
+  .pc-navbar > .pc-item > .pc-link:hover {
+    background: rgba(var(--pc-sidebar-color-rgb), 0.06);
+    color: var(--pc-sidebar-main-active-color);
+  }
+
+  // Active state: soft primary background + accent bar
+  .pc-navbar > .pc-item.active > .pc-link {
+    background: rgba(var(--bs-primary-rgb), 0.15);
+    color: var(--pc-sidebar-main-active-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+  .pc-navbar > .pc-item.active > .pc-link::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--bs-primary);
+  }
+
+  // Icon transition polish
+  .pc-micon {
+    i,
+    svg {
+      transition: color 0.2s ease, fill 0.2s ease, stroke 0.2s ease;
+    }
+  }
+
+  // Submenu link hover
+  .pc-submenu .pc-link:hover {
+    background: rgba(var(--pc-sidebar-color-rgb), 0.05);
+  }
+
+  // Apply same no-wrap/flex behavior to submenu links
+  .pc-submenu .pc-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 18px;
+  }
+  .pc-submenu .pc-link .pc-mtext {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pc-submenu .pc-link .pc-arrow {
+    float: none;
+    margin-left: auto;
+    flex: 0 0 auto;
+  }
+
+  // Remove arrow bullet on submenu items from theme; cleaner look
+  .pc-submenu .pc-item::before {
+    content: none !important;
+  }
+
+  // Chevron arrow tone
+  .pc-arrow > svg {
+    opacity: 0.85;
+  }
+}
+
+// Collapsed (mini) state: preserve rounded aesthetic on hover
+.minimenu  .pc-sidebar {
+  .pc-item:hover > .pc-link {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+  }
+}
+
+// Ensure the chevron arrow (.pc-arrow) stays on the same line as the text
+.pc-navbar > .pc-item > .pc-link,
+.pc-submenu .pc-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 18px;
+}
+.pc-navbar > .pc-item > .pc-link .pc-mtext,
+.pc-submenu .pc-link .pc-mtext {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pc-navbar > .pc-item > .pc-link .pc-arrow,
+.pc-submenu .pc-link .pc-arrow {
+  float: none;
+  margin-left: auto;
+  flex: 0 0 auto;
+}

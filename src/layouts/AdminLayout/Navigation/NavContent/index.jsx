@@ -73,20 +73,22 @@ export default function NavContent({ navigation, activeNav }) {
         {/* <i className="material-icons-two-tone" style={{ fontSize: '1.3rem', color: '#7267ef' }}>engineering</i> */}
         {/* <EngineeringIcon sx={{ fontSize: '1.5rem', color: '#ffffff' }} /> */}
         <span
-    style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 28,
-      height: 28,
-      borderRadius: '50%',
-      border: '2px solid #ffffff',
-      background: 'rgba(255,255,255,0.08)',
-    }}
-  >
-    <EngineeringIcon sx={{ fontSize: '1.1rem', color: '#ffffff' }} />
-  </span>
+          className="logo-sm"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            border: '2px solid #ffffff',
+            background: 'rgba(255,255,255,0.08)',
+          }}
+        >
+          <EngineeringIcon sx={{ fontSize: '1.1rem', color: '#ffffff' }} />
+        </span>
         <span
+          className="logo-lg"
           style={{
             fontWeight: 900,
             fontSize: '1.35rem',

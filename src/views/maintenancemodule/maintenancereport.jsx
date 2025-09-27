@@ -22,7 +22,7 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getAssets,createWorkOrder ,getWorkOrders,updateWorkOrder,deleteWorkOrder} from "../../allapi/maintenance";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
-
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 const MaintenanceReport = () => {
   const MODULE_SLUG = 'maintenance';
@@ -284,13 +284,13 @@ const handleSubmit = async () => {
                       <TableCell>{t.work_order_id}</TableCell>
                       <TableCell>{t.reported_issue}</TableCell>
                       <TableCell>{t.issue_reported_by}</TableCell>
-                      <TableCell>{t.report_date}</TableCell>
-                      <TableCell>{t.inspection_date}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(t.report_date)}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(t.inspection_date)}</TableCell>
                       <TableCell>{t.technician_id}</TableCell>
                       <TableCell>{t.repair_work_done}</TableCell>
                       <TableCell>{t.parts_replaced}</TableCell>
                       <TableCell>{t.total_maintenance_cost}</TableCell>
-                      <TableCell>{t.completion_date}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(t.completion_date)}</TableCell>
                       <TableCell>{t.final_status}</TableCell>
                       
                       <TableCell>

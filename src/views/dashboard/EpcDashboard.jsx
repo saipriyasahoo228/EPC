@@ -6,9 +6,11 @@ import ApexCharts from 'apexcharts';
 // APIs
 import { fetchConstructionProjects, getMilestonesByProject } from '../../allapi/construction';
 import { projectCost } from '../../allapi/tenderAllocation';
-import { getProjects as getTenderProjects } from '../../allapi/tenderAllocation';
+import { getProjects as getTenderProjects, getTenders } from '../../allapi/tenderAllocation';
 // Optional AR/AP (best-effort). If these APIs differ, we'll gracefully handle.
 import { getReceivables, getPayables } from '../../allapi/account';
+// Procurement
+import { getVendors } from '../../allapi/procurement';
 
 // Small helpers
 const toNumber = (v) => {
@@ -18,6 +20,16 @@ const toNumber = (v) => {
 };
 
 const titleCase = (s) => (s ? s.toString().toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '');
+const fmtDate = (s) => {
+  if (!s) return '-';
+  const d = new Date(s);
+  if (isNaN(d)) return s;
+  try {
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch (_) {
+    return s;
+  }
+};
 
 // Pastel palette tokens
 const pastel = {
@@ -45,6 +57,10 @@ export default function EpcDashboard() {
   // AR/AP
   const [receivables, setReceivables] = useState([]);
   const [payables, setPayables] = useState([]);
+  // Vendors
+  const [vendors, setVendors] = useState([]);
+  // Tenders (for EMD info)
+  const [tenders, setTenders] = useState([]);
   // Milestones
   const [selectedProjectForGantt, setSelectedProjectForGantt] = useState(''); // PRJ code
   const [ganttMilestones, setGanttMilestones] = useState([]);
@@ -77,19 +93,23 @@ export default function EpcDashboard() {
     (async () => {
       try {
         setLoading(true);
-        const [proj, cost, tenders, recv, pay] = await Promise.all([
+        const [proj, cost, tendersProjects, recv, pay, vends, tendersList] = await Promise.all([
           fetchConstructionProjects(),
           projectCost(),
           getTenderProjects().catch(() => []),
           getReceivables?.().catch(() => []),
           getPayables?.().catch(() => []),
+          getVendors?.().catch(() => []),
+          getTenders?.().catch(() => []),
         ]);
         if (!mounted) return;
         setProjects(Array.isArray(proj) ? proj : []);
         setCosts(Array.isArray(cost) ? cost : []);
-        setTenderProjects(Array.isArray(tenders) ? tenders : []);
+        setTenderProjects(Array.isArray(tendersProjects) ? tendersProjects : []);
         setReceivables(Array.isArray(recv) ? recv : []);
         setPayables(Array.isArray(pay) ? pay : []);
+        setVendors(Array.isArray(vends) ? vends : []);
+        setTenders(Array.isArray(tendersList) ? tendersList : []);
       } catch (e) {
         if (!mounted) return;
         setError(e?.response?.data ? JSON.stringify(e.response.data) : e.message || 'Failed to load dashboard');
@@ -128,6 +148,17 @@ export default function EpcDashboard() {
         .chip-gray { background: rgba(148,163,184,0.14); color: #475569; }
         .btn, .form-select { border-radius: 10px; }
         .btn:active { transform: translateY(1px); }
+        /* Subtle alert shake animation */
+        .alert-shake { animation: alert-shake 2.2s ease-in-out infinite; }
+        @keyframes alert-shake {
+          0%   { transform: translateX(0) }
+          5%   { transform: translateX(-2px) rotate(-0.2deg) }
+          10%  { transform: translateX(2px) rotate(0.2deg) }
+          15%  { transform: translateX(-1px) }
+          20%  { transform: translateX(1px) }
+          25%  { transform: translateX(0) }
+          100% { transform: translateX(0) }
+        }
       `;
       document.head.appendChild(style);
     }
@@ -368,6 +399,54 @@ export default function EpcDashboard() {
     return map;
   }, [tenderProjects]);
 
+  // Helper: vendors grouped by project code
+  const vendorsByProject = useMemo(() => {
+    const map = new Map();
+    for (const v of vendors) {
+      const key = v.project; // e.g., 'PRJ-2025-0001'
+      if (!key) continue;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(v);
+    }
+    return map;
+  }, [vendors]);
+
+  // Alerts: Upcoming EMD returns (within next 10 days, not refunded) and missing security deposit amount
+  const { upcomingEmdReturns, missingSecurityDeposits } = useMemo(() => {
+    const result = { upcomingEmdReturns: [], missingSecurityDeposits: [] };
+    try {
+      const now = new Date();
+      const in10 = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
+      const tendersById = new Map();
+      for (const t of tenders) tendersById.set(t.tender_id, t);
+      const acceptedProjects = (tenderProjects || []).filter((p) => {
+        const code = p.project_id || p.project;
+        return (p.status === 'Accept');
+        // return (p.status === 'Accept') && code && code.startsWith('PRJ');
+      });
+      for (const p of acceptedProjects) {
+        const code = p.project_id || p.project;
+        const t = tendersById.get(p.tender);
+        if (t && t.emd_details) {
+          const rd = t.emd_details.refund_date ? new Date(t.emd_details.refund_date) : null;
+          const refunded = t.emd_details.is_refunded === true;
+          if (rd && !isNaN(rd) && rd >= now && rd <= in10 && !refunded) {
+            result.upcomingEmdReturns.push({
+              project: code,
+              tender_ref_no: t.tender_ref_no,
+              refund_date: t.emd_details.refund_date,
+            });
+          }
+        }
+        const amt = p.security_money_amount;
+        if (amt === null || amt === undefined || amt === '' || Number(amt) === 0) {
+          result.missingSecurityDeposits.push({ project: code });
+        }
+      }
+    } catch (e) {}
+    return result;
+  }, [tenders, tenderProjects]);
+
   const openDetails = (p) => { setDetailProject(p); setDetailOpen(true); };
   const closeDetails = () => { setDetailOpen(false); setDetailProject(null); };
 
@@ -389,6 +468,81 @@ export default function EpcDashboard() {
 
   return (
     <div>
+      {/* Alerts banner: Material minimal */}
+      {(upcomingEmdReturns.length > 0 || missingSecurityDeposits.length > 0) && (
+        <Row>
+          <Col md={12} xl={12}>
+            <Card className="mb-3 soft-card alert-shake" style={{
+              background: pastel.bg,
+              color: pastel.text,
+              border: `1px solid ${pastel.border}`,
+              boxShadow: '0 10px 30px rgba(2, 8, 23, 0.06)',
+              borderRadius: 12,
+              position: 'relative',
+            }}>
+              <Card.Body>
+                {/* Accent bar */}
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: pastel.peach, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 }} />
+                <div className="d-flex justify-content-between align-items-center" style={{ marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ fontWeight: 700, letterSpacing: 0.2 }}>Alerts</div>
+                    <span style={{ fontSize: 12, color: pastel.subtext }}>Key items requiring attention</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {upcomingEmdReturns.length > 0 && (
+                      <span className="chip" style={{ borderColor: pastel.lavender, color: pastel.lavender, background: 'transparent' }}>EMD: {upcomingEmdReturns.length}</span>
+                    )}
+                    {missingSecurityDeposits.length > 0 && (
+                      <span className="chip" style={{ borderColor: pastel.peach, color: '#d97706', background: 'transparent' }}>Security: {missingSecurityDeposits.length}</span>
+                    )}
+                  </div>
+                </div>
+                {upcomingEmdReturns.length > 0 && (
+                  <div className="mt-2" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12, color: pastel.subtext, fontWeight: 900 }}>Upcoming EMD (≤10d, not refunded)</span>
+                    {upcomingEmdReturns.slice(0, 3).map((r, idx) => (
+                      <span
+                        key={`emd-${idx}`}
+                        title={`Tender ${r.tender_ref_no}`}
+                        onClick={() => {
+                          const p = projects.find(px => (px.project === r.project));
+                          if (p) openDetails(p);
+                        }}
+                        style={{ background: 'transparent', color: pastel.text, padding: '6px 10px', borderRadius: 9999, fontSize: 12, cursor: 'pointer', border: `1px solid ${pastel.border}` }}
+                      >
+                        {r.project} • {fmtDate(r.refund_date)}
+                      </span>
+                    ))}
+                    {upcomingEmdReturns.length > 3 && (
+                      <span style={{ background: 'transparent', color: pastel.subtext, padding: '6px 10px', borderRadius: 9999, fontSize: 12, border: `1px solid ${pastel.border}` }}>+{upcomingEmdReturns.length - 3} more</span>
+                    )}
+                  </div>
+                )}
+                {missingSecurityDeposits.length > 0 && (
+                  <div className="mt-2" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12, color: pastel.subtext, fontWeight: 900 }}>Missing Security Money</span>
+                    {missingSecurityDeposits.slice(0, 8).map((r, idx) => (
+                      <span
+                        key={`sec-${idx}`}
+                        onClick={() => {
+                          const p = projects.find(px => (px.project === r.project));
+                          if (p) openDetails(p);
+                        }}
+                        style={{ background: 'transparent', color: pastel.text, padding: '6px 10px', borderRadius: 9999, fontSize: 12, cursor: 'pointer', border: `1px solid ${pastel.border}` }}
+                      >
+                        {r.project}
+                      </span>
+                    ))}
+                    {missingSecurityDeposits.length > 8 && (
+                      <span style={{ background: 'transparent', color: pastel.subtext, padding: '6px 10px', borderRadius: 9999, fontSize: 12, border: `1px solid ${pastel.border}` }}>+{missingSecurityDeposits.length - 8} more</span>
+                    )}
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      )}
       <Row>
         <Col md={12} xl={12}>
           <Card className="mb-3">
@@ -436,6 +590,7 @@ export default function EpcDashboard() {
           const budget = toNumber(p.project_budget);
           const spent = toNumber(costByProject.get(code)?.total_cost);
           const users = usersByProject.get(code) || [];
+          const vlist = vendorsByProject.get(code) || [];
           const utilization = budget > 0 ? Math.min(100, (spent / budget) * 100) : 0;
           return (
             <Col md={12} xl={4} key={p.id}>
@@ -469,6 +624,21 @@ export default function EpcDashboard() {
                     ) : (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {users.map((u, idx) => renderUserChip(u, idx))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-3">
+                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>Vendors</div>
+                    {(vlist.length === 0) ? (
+                      <span style={{ color: '#94a3b8' }}>—</span>
+                    ) : (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {vlist.slice(0, 3).map((v, idx) => (
+                          <span key={`${v.vendor_id}-${idx}`} className="chip chip-gray">{v.vendor_name}</span>
+                        ))}
+                        {vlist.length > 3 && (
+                          <span className="chip chip-sky">+{vlist.length - 3} more</span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -784,6 +954,48 @@ export default function EpcDashboard() {
                     </Col>
                   );
                 })()}
+              </Row>
+              {/* Vendors */}
+              <Row className="mt-2">
+                <Col md={12}>
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>Vendors</div>
+                  {(() => {
+                    const vlist = vendorsByProject.get(detailProject.project) || [];
+                    if (vlist.length === 0) return <span style={{ color: '#94a3b8' }}>—</span>;
+                    return (
+                      <div className="table-responsive">
+                        <table className="table table-sm mb-0">
+                          <thead>
+                            <tr>
+                              <th>Vendor</th>
+                              <th>Contact</th>
+                              <th>Phone</th>
+                              <th>Email</th>
+                              <th>Rating</th>
+                              <th>Compliance</th>
+                              <th>Payment Terms</th>
+                              <th>Contract Expiry</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {vlist.map((v) => (
+                              <tr key={v.id}>
+                                <td title={v.vendor_id}>{v.vendor_name}</td>
+                                <td>{v.contact_person || '-'}</td>
+                                <td>{v.phone_number || '-'}</td>
+                                <td>{v.email || '-'}</td>
+                                <td>{v.vendor_rating || '-'}</td>
+                                <td>{v.compliance_status || '-'}</td>
+                                <td>{v.payment_terms || '-'}</td>
+                                <td>{v.contract_expiry_date || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
+                </Col>
               </Row>
               {/* Users */}
               <Row className="mt-2">

@@ -48,9 +48,12 @@ import MyLocationIcon from '@mui/icons-material/MyLocation';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
+import LogoutRounded from '@mui/icons-material/LogoutRounded';
+import { logout } from 'auth';
 
 import { getProjectsAccept } from '../../allapi/engineering';
-import { createSiteExecution, getSiteExecutions, createMaterialInventory, getMilestonesByProject } from '../../allapi/construction';
+import { createSiteExecution, getSiteExecutions, createMaterialInventory, getMilestonesByProject, getLabourResources } from '../../allapi/construction';
+import { getVendors } from '../../allapi/procurement';
 import { getInventoryItems } from '../../allapi/inventory';
 import { createMaterialProcurement, getMaterialProcurements } from '../../allapi/procurement';
 
@@ -83,7 +86,6 @@ const SiteExecutionSupervisor = () => {
   const [form, setForm] = useState({
     site_supervisor_id: '',
     work_completed: '',
-    manpower_utilized: '',
     equipment_used: '',
     weather_conditions: '',
     safety_compliance_report: '',
@@ -93,6 +95,11 @@ const SiteExecutionSupervisor = () => {
     progress_percent: '',
     milestone: '',
   });
+
+  // Labour usage (replaces manpower)
+  const [labourUsage, setLabourUsage] = useState([]);
+  const [labourResources, setLabourResources] = useState([]);
+  const [vendors, setVendors] = useState([]);
 
   // Location
   const [location, setLocation] = useState({
@@ -133,6 +140,8 @@ const SiteExecutionSupervisor = () => {
     unit_price: '',
     requested_by: '',
   });
+  // Logout confirm dialog
+  const [logoutOpen, setLogoutOpen] = useState(false);
   // Material consumption (selection from inventory with quantities)
   const [consumptionOpen, setConsumptionOpen] = useState(false);
   const [consumptionItems, setConsumptionItems] = useState([]); // [{ item, quantity }]
@@ -153,6 +162,26 @@ const SiteExecutionSupervisor = () => {
     const mm = String(dt.getMonth() + 1).padStart(2, '0');
     const yyyy = dt.getFullYear();
     return `${dd}/${mm}/${yyyy}`;
+  }, []);
+
+  // Preload vendors and labour resources
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [lr, v] = await Promise.all([
+          getLabourResources(),
+          getVendors(),
+        ]);
+        if (mounted) {
+          setLabourResources(Array.isArray(lr) ? lr : []);
+          setVendors(Array.isArray(v) ? v : []);
+        }
+      } catch (e) {
+        console.error('Failed to load labour resources or vendors', e);
+      }
+    })();
+    return () => { mounted = false; };
   }, []);
 
   const formatINR = useCallback((v) => {
@@ -235,7 +264,54 @@ const SiteExecutionSupervisor = () => {
   // Helpers
   const draftKey = useMemo(() => `${DRAFT_KEY_PREFIX}${selectedProjectId || 'no_project'}`, [selectedProjectId]);
 
+  // Label helpers for Labour Resource
+  const toTitle = useCallback((s) => (typeof s === 'string' ? s.replace(/\w\S*/g, (t) => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()) : s), []);
+  const categoryLabel = useCallback((cat) => {
+    if (!cat) return '-';
+    const cObj = (typeof cat === 'object' && cat !== null) ? cat : { category: String(cat) };
+    const main = toTitle(cObj.category || '');
+    const sub = cObj.subcategory ? ` — ${toTitle(cObj.subcategory)}` : '';
+    return `${main}${sub}`;
+  }, [toTitle]);
+  const resourceLabel = useCallback((r) => {
+    if (!r) return '-';
+    const catText = r.category ? categoryLabel(r.category) : '(No Category)';
+    let vendorText = '';
+    if (r.vendor) {
+      const v = (vendors || []).find(x => String(x.vendor_id) === String(r.vendor));
+      const vendorName = v?.vendor_name ? ` (${v.vendor_name})` : '';
+      vendorText = ` • ${r.vendor}${vendorName}`; // bullet + ID (Name)
+    }
+    return `${catText}${vendorText}`;
+  }, [categoryLabel, vendors]);
+
   const setField = (name, value) => setForm(prev => ({ ...prev, [name]: value }));
+
+  // Labour usage helpers similar to materials selection
+  const addLabourEntry = useCallback((labourObj) => {
+    if (!labourObj) return;
+    const todayAtNine = () => {
+      const d = new Date();
+      d.setHours(9, 0, 0, 0);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mi = String(d.getMinutes()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+    };
+    setLabourUsage((prev) => {
+      const exists = prev.some((e) => String(e.labour_resource) === String(labourObj.id));
+      if (exists) return prev;
+      return [...prev, { labour_resource: labourObj.id, number_of_workers: '', work_hours: '', date: todayAtNine() }];
+    });
+  }, []);
+  const updateLabourField = useCallback((labourResourceId, field, value) => {
+    setLabourUsage((prev) => prev.map((e) => String(e.labour_resource) === String(labourResourceId) ? { ...e, [field]: value } : e));
+  }, []);
+  const removeLabourEntry = useCallback((labourResourceId) => {
+    setLabourUsage((prev) => prev.filter((e) => String(e.labour_resource) !== String(labourResourceId)));
+  }, []);
 
   // Load projects
   useEffect(() => {
@@ -259,11 +335,13 @@ const SiteExecutionSupervisor = () => {
         const draft = JSON.parse(raw);
         setForm(draft.form || {});
         setPhotoPreview(draft.photoPreview || '');
+        setLabourUsage(Array.isArray(draft.labourUsage) ? draft.labourUsage : []);
         setRestored(true);
         setSnack({ open: true, severity: 'success', message: 'Draft restored' });
       } else {
         // Reset form if project changed and no draft
         setForm(f => ({ ...f }));
+        setLabourUsage([]);
       }
     } catch {
       // ignore
@@ -462,18 +540,18 @@ const SiteExecutionSupervisor = () => {
   const openReport = useCallback((r) => { setReportFocus(r); setReportOpen(true); }, []);
   const closeReport = useCallback(() => { setReportOpen(false); setReportFocus(null); }, []);
 
-  // Auto-save draft (debounced)
+  // Auto-save draft (debounced) – include labourUsage
   useEffect(() => {
     const t = setTimeout(() => {
       try {
-        const data = { form, photoPreview };
+        const data = { form, photoPreview, labourUsage };
         localStorage.setItem(draftKey, JSON.stringify(data));
       } catch (e) {
         // storage might be full
       }
     }, 400);
     return () => clearTimeout(t);
-  }, [form, photoPreview, draftKey]);
+  }, [form, photoPreview, labourUsage, draftKey]);
 
   const clearDraft = useCallback(() => {
     try {
@@ -622,7 +700,6 @@ const SiteExecutionSupervisor = () => {
     if (!selectedProjectId) errors.push('Project is required');
     if (!form.site_supervisor_id?.trim()) errors.push('Supervisor ID is required');
     if (!form.work_completed?.trim()) errors.push('Work completed is required');
-    if (!form.manpower_utilized || isNaN(Number(form.manpower_utilized))) errors.push('Valid manpower utilized is required');
     if (!form.site_execution_status) errors.push('Status is required');
     if (!form.milestone) errors.push('Milestone is required');
     const pct = Number(form.progress_percent);
@@ -646,7 +723,6 @@ const SiteExecutionSupervisor = () => {
       // fd.append('daily_progress_report_id', form.daily_progress_report_id || '');
 
       fd.append('work_completed', form.work_completed);
-      fd.append('manpower_utilized', String(form.manpower_utilized || '0'));
       fd.append('equipment_used', form.equipment_used || '');
       fd.append('weather_conditions', form.weather_conditions || '');
       fd.append('safety_compliance_report', form.safety_compliance_report || '');
@@ -655,6 +731,34 @@ const SiteExecutionSupervisor = () => {
       fd.append('site_execution_status', form.site_execution_status || 'on track');
       fd.append('progress_percent', String(form.progress_percent || '0'));
       fd.append('milestone', String(form.milestone));
+
+      // Append labour_usage_input as JSON string (multipart)
+      try {
+        const usage = (labourUsage || [])
+          .filter(r => r && r.labour_resource && r.number_of_workers && r.work_hours && r.date)
+          .map(r => {
+            const d = String(r.date);
+            let isoZ = d;
+            if (d && !d.endsWith('Z')) {
+              isoZ = d.length === 16 ? `${d}:00Z` : `${d}Z`;
+            }
+            return {
+              labour_resource: Number(r.labour_resource),
+              number_of_workers: Number(r.number_of_workers),
+              work_hours: Number(r.work_hours),
+              date: isoZ,
+            };
+          });
+        const hadEntries = (labourUsage || []).length > 0;
+        if (hadEntries && usage.length === 0) {
+          setSnack({ open: true, severity: 'warning', message: 'Complete Labour Usage rows (resource, workers, hours, date) or remove them.' });
+          setSubmitting(false);
+          return;
+        }
+        console.log('DEBUG labour_usage_input (array):', usage);
+        // Recommended: send nested data as JSON string in multipart (always include, even if empty)
+        fd.append('labour_usage_input', JSON.stringify(usage || []));
+      } catch {}
 
       if (location.latitude != null) fd.append('latitude', String(location.latitude));
       if (location.longitude != null) fd.append('longitude', String(location.longitude));
@@ -667,6 +771,15 @@ const SiteExecutionSupervisor = () => {
         fd.append('photo_evidence', photoBlob, 'evidence.jpg');
       }
 
+      // DEBUG: Print all FormData entries before submit
+      try {
+        for (const [k, v] of fd.entries()) {
+          console.log('DEBUG FormData entry:', k, v);
+        }
+      } catch (e) {
+        console.warn('DEBUG could not iterate FormData entries:', e);
+      }
+
       const res = await createSiteExecution(fd);
       setSnack({ open: true, severity: 'success', message: `Saved! Site ID: ${res?.site_id || 'generated'}` });
 
@@ -674,7 +787,6 @@ const SiteExecutionSupervisor = () => {
       setForm({
         site_supervisor_id: '',
         work_completed: '',
-        manpower_utilized: '',
         equipment_used: '',
         weather_conditions: '',
         safety_compliance_report: '',
@@ -684,6 +796,7 @@ const SiteExecutionSupervisor = () => {
         progress_percent: '',
         milestone: '',
       });
+      setLabourUsage([]);
       setPhotoBlob(null);
       setPhotoPreview('');
       clearDraft();
@@ -777,6 +890,11 @@ const SiteExecutionSupervisor = () => {
           <Typography variant="h6" sx={{ flex: 1, color: 'text.primary', fontWeight: 600 }}>
             Site Execution Supervisor
           </Typography>
+          <Tooltip title="Logout">
+            <IconButton color="error" size="small" onClick={() => setLogoutOpen(true)}>
+              <LogoutRounded fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Chip
             label={statusOptions.find(s => s.key === form.site_execution_status)?.label || 'Status'}
             color="primary"
@@ -788,6 +906,20 @@ const SiteExecutionSupervisor = () => {
 
       {/* Content */}
       <Box sx={{ p: 0 }}>
+        {/* preload labour resources */}
+        {/* Hidden loader – resources used for Labour Usage UI (to be added). */}
+        {useEffect(() => {
+          let mounted = true;
+          (async () => {
+            try {
+              const data = await getLabourResources();
+              if (mounted) setLabourResources(Array.isArray(data) ? data : []);
+            } catch (e) {
+              console.error('Failed to load labour resources', e);
+            }
+          })();
+          return () => { mounted = false; };
+        }, [])}
         {/* Hero header */}
         {mode === 'list' && (
           <Box sx={{
@@ -1022,7 +1154,57 @@ const SiteExecutionSupervisor = () => {
                       onChange={(e) => setField('site_supervisor_id', e.target.value)}
                     />
                     <TextField label="Work Completed" required fullWidth size="small" multiline minRows={3} value={form.work_completed} onChange={(e) => setField('work_completed', e.target.value)} />
-                    <TextField label="Manpower Utilized" required type="number" fullWidth size="small" value={form.manpower_utilized} onChange={(e) => setField('manpower_utilized', e.target.value)} />
+                    {/* Labour Usage (search + list like Materials) */}
+                    <Box sx={{ p: 1.5, border: '1px dashed', borderColor: 'divider', borderRadius: 2, backgroundColor: 'background.paper' }}>
+                      <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Labour Usage</Typography>
+                      <Typography variant="caption" color="text.secondary">Add Labour</Typography>
+                      <Autocomplete
+                        options={labourResources}
+                        getOptionLabel={(opt) => resourceLabel(opt)}
+                        onChange={(e, v) => addLabourEntry(v)}
+                        disablePortal
+                        renderInput={(params) => <TextField {...params} placeholder="Search labour category/vendor" size="small" fullWidth sx={{ mt: 0.5, mb: 1 }} />}
+                      />
+                      {labourUsage.filter(e => e.labour_resource).length > 0 && (
+                        <Stack spacing={1}>
+                          {labourUsage.filter(e => e.labour_resource).map((e) => {
+                            const lr = (labourResources || []).find((x) => String(x.id) === String(e.labour_resource));
+                            const label = lr ? resourceLabel(lr) : `Resource #${e.labour_resource}`;
+                            return (
+                              <Stack key={e.labour_resource || Math.random()} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ p: 1.25, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                                <Typography sx={{ flex: 1 }}>{label}</Typography>
+                                <TextField
+                                  label="# Workers"
+                                  type="number"
+                                  size="small"
+                                  value={e.number_of_workers}
+                                  onChange={(ev)=> updateLabourField(e.labour_resource, 'number_of_workers', ev.target.value)}
+                                  sx={{ width: { xs: '100%', sm: 140 } }}
+                                />
+                                <TextField
+                                  label="Work Hours"
+                                  type="number"
+                                  size="small"
+                                  value={e.work_hours}
+                                  onChange={(ev)=> updateLabourField(e.labour_resource, 'work_hours', ev.target.value)}
+                                  sx={{ width: { xs: '100%', sm: 140 } }}
+                                />
+                                <TextField
+                                  label="Date/Time"
+                                  type="datetime-local"
+                                  size="small"
+                                  InputLabelProps={{ shrink: true }}
+                                  value={e.date}
+                                  onChange={(ev)=> updateLabourField(e.labour_resource, 'date', ev.target.value)}
+                                  sx={{ width: { xs: '100%', sm: 220 } }}
+                                />
+                                <Button color="error" onClick={() => removeLabourEntry(e.labour_resource)}>Remove</Button>
+                              </Stack>
+                            );
+                          })}
+                        </Stack>
+                      )}
+                    </Box>
                     <TextField label="Equipment Used" required fullWidth size="small" multiline minRows={2} value={form.equipment_used} onChange={(e) => setField('equipment_used', e.target.value)} />
                     <TextField label="Weather Conditions" required fullWidth size="small" value={form.weather_conditions} onChange={(e) => setField('weather_conditions', e.target.value)} />
                     <Autocomplete
@@ -1127,7 +1309,25 @@ const SiteExecutionSupervisor = () => {
                       <Typography variant="body2"><strong>Status:</strong> {form.site_execution_status}</Typography>
                       <Typography variant="body2"><strong>Supervisor:</strong> {form.site_supervisor_id || '-'}</Typography>
                       <Typography variant="body2"><strong>Work:</strong> {form.work_completed || '-'}</Typography>
-                      <Typography variant="body2"><strong>Manpower:</strong> {form.manpower_utilized || '-'}</Typography>
+                      <Typography variant="body2"><strong>Labour Usage:</strong></Typography>
+                      <Box sx={{ pl: 1 }}>
+                        {labourUsage && labourUsage.length > 0 ? (
+                          <Stack spacing={0.25}>
+                            {labourUsage.map((e, i) => {
+                              const lr = (labourResources || []).find((x) => String(x.id) === String(e.labour_resource));
+                              const label = lr ? resourceLabel(lr) : (e.labour_resource ? `Resource #${e.labour_resource}` : '(No Resource)');
+                              const when = e.date ? (() => { const d = new Date(e.date); return isNaN(d) ? e.date : d.toLocaleString(); })() : '-';
+                              return (
+                                <Typography key={i} variant="body2" color="text.secondary">
+                                  • {label}: {e.number_of_workers || '-'} workers, {e.work_hours || '-'} hrs, {when}
+                                </Typography>
+                              );
+                            })}
+                          </Stack>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">-</Typography>
+                        )}
+                      </Box>
                       <Typography variant="body2"><strong>Equipment:</strong> {form.equipment_used || '-'}</Typography>
                       <Typography variant="body2"><strong>Weather:</strong> {form.weather_conditions || '-'}</Typography>
                       <Typography variant="body2"><strong>Safety:</strong> {form.safety_compliance_report || '-'}</Typography>
@@ -1312,10 +1512,29 @@ const SiteExecutionSupervisor = () => {
                       </Stack>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <GroupIcon sx={{ fontSize: 16 }} />
-                        <Typography variant="body2"><strong>Manpower:</strong></Typography>
-                        <Chip size="small" color="secondary" variant="outlined" label={`${reportFocus.manpower_utilized ?? '-'} people`} />
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <GroupIcon sx={{ fontSize: 16, mt: 0.4 }} />
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" sx={{ mb: 0.25 }}><strong>Labour Usage:</strong></Typography>
+                          {(() => {
+                            const list = Array.isArray(reportFocus.labour_usage) ? reportFocus.labour_usage : [];
+                            if (!list.length) return <Typography variant="body2" color="text.secondary">—</Typography>;
+                            return (
+                              <Stack spacing={0.25}>
+                                {list.map((e, i) => {
+                                  const lr = (labourResources || []).find((x) => String(x.id) === String(e.labour_resource));
+                                  const label = lr ? resourceLabel(lr) : (e.labour_resource ? `Resource #${e.labour_resource}` : '(No Resource)');
+                                  const when = e.date ? (() => { const d = new Date(e.date); return isNaN(d) ? e.date : d.toLocaleString(); })() : '—';
+                                  return (
+                                    <Typography key={i} variant="body2" color="text.secondary">
+                                      • {label}: {e.number_of_workers ?? '—'} workers, {e.work_hours ?? '—'} hrs, {when}
+                                    </Typography>
+                                  );
+                                })}
+                              </Stack>
+                            );
+                          })()}
+                        </Box>
                       </Stack>
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -1537,11 +1756,24 @@ const SiteExecutionSupervisor = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeMaterials}>Cancel</Button>
-          <ShowIfCan slug="procurement" action="can_create">
+          <ShowIfCan slug="construction" action="can_create">
             <Button variant="contained" onClick={submitMaterials}>Submit Request</Button>
           </ShowIfCan>
         </DialogActions>
       </Dialog>
+
+      {/* Logout Confirm Dialog */}
+      <Dialog open={logoutOpen} onClose={() => setLogoutOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirm Logout</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">Are you sure you want to logout?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLogoutOpen(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={logout}>Logout</Button>
+        </DialogActions>
+      </Dialog>
+
       </Box>
     </ThemeProvider>
   );

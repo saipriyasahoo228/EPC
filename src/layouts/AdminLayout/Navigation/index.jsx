@@ -25,7 +25,8 @@ export default function Navigation() {
     dispatch({ type: actionType.COLLAPSE_MENU });
   };
 
-  let navClass = 'dark-sidebar';
+  // Build classes as an array to avoid spreading strings into individual character class names
+  let navClass = ['dark-sidebar'];
 
   // Map top-level group IDs to backend module slugs
   // Update this mapping if you change group IDs in menu-items.js

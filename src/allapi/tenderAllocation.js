@@ -94,3 +94,15 @@ export const projectCost = async()=>{
   const response = await api.get('/tender/project-costs/');
   return response.data;
 }
+
+export const getTenderHistoryDiffs = async (tenderId) => {
+  const response = await api.get(`/tender/tender/history/diffs/${tenderId}/`);
+  return response.data;
+};
+
+export const getTenderHistorySnapshots = async (tenderId) => {
+  const response = await api.get(`/tender/tender/history/snapshots/${tenderId}/`);
+  return response.data;
+};
+
+

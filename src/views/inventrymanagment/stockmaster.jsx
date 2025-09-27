@@ -25,6 +25,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { getInventoryItems,createStock,getStockManagement ,deleteStock,updateStock } from "../../allapi/inventory";
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 
@@ -370,7 +371,7 @@ const handleDelete = async (stockManagementId) => {
       <TableCell>{item.stock_issued_by}</TableCell>
       <TableCell>{item.stock_balance}</TableCell>
       <TableCell>{item.stock_valuation}</TableCell>
-      <TableCell>{item.last_updated}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(item.last_updated)}</TableCell>
       <TableCell>
       <DisableIfCannot slug={MODULE_SLUG} action="can_update">
 

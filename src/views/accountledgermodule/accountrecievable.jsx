@@ -8,7 +8,7 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close"; 
 import { getGuests ,createReceivable,getReceivables,deleteReceivable,updateReceivable} from "../../allapi/account";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
-
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const AccountsReceivable = () => {
@@ -296,8 +296,8 @@ const resetForm = () => {
                   <TableRow key={i}>
                     <TableCell>{r.invoice_id}</TableCell>
                     <TableCell>{r.guest_id}</TableCell>
-                    <TableCell>{r.invoice_date}</TableCell>
-                    <TableCell>{r.due_date}</TableCell>
+                    <TableCell>{formatDateDDMMYYYY(r.invoice_date)}</TableCell>
+                    <TableCell>{formatDateDDMMYYYY(r.due_date)}</TableCell>
                     <TableCell>{r.total_amount}</TableCell>
                     <TableCell>{r.amount_received}</TableCell>
                     <TableCell>{r.outstanding_balance}</TableCell>

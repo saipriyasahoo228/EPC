@@ -39,6 +39,7 @@ import { getTenders,getTenderbyID,createProjectFromTender,cancelTender,getProjec
 import { getUser, getGroups } from '../../allapi/user';
 import { getEffectiveUserPermissions } from '../../allapi/access';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+import { formatDateDDMMYYYY } from '../../utils/date';
 const ProjectCreation = () => {
   const MODULE_SLUG = 'tender_allocation';
   const today = new Date().toISOString().split('T')[0];
@@ -267,6 +268,17 @@ const ProjectCreation = () => {
       }
 
       if (mode === 'cancel') {
+        // Validate required fields for cancel mode
+        if (!formData.refundDate || !formData.cancellationNote) {
+          alert('Please fill in Security Money Refund Date and Cancellation Notes.');
+          if (!formData.refundDate) {
+            refundDateRef?.current?.focus();
+          } else {
+            cancellationNoteRef?.current?.focus();
+          }
+          return;
+        }
+
         const payload = {
           status: 'Cancel',
           security_money_refund_date: formData.refundDate,
@@ -458,9 +470,10 @@ const ProjectCreation = () => {
              
               <TableCell>{proj.project_id || '-'}</TableCell>
               <TableCell>{proj.govt_project_id || '-'}</TableCell>
-              <TableCell>{proj.job_allocation_date || '-'}</TableCell>
+              <TableCell>{proj.job_allocation_date ? formatDateDDMMYYYY(proj.job_allocation_date) : '-'}</TableCell>
               <TableCell>{proj.allocation_state || '-'}</TableCell>
-              <TableCell>{proj.security_money_refund_date || '-'}</TableCell>
+              <TableCell>{proj.security_money_refund_date ? formatDateDDMMYYYY(proj.security_money_refund_date) : '-'}</TableCell>
+              <TableCell>{typeof proj.security_money_amount === 'number' ? `₹ ${proj.security_money_amount}` : (proj.security_money_amount || '-')}</TableCell>
               <TableCell>{proj.description || '-'}</TableCell>
               <TableCell>
                 {proj.status === 'Accept' ? (
@@ -499,10 +512,11 @@ const ProjectCreation = () => {
           <TableCell sx={{ color: '#7267ef' }}>Govt Project ID</TableCell>
           <TableCell sx={{ color: '#7267ef' }}>Job Allocation Date</TableCell>
           <TableCell sx={{ color: '#7267ef' }}>Allocation State</TableCell>
-          <TableCell sx={{ color: '#7267ef' }}>Refund Date</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Security Deposit Refund Date</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Security Money Amount</TableCell>
           <TableCell sx={{ color: '#7267ef' }}>Cancellation Note</TableCell>
           <TableCell sx={{ color: '#7267ef' }}>Status</TableCell>
-          <TableCell align="right" sx={{ color: '#7267ef' }}>Users</TableCell>
+          <TableCell sx={{ color: '#7267ef' }}>Users</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -512,9 +526,10 @@ const ProjectCreation = () => {
               <TableCell>{proj.tender}</TableCell>
               <TableCell>{proj.project_id || '-'}</TableCell>
               <TableCell>{proj.govt_project_id || '-'}</TableCell>
-              <TableCell>{proj.job_allocation_date || '-'}</TableCell>
+              <TableCell>{proj.job_allocation_date ? formatDateDDMMYYYY(proj.job_allocation_date) : '-'}</TableCell>
               <TableCell>{proj.allocation_state || '-'}</TableCell>
-              <TableCell>{proj.security_money_refund_date || '-'}</TableCell>
+              <TableCell>{proj.security_money_refund_date ? formatDateDDMMYYYY(proj.security_money_refund_date) : '-'}</TableCell>
+              <TableCell>{proj.security_money_amount || '-'}</TableCell>
               <TableCell>{proj.description || '-'}</TableCell>
               <TableCell>
                 {proj.status === 'Accept' ? (
@@ -581,21 +596,23 @@ const ProjectCreation = () => {
     <Typography><strong>Tender ID:</strong> {selectedTender?.tender_id}</Typography>
     <Typography><strong>Reference No:</strong> {selectedTender?.tender_ref_no}</Typography>
     <Typography><strong>Location:</strong> {selectedTender?.location}</Typography>
-    <Typography><strong>Release Date:</strong> {selectedTender?.release_date}</Typography>
+    <Typography><strong>Release Date:</strong> {formatDateDDMMYYYY(selectedTender?.release_date)}</Typography>
     <Typography><strong>Tender Value:</strong> ₹{selectedTender?.tender_value}</Typography>
 
     <Typography><strong>EMD Details:</strong></Typography>
     <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
       <li><strong>Amount:</strong> ₹{selectedTender?.emd_details?.amount}</li>
-      <li><strong>Validity:</strong> {selectedTender?.emd_details?.validity}</li>
+      <li><strong>Validity:</strong> {formatDateDDMMYYYY(selectedTender?.emd_details?.validity)}</li>
       <li><strong>Conditions:</strong> {selectedTender?.emd_details?.conditions}</li>
+      <li><strong>Refund Date:</strong> {selectedTender?.emd_details?.refund_date ? formatDateDDMMYYYY(selectedTender?.emd_details?.refund_date) : '-'}</li>
+      <li><strong>Is Refunded:</strong> {typeof selectedTender?.emd_details?.is_refunded === 'boolean' ? (selectedTender.emd_details.is_refunded ? 'Yes' : 'No') : '-'}</li>
     </ul>
 
     <Typography><strong>Authority:</strong> {selectedTender?.authority}</Typography>
     <Typography><strong>Contact:</strong> {selectedTender?.contact}</Typography>
     <Typography><strong>Authorized Personnel:</strong> {selectedTender?.authorized_personnel}</Typography>
-    <Typography><strong>Start Date:</strong> {selectedTender?.start_date}</Typography>
-    <Typography><strong>End Date:</strong> {selectedTender?.end_date}</Typography>
+    <Typography><strong>Start Date:</strong> {formatDateDDMMYYYY(selectedTender?.start_date)}</Typography>
+    <Typography><strong>End Date:</strong> {formatDateDDMMYYYY(selectedTender?.end_date)}</Typography>
     <Typography><strong>Description:</strong> {selectedTender?.tender_description}</Typography>
     <Typography><strong>Status:</strong> {selectedTender?.status}</Typography>
   </>
@@ -603,7 +620,7 @@ const ProjectCreation = () => {
             <>
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={12}>
-                  <label htmlFor="jobAllocationDate">Job Allocation Date</label>
+                  <label htmlFor="jobAllocationDate">Job Allocation Date <span style={{ color: 'red' }}>*</span></label>
                   <input
                     type="date"
                     id="jobAllocationDate"
@@ -615,7 +632,7 @@ const ProjectCreation = () => {
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <label htmlFor="govtProjectId">Govt. Project ID</label>
+                  <label htmlFor="govtProjectId">Govt. Project ID <span style={{ color: 'red' }}>*</span></label>
                   <input
                     type="text"
                     id="govtProjectId"
@@ -628,7 +645,7 @@ const ProjectCreation = () => {
                 </Grid>
               
                 <Grid item xs={12}>
-                  <label htmlFor="allocationStatus">Status</label>
+                  <label htmlFor="allocationStatus">Status <span style={{ color: 'red' }}>*</span></label>
                   <select
                     id="allocationStatus"
                     value={formData.allocationStatus}
@@ -645,9 +662,9 @@ const ProjectCreation = () => {
               
             </>
           ) : (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
-                <label htmlFor="refundDate">Security Money Refund Date</label>
+           <Grid container spacing={2} sx={{ mt: 1 }}>
+             <Grid item xs={12}>
+                <label htmlFor="refundDate">Security Money Refund Date <span style={{ color: 'red' }}>*</span></label>
                 <input
                   type="date"
                   id="refundDate"
@@ -659,7 +676,7 @@ const ProjectCreation = () => {
                 />
               </Grid>
               <Grid item xs={12}>
-                <label htmlFor="cancellationNote">Cancellation Notes</label>
+                <label htmlFor="cancellationNote">Cancellation Notes <span style={{ color: 'red' }}>*</span></label>
                 <textarea
                   id="cancellationNote"
                   rows={3}
