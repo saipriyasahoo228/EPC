@@ -22,7 +22,7 @@ import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getAssets ,createMaintenanceSchedule,getMaintenanceSchedules,deleteMaintenanceSchedule,updateMaintenanceSchedule} from "../../allapi/maintenance";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
-
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const AssetScheduling = () => {
@@ -317,7 +317,7 @@ const handleSubmit = async () => {
       <TableCell>{t.asset_id}</TableCell>
       <TableCell>{t.maintenance_id}</TableCell>
       <TableCell>{t.maintenance_type}</TableCell>
-      <TableCell>{t.scheduled_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(t.scheduled_date)}</TableCell>
       <TableCell>{t.frequency}</TableCell>
       <TableCell>{t.assigned_technician_id}</TableCell>
       <TableCell>{t.task_description}</TableCell>

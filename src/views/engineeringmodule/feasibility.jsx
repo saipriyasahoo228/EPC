@@ -19,7 +19,7 @@ import {
   TableContainer,
   Paper,
 } from "@mui/material";
-import { AddCircle, Edit, Delete ,ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
+import { AddCircle, Edit, Delete ,ArrowBackIos, ArrowForwardIos, Visibility } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import {getProjectsAccept, createFeasibilityStudy, fetchFeasibilityStudies, patchFeasibilityStudy, deleteFeasibilityStudy} from '../../allapi/engineering';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
@@ -28,6 +28,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import autoTable from "jspdf-autotable";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const FeasibilityForm = () => {
@@ -125,8 +126,8 @@ const handleEdit = (study) => {
     estimatedCompletionTime: study.estimated_completion_time,
     recommendations: study.recommendations,
     approvalStatus: study.approval_status,
-    approvalDate: study.approval_date,
-    status: study.status,
+    approvalDate: study.approval_date ? new Date(study.approval_date).toISOString().slice(0, 10) : '',
+    status: study.status || 'Draft',
   });
   setOpen(true);
 };
@@ -149,8 +150,15 @@ const handleSubmit = async () => {
   form.append('estimated_completion_time', formData.estimatedCompletionTime);
   form.append('recommendations', formData.recommendations);
   form.append('approval_status', formData.approvalStatus);
-  form.append('approval_date', formData.approvalDate);
-  form.append('status', formData.status);
+  // Normalize date to YYYY-MM-DD, and only send if present
+  const normalizedApprovalDate = formData.approvalDate
+    ? new Date(formData.approvalDate).toISOString().slice(0, 10)
+    : '';
+  if (normalizedApprovalDate) {
+    form.append('approval_date', normalizedApprovalDate);
+  }
+  // Ensure status is never undefined
+  form.append('status', formData.status || 'Draft');
 
   try {
     if (mode === 'edit') {
@@ -190,7 +198,22 @@ const handleSubmit = async () => {
   setSelectedProjectId(projectId);
   const currentYear = new Date().getFullYear(); // get system year
   const paddedId = String(feasibilityStudies.length + 1).padStart(4, '0'); // ensures 4-digit format
-  setFormData({ feasibilityStudyId: `FS-${currentYear}-${paddedId}` });
+  setMode('create');
+  setFormData({
+    feasibilityStudyId: `FS-${currentYear}-${paddedId}`,
+    studyTitle: '',
+    preparedBy: '',
+    studyType: '',
+    reports: null,
+    riskAssessment: '',
+    regulatoryCompliance: '',
+    projectedROI: '',
+    estimatedCompletionTime: '',
+    recommendations: '',
+    approvalStatus: 'Pending',
+    approvalDate: '',
+    status: 'Draft',
+  });
   setOpen(true);
 };
 
@@ -435,6 +458,7 @@ const toggleModalSize = () => {
                     <TableCell sx={{color:'#7267ef'}}><strong>Approval Status</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Approval Date</strong></TableCell>
                     <TableCell sx={{color:'#7267ef'}}><strong>Status</strong></TableCell>
+                    <TableCell sx={{color:'#7267ef'}}><strong>Report</strong></TableCell>
                     <TableCell sx={{color:'#660000'}}><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
@@ -453,12 +477,21 @@ const toggleModalSize = () => {
                       <TableCell>{study.estimated_completion_time}</TableCell>
                       <TableCell>{study.recommendations}</TableCell>
                       <TableCell>{study.approval_status}</TableCell>
-                      <TableCell>{study.approval_date}</TableCell>
+                      <TableCell>{formatDateDDMMYYYY(study.approval_date)}</TableCell>
                       <TableCell>{study.status}</TableCell>
+                      <TableCell>
+                        {study.reports ? (
+                          <IconButton component="a" href={study.reports} target="_blank" rel="noopener noreferrer" title="View">
+                            <Visibility />
+                          </IconButton>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
 
                       <TableCell>
   {/* Edit Button */}
-  <DisableIfCannot slug={MODULE_SLUG} action="can_edit">
+  <DisableIfCannot slug={MODULE_SLUG} action="can_update">
   <IconButton color="warning" onClick={() => handleEdit(study)}>
     <Edit sx={{ color: "orange" }} />
   </IconButton>
@@ -570,15 +603,15 @@ const toggleModalSize = () => {
                     <input id="feasibilityStudyId" name="feasibilityStudyId" className="input" value={formData.feasibilityStudyId || ''} disabled />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="studyTitle">Study Title</label>
+                    <label htmlFor="studyTitle">Study Title <span style={{color: 'red'}}>*</span></label>
                     <input id="studyTitle" name="studyTitle" className="input" value={formData.studyTitle || ''} onChange={handleChange} />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="preparedBy">Prepared By</label>
+                    <label htmlFor="preparedBy">Prepared By <span style={{color: 'red'}}>*</span></label>
                     <input id="preparedBy" name="preparedBy" className="input" value={formData.preparedBy || ''} onChange={handleChange} />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="studyType">Study Type</label>
+                    <label htmlFor="studyType">Study Type <span style={{color: 'red'}}>*</span></label>
                     <select id="studyType" name="studyType" className="input" value={formData.studyType || ''} onChange={handleChange}>
                       <option value="">Select Type</option>
                       {['Technical', 'Financial', 'Environmental', 'Operational'].map(type => (
@@ -587,18 +620,21 @@ const toggleModalSize = () => {
                     </select>
                   </Grid>
                   <Grid item xs={6}>
-                    <label>Upload</label>
+                    <label>Upload Reports/Documents {mode !== 'edit' && <span style={{ color: 'red' }}>*</span>}</label>
+                    <Button variant="contained" component="label">
+                      Choose File
                       <input
-  type="file"
-  className="input"
-  ref={fileInputRef} // needed for reset
-  onChange={(e) => {
-    setFormData((prev) => ({
-      ...prev,
-      reports: e.target.files[0],
-    }));
-  }}
-/>
+                        type="file"
+                        hidden
+                        ref={fileInputRef}
+                        onChange={(e) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            reports: e.target.files[0],
+                          }));
+                        }}
+                      />
+                    </Button>
                   </Grid>
                 </Grid>
               </Grid>
@@ -612,31 +648,31 @@ const toggleModalSize = () => {
            <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
            <Grid container spacing={2}>
              <Grid item xs={6}>
-               <label htmlFor="riskAssessment">Risk Assessment</label>
-               <textarea id="riskAssessment" name="riskAssessment" className="input" rows={3} value={formData.riskAssessment || ''} onChange={handleChange} />
+               <label htmlFor="riskAssessment">Risk Assessment <span style={{color: 'red'}}>*</span></label>
+               <textarea id="riskAssessment" name="riskAssessment" className="input" rows={3} value={formData.riskAssessment || ''} onChange={handleChange} required />
              </Grid>
              <Grid item xs={6}>
-               <label htmlFor="regulatoryCompliance">Regulatory Compliance</label>               
-               <input id="regulatoryCompliance" name="regulatoryCompliance" className="input" value={formData.regulatoryCompliance || ''} onChange={handleChange} />
+               <label htmlFor="regulatoryCompliance">Regulatory Compliance <span style={{color: 'red'}}>*</span></label>                
+               <input id="regulatoryCompliance" name="regulatoryCompliance" className="input" value={formData.regulatoryCompliance || ''} onChange={handleChange} required />
              </Grid>
            </Grid>
          </Grid>
 
-         {/* Financial Info */}
+
         <Grid item xs={12}>
            <h3 style={{ color: '#7267ef' }}>Financial Information</h3>           
            <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
            <Grid container spacing={2}>
              <Grid item xs={6}>
-               <label htmlFor="projectedROI">Projected ROI (%)</label>
+               <label htmlFor="projectedROI">Projected ROI (%) <span style={{color: 'red'}}>*</span></label>
               <input type="number" id="projectedROI" name="projectedROI" className="input" value={formData.projectedROI || ''} onChange={handleChange} />
             </Grid>
              <Grid item xs={6}>
-               <label htmlFor="estimatedCompletionTime">Estimated Completion Time (Months/Years)</label>
+               <label htmlFor="estimatedCompletionTime">Estimated Completion Time (Months/Years) <span style={{color: 'red'}}>*</span></label>
                <input type="number" id="estimatedCompletionTime" name="estimatedCompletionTime" className="input" value={formData.estimatedCompletionTime || ''} onChange={handleChange} />
             </Grid>
             <Grid item xs={6}>
-               <label htmlFor="recommendations">Recommendations</label>
+               <label htmlFor="recommendations">Recommendations <span style={{color: 'red'}}>*</span></label>
                <textarea id="recommendations" name="recommendations" className="input" rows={3} value={formData.recommendations || ''} onChange={handleChange} />
              </Grid>
            </Grid>

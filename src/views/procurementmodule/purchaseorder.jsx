@@ -25,6 +25,7 @@ import { Maximize2, Minimize2 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import DownloadIcon from "@mui/icons-material/Download";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const PurchaseOrder = () => {
@@ -167,6 +168,31 @@ useEffect(() => {
 //HandleSubmit Logic
 const handleSubmit = async (e) => {
   e.preventDefault();
+
+  if (!formData.orderDate) {
+    alert('Please select the order date.');
+    return;
+  }
+
+  if (!formData.deliveryDate) {
+    alert('Please select the delivery date.');
+    return;
+  }
+
+  if (!formData.totalOrderValue || Number(formData.totalOrderValue) <= 0) {
+    alert('Please enter the total order value (must be greater than 0).');
+    return;
+  }
+
+  if (!formData.paymentTerms || !formData.paymentTerms.trim()) {
+    alert('Please enter the payment terms.');
+    return;
+  }
+
+  if (!formData.taxDetails || !formData.taxDetails.trim()) {
+    alert('Please enter the tax details.');
+    return;
+  }
 
   const payload = {
     vendor: formData.vendorId,
@@ -402,8 +428,8 @@ const handleDelete = async (po_id) => {
           <TableCell>{p.po_number}</TableCell>
           <TableCell>{p.vendor}</TableCell>
           <TableCell>{p.procurement}</TableCell>
-          <TableCell>{p.order_date}</TableCell>
-          <TableCell>{p.delivery_date}</TableCell>
+          <TableCell>{formatDateDDMMYYYY(p.order_date)}</TableCell>
+          <TableCell>{formatDateDDMMYYYY(p.delivery_date)}</TableCell>
           <TableCell>{p.total_order_value}</TableCell>
           <TableCell>{p.payment_terms}</TableCell>
           <TableCell>{p.tax_details}</TableCell>
@@ -559,7 +585,7 @@ const handleDelete = async (po_id) => {
       <Grid container spacing={2}>
         
         <Grid item xs={6}>
-          <label htmlFor="orderDate">Order Date </label>
+          <label htmlFor="orderDate">Order Date <span style={{color: 'red'}}>*</span></label>
           <input
             type="date"
             id="orderDate"
@@ -570,7 +596,7 @@ const handleDelete = async (po_id) => {
           />
         </Grid>
          <Grid item xs={6}>
-          <label htmlFor="deliveryDate">Dalivery Date </label>
+          <label htmlFor="deliveryDate">Delivery Date <span style={{color: 'red'}}>*</span></label>
           <input
             type="date"
             id="deliveryDate"
@@ -581,7 +607,7 @@ const handleDelete = async (po_id) => {
           />
         </Grid>
         <Grid item xs={6}>
-          <label htmlFor="totalOrderValue">Total Order Value</label>
+          <label htmlFor="totalOrderValue">Total Order Value <span style={{color: 'red'}}>*</span></label>
           <input
             type="number"
             id="totalOrderValue"
@@ -592,7 +618,7 @@ const handleDelete = async (po_id) => {
           />
         </Grid>
         <Grid item xs={6}>
-          <label htmlFor="paymentTerms">Payment Terms</label>
+          <label htmlFor="paymentTerms">Payment Terms <span style={{color: 'red'}}>*</span></label>
           <input
             id="paymentTerms"
             name="paymentTerms"
@@ -610,7 +636,7 @@ const handleDelete = async (po_id) => {
       <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
       <Grid container spacing={2}>
       <Grid item xs={6}>
-  <label htmlFor="taxDetails">Tax Details</label>
+  <label htmlFor="taxDetails">Tax Details <span style={{color: 'red'}}>*</span></label>
   <input
     id="taxDetails"
     name="taxDetails"

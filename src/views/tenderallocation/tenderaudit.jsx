@@ -1,341 +1,432 @@
-import React, { useState } from 'react';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
-import { 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  Table, 
-  TableHead, 
-  TableRow, 
-  TableCell, 
-  TableBody, 
-  Typography, 
-  Chip, 
-  Button,
-  Tabs,
-  Tab,
-  Box,
-  Divider,
-  IconButton
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, IconButton, CircularProgress, Alert, Tabs, Tab, Paper, Tooltip, Chip
 } from '@mui/material';
-import { Download, Eye, Maximize2, Minimize2, ChevronRight } from 'lucide-react';
+import { Eye, X, Clock, User, FileText, GitMerge, FilePlus, FileMinus, History } from 'lucide-react';
+import { getTenderHistoryDiffs, getTenderHistorySnapshots } from '../../allapi/tenderAllocation';
 
-const AuditTrail = ({ auditTrail }) => {
+const AuditTrail = ({ tenderId, triggerVariant = 'button' }) => {
   const [open, setOpen] = useState(false);
-  const [changesDialogOpen, setChangesDialogOpen] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState(null);
-  const [viewMode, setViewMode] = useState('previous');
-  const [fullScreen, setFullScreen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [diffs, setDiffs] = useState([]);
+  const [snapshots, setSnapshots] = useState([]);
+  const [selectedHistory, setSelectedHistory] = useState(null);
+  const [viewMode, setViewMode] = useState('changes'); // 'changes' or 'snapshots'
+  const [compareLayout, setCompareLayout] = useState('cards'); // 'cards' | 'matrix' | 'snapshots'
 
-  const exportAuditTrailToPDF = () => {
-    const doc = new jsPDF();
-    const columns = ["Action", "Tender ID", "Changes", "Timestamp", "User Role"];
-    
-    const rows = auditTrail.map(entry => [
-      entry.action,
-      entry.tenderId,
-      getActionDescription(entry.action, entry.changes?.length || 0),
-      entry.timestamp,
-      entry.userrole
-    ]);
-
-    doc.autoTable({
-      head: [columns],
-      body: rows,
-      margin: { top: 20 },
-      theme: 'striped',
-    });
-
-    doc.save("audit-trail-report.pdf");
+  const handleOpen = () => {
+    setOpen(true);
   };
 
-  const getActionDescription = (action, changeCount) => {
-    switch(action) {
-      case 'Added': return 'New tender created';
-      case 'Updated': return `${changeCount} change${changeCount !== 1 ? 's' : ''}`;
-      case 'Deleted': return 'Tender deleted';
-      default: return 'Action performed';
+  const renderCompareSnapshotsTable = () => {
+    if (!diffs || diffs.length === 0) {
+      return (
+        <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+          <Typography color="text.secondary">No versions to compare.</Typography>
+        </Box>
+      );
     }
-  };
 
-  const viewChanges = (entry) => {
-    setSelectedEntry(entry);
-    setChangesDialogOpen(true);
-  };
+    // Build a quick lookup: history_id -> changes map
+    const changesByHistory = new Map();
+    diffs.forEach(d => changesByHistory.set(d.history_id, d.changes || {}));
 
-  const getComparisonData = () => {
-    if (!selectedEntry) return [];
-    
-    if (viewMode === 'previous') {
-      // Show only changes from this specific update
-      return selectedEntry.changes || [];
-    } else {
-      // Show cumulative changes from all updates for this tender
-      const allChangesMap = new Map();
-      
-      // Get all entries for this tender, sorted chronologically
-      const tenderEntries = auditTrail
-        .filter(e => e.tenderId === selectedEntry.tenderId)
-        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      
-      // Build cumulative changes
-      tenderEntries.forEach(entry => {
-        (entry.changes || []).forEach(change => {
-          allChangesMap.set(change.field, {
-            field: change.field,
-            oldValue: allChangesMap.get(change.field)?.oldValue || change.oldValue,
-            newValue: change.newValue,
-            timestamp: entry.timestamp
-          });
-        });
+    // Collect fields from snapshots (excluding meta) to ensure full table
+    const fieldsToExclude = ['history_id', 'history_user', 'history_date', 'history_change_reason', 'history_type'];
+    const fieldSet = new Set();
+    snapshots.forEach(s => {
+      Object.keys(s).forEach(k => {
+        if (!fieldsToExclude.includes(k)) fieldSet.add(k);
       });
-      
-      return Array.from(allChangesMap.values());
+    });
+    const fields = Array.from(fieldSet);
+
+    // Prepare snapshots aligned with diffs order (desc)
+    const snapshotsByHistory = new Map(snapshots.map(s => [s.history_id, s]));
+
+    return (
+      <Box component={Paper} variant="outlined" sx={{ mt: 2, p: 1, overflowX: 'auto' }}>
+        {/* Header Row */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: `240px repeat(${diffs.length}, minmax(200px, 1fr))`, gap: 1, p: 1, borderBottom: '1px solid #eee' }}>
+          <Box></Box>
+          {diffs.map(d => (
+            <Box key={d.history_id} display="flex" alignItems="center" gap={1}>
+              {d.history_type === '+' ? <FilePlus size={14} color="#4caf50" /> : d.history_type === '~' ? <GitMerge size={14} color="#ff9800" /> : <FileMinus size={14} color="#f44336" />}
+              <Typography variant="caption" color="text.secondary">Version {d.history_id}</Typography>
+            </Box>
+          ))}
+        </Box>
+
+        {/* Field Rows */}
+        {fields.map(field => (
+          <Box key={field} sx={{ display: 'grid', gridTemplateColumns: `240px repeat(${diffs.length}, minmax(200px, 1fr))`, gap: 1, p: 1, borderBottom: '1px dashed #eee' }}>
+            <Typography variant="body2" fontWeight="bold" sx={{ textTransform: 'capitalize' }}>{field.replace(/_/g, ' ')}</Typography>
+            {diffs.map(d => {
+              const s = snapshotsByHistory.get(d.history_id);
+              const value = s ? s[field] : undefined;
+              const changed = Boolean((changesByHistory.get(d.history_id) || {})[field]);
+              return (
+                <Box key={d.history_id} sx={{
+                  p: 1,
+                  borderRadius: 1,
+                  backgroundColor: changed ? '#f4faff' : 'transparent',
+                  border: changed ? '1px solid #90caf9' : '1px solid transparent'
+                }}>
+                  <Typography variant="body2" color={changed ? 'primary.main' : 'text.secondary'}>
+                    {value === null || value === undefined || value === '' ? '—' : String(value)}
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Box>
+        ))}
+      </Box>
+    );
+  };
+
+  const renderCompareMatrix = () => {
+    if (!diffs || diffs.length === 0) {
+      return (
+        <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+          <Typography color="text.secondary">No versions to compare.</Typography>
+        </Box>
+      );
     }
+
+    // Prepare field set
+    const fieldSet = new Set();
+    diffs.forEach(d => Object.keys(d.changes || {}).forEach(k => fieldSet.add(k)));
+    const fields = Array.from(fieldSet);
+
+    return (
+      <Box component={Paper} variant="outlined" sx={{ mt: 2, p: 1, overflowX: 'auto' }}>
+        {/* Header Row */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: `240px repeat(${diffs.length}, minmax(180px, 1fr))`, gap: 1, p: 1, borderBottom: '1px solid #eee' }}>
+          <Box></Box>
+          {diffs.map((d, i) => (
+            <Box key={d.history_id} display="flex" alignItems="center" gap={1}>
+              {d.history_type === '+' ? <FilePlus size={14} color="#4caf50" /> : d.history_type === '~' ? <GitMerge size={14} color="#ff9800" /> : <FileMinus size={14} color="#f44336" />}
+              <Typography variant="caption" color="text.secondary">Version {d.history_id}</Typography>
+            </Box>
+          ))}
+        </Box>
+
+        {/* Field Rows */}
+        {fields.map(field => (
+          <Box key={field} sx={{ display: 'grid', gridTemplateColumns: `240px repeat(${diffs.length}, minmax(180px, 1fr))`, gap: 1, p: 1, borderBottom: '1px dashed #eee' }}>
+            <Typography variant="body2" fontWeight="bold" sx={{ textTransform: 'capitalize' }}>{field.replace(/_/g, ' ')}</Typography>
+            {diffs.map((d, idx) => {
+              const delta = (d.changes || {})[field];
+              if (!delta) {
+                return (
+                  <Typography key={idx} variant="body2" color="text.secondary">—</Typography>
+                );
+              }
+              return (
+                <Box key={idx}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Typography variant="body2" sx={{ textDecoration: 'line-through' }} color="error.main">{String(delta.old)}</Typography>
+                    <Typography variant="body2">→</Typography>
+                    <Typography variant="body2" color="success.main">{String(delta.new)}</Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">{new Date(d.history_date).toLocaleString()}</Typography>
+                </Box>
+              );
+            })}
+          </Box>
+        ))}
+      </Box>
+    );
+  };
+
+  const renderCompare = () => {
+    if (!diffs || diffs.length === 0) {
+      return (
+        <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+          <Typography color="text.secondary">No versions to compare.</Typography>
+        </Box>
+      );
+    }
+
+    // diffs are already sorted by date desc in effect => index 0 is latest
+    return (
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 2, mt: 2 }}>
+        {diffs.map((item, idx) => {
+          const changeEntries = Object.entries(item.changes || {});
+          return (
+            <Paper key={item.history_id} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                <Box display="flex" alignItems="center" gap={1.25}>
+                  {item.history_type === '+' ? <FilePlus size={16} color="#4caf50" /> : item.history_type === '~' ? <GitMerge size={16} color="#ff9800" /> : <FileMinus size={16} color="#f44336" />}
+                  <Typography variant="subtitle2" fontWeight="bold">Version {item.history_id}</Typography>
+                </Box>
+                <Typography variant="caption" color="text.secondary">{new Date(item.history_date).toLocaleString()}</Typography>
+              </Box>
+
+              <Box display="flex" alignItems="center" gap={1} mb={1} color="text.secondary">
+                <User size={14} />
+                <Typography variant="caption">{item.history_user?.full_name} ({item.history_user?.user_id})</Typography>
+              </Box>
+
+              {changeEntries.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">No changes in this version.</Typography>
+              ) : (
+                <Box sx={{ mt: 1 }}>
+                  {changeEntries.map(([field, val]) => (
+                    <Box key={field} sx={{ py: 0.75, borderBottom: '1px dashed #eee' }}>
+                      <Typography variant="overline" sx={{ textTransform: 'capitalize' }} color="text.secondary">{field.replace(/_/g, ' ')}</Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="body2" sx={{ textDecoration: 'line-through' }} color="error.main">{String(val?.old)}</Typography>
+                        <Typography variant="body2">→</Typography>
+                        <Typography variant="body2" color="success.main">{String(val?.new)}</Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Paper>
+          );
+        })}
+      </Box>
+    );
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    // Reset states
+    setDiffs([]);
+    setSnapshots([]);
+    setSelectedHistory(null);
+    setError(null);
+  };
+
+  // Fetch when dialog is open and tenderId is available
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!open || !tenderId) return;
+      setLoading(true);
+      setError(null);
+      try {
+        console.log('[AuditTrail] Fetching diffs & snapshots for tenderId:', tenderId);
+        const [diffsData, snapshotsData] = await Promise.all([
+          getTenderHistoryDiffs(tenderId),
+          getTenderHistorySnapshots(tenderId)
+        ]);
+        console.log('[AuditTrail] Diffs:', diffsData);
+        console.log('[AuditTrail] Snapshots:', snapshotsData);
+
+        const sortedDiffs = (diffsData || []).sort((a, b) => new Date(b.history_date) - new Date(a.history_date));
+        setDiffs(sortedDiffs);
+        setSnapshots(snapshotsData || []);
+        setSelectedHistory(sortedDiffs[0] || null);
+      } catch (err) {
+        console.error('[AuditTrail] Fetch error:', err);
+        setError('Failed to fetch audit trail. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [open, tenderId]);
+
+  const getHistoryIcon = (type) => {
+    switch (type) {
+      case '+': return <FilePlus size={18} color="#4caf50" />;
+      case '~': return <GitMerge size={18} color="#ff9800" />;
+      case '-': return <FileMinus size={18} color="#f44336" />;
+      default: return <FileText size={18} />;
+    }
+  };
+
+  const renderChanges = (changes) => {
+    const changeKeys = Object.keys(changes);
+    if (changeKeys.length === 0) {
+      return <Typography variant="body2" color="text.secondary">No changes in this version.</Typography>;
+    }
+    return (
+      <Box component={Paper} variant="outlined" p={2} mt={2} sx={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto' }}>
+        {changeKeys.map(key => (
+          <Box key={key} mb={2}>
+            <Typography variant="overline" color="text.secondary" sx={{ textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</Typography>
+            <Box display="flex" alignItems="center" mt={0.5}>
+              <Typography variant="body2" color="error.main" sx={{ textDecoration: 'line-through', mr: 1 }}>{String(changes[key].old)}</Typography>
+              <Typography variant="body2" sx={{ mx: 1 }}>→</Typography>
+              <Typography variant="body2" color="success.main">{String(changes[key].new)}</Typography>
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    );
+  };
+
+  const renderSnapshot = () => {
+    if (!selectedHistory) return null;
+    const snapshot = snapshots.find(s => s.history_id === selectedHistory.history_id);
+    if (!snapshot) return <Typography>Snapshot not available.</Typography>;
+
+    const fieldsToExclude = ['history_id', 'history_user', 'history_date', 'history_change_reason', 'history_type'];
+    const changedKeys = new Set(Object.keys(selectedHistory?.changes || {}));
+
+    return (
+      <Box component={Paper} variant="outlined" p={2} mt={2} sx={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto' }}>
+        {Object.entries(snapshot).map(([key, value]) => {
+          if (fieldsToExclude.includes(key)) return null;
+          const isChanged = changedKeys.has(key);
+          return (
+            <Box
+              key={key}
+              display="flex"
+              alignItems="center"
+              justifyContent="space-between"
+              py={1}
+              borderBottom="1px solid #eee"
+              sx={{
+                backgroundColor: isChanged ? '#fff8e1' : 'transparent',
+                borderLeft: isChanged ? '3px solid #ffb300' : '3px solid transparent',
+                pl: 1
+              }}
+            >
+              <Box display="flex" alignItems="center" gap={1}>
+                <Typography variant="body2" fontWeight="bold" sx={{ textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</Typography>
+                {isChanged && (
+                  <Chip label="Changed" size="small" color="warning" variant="outlined" sx={{ height: 20 }} />
+                )}
+              </Box>
+              <Typography variant="body2" color="text.secondary">{String(value)}</Typography>
+            </Box>
+          )
+        })}
+      </Box>
+    );
   };
 
   return (
     <>
-      {/* Main Audit Trail Button */}
-      <Button 
-        variant="contained" 
-        color="primary"
-        onClick={() => setOpen(true)}
-        startIcon={<Eye size={18} />}
-        style={{ 
-          marginLeft: '1rem',
-          backgroundColor: '#7267ef',
-          '&:hover': {
-            backgroundColor: '#5d55c7'
-          }
-        }}
-      >
-        View Audit Trail
-      </Button>
+      {triggerVariant === 'icon' ? (
+        <Tooltip title="View Audit Trail">
+          <IconButton onClick={handleOpen} size="small" sx={{ color: '#6c5ffc' }}>
+            <History size={18} />
+          </IconButton>
+        </Tooltip>
+      ) : (
+        <Button
+          variant="contained"
+          onClick={handleOpen}
+          startIcon={<Eye size={18} />}
+          sx={{ 
+            ml: '1rem',
+            backgroundColor: '#6c5ffc',
+            '&:hover': { backgroundColor: '#5b4fde' }
+          }}
+        >
+          View Audit Trail
+        </Button>
+      )}
 
-      {/* Main Audit Trail Dialog */}
-      <Dialog 
-        open={open} 
-        onClose={() => setOpen(false)} 
-        maxWidth="xl"
-        fullWidth
-        fullScreen={fullScreen}
-        PaperProps={{ 
-          style: { 
-            minHeight: fullScreen ? '100vh' : '80vh',
-            maxHeight: '100vh'
-          } 
-        }}
-      >
-        <DialogTitle sx={{ borderBottom: '1px solid #eee' }}>
+      <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth PaperProps={{ sx: { height: '90vh' } }}>
+        <DialogTitle sx={{ borderBottom: '1px solid #eee', p: 2 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6" fontWeight="bold">
-              Audit Trail Logs
-              <Typography variant="body2" color="textSecondary">
-                Total {auditTrail.length} entries
-              </Typography>
-            </Typography>
-            <Box>
-              <IconButton 
-                onClick={() => setFullScreen(!fullScreen)}
-                size="small"
-                sx={{ mr: 1 }}
-              >
-                {fullScreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
-              </IconButton>
-              <Button 
-                onClick={exportAuditTrailToPDF}
-                startIcon={<Download size={16} />}
-                variant="outlined"
-                size="small"
-              >
-                Export
-              </Button>
+            <Typography variant="h6" fontWeight="bold">Tender Audit Trail</Typography>
+            <IconButton onClick={handleClose} size="small"><X /></IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, display: 'flex', overflow: 'hidden' }}>
+          {loading ? (
+            <Box flex={1} display="flex" justifyContent="center" alignItems="center"><CircularProgress /></Box>
+          ) : error ? (
+            <Box flex={1} p={3}><Alert severity="error">{error}</Alert></Box>
+          ) : !tenderId ? (
+            <Box flex={1} display="flex" justifyContent="center" alignItems="center">
+              <Typography color="text.secondary">Please provide a valid tenderId to view audit history.</Typography>
             </Box>
-          </Box>
-        </DialogTitle>
-        
-        <DialogContent dividers sx={{ overflowY: 'auto', p: 0 }}>
-          <Table stickyHeader sx={{ minWidth: 1200 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Action</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Tender ID</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Changes</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Timestamp</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>User Role</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Details</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {auditTrail.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Typography color="textSecondary">No audit logs available</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                auditTrail.map((entry, index) => (
-                  <TableRow key={index} hover>
-                    <TableCell>
-                      <Chip 
-                        label={entry.action} 
-                        color={
-                          entry.action === 'Added' ? 'success' : 
-                          entry.action === 'Updated' ? 'warning' : 'error'
-                        } 
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>{entry.tenderId}</TableCell>
-                    <TableCell>
-                      {getActionDescription(entry.action, entry.changes?.length || 0)}
-                    </TableCell>
-                    <TableCell>{entry.timestamp}</TableCell>
-                    <TableCell>{entry.userrole}</TableCell>
-                    <TableCell>
-                      {entry.action === 'Updated' && entry.changes?.length > 0 && (
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<Eye size={16} />}
-                          onClick={() => viewChanges(entry)}
-                          sx={{ textTransform: 'none' }}
-                        >
-                          Compare Changes
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </DialogContent>
-        
-        <DialogActions sx={{ borderTop: '1px solid #eee' }}>
-          <Button 
-            onClick={() => setOpen(false)}
-            variant="contained"
-            sx={{ backgroundColor: '#7267ef', '&:hover': { backgroundColor: '#5d55c7' } }}
-          >
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Changes Comparison Dialog */}
-      <Dialog 
-        open={changesDialogOpen} 
-        onClose={() => setChangesDialogOpen(false)}
-        maxWidth="xl"
-        fullWidth
-        fullScreen
-        PaperProps={{ 
-          style: { 
-            height: '90vh',
-            maxHeight: '90vh'
-          } 
-        }}
-      >
-        <DialogTitle sx={{ borderBottom: '1px solid #eee' }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6" fontWeight="bold">
-              Change Comparison: {selectedEntry?.tenderId}
-              <Typography variant="body2" color="textSecondary">
-                {selectedEntry?.timestamp}
-              </Typography>
-            </Typography>
-            
-            <Tabs 
-              value={viewMode}
-              onChange={(e, newValue) => setViewMode(newValue)}
-              indicatorColor="primary"
-              textColor="primary"
-            >
-              <Tab label="This Update" value="previous" sx={{ minWidth: 120 }} />
-              <Tab label="All Changes" value="all" sx={{ minWidth: 120 }} />
-            </Tabs>
-          </Box>
-        </DialogTitle>
-        
-        <DialogContent dividers sx={{ overflowY: 'auto', p: 3 }}>
-          <Box 
-            display="grid"
-            gridTemplateColumns="1fr 40px 1fr"
-            gap={3}
-            alignItems="start"
-          >
-            <Typography variant="subtitle1" fontWeight="bold" textAlign="center">
-              Original Value
-            </Typography>
-            <Box></Box>
-            <Typography variant="subtitle1" fontWeight="bold" textAlign="center">
-              {viewMode === 'previous' ? 'Updated Value' : 'Current Value'}
-            </Typography>
-
-            {getComparisonData().map((change, i) => (
-              <React.Fragment key={i}>
-                <Box 
-                  p={2}
-                  borderRadius={1}
-                  bgcolor="#f9f9f9"
-                  sx={{ wordBreak: 'break-word' }}
-                >
-                  <Typography color="textSecondary" variant="caption">
-                    {change.field}
-                  </Typography>
-                  <Typography 
-                    color="error.main"
-                    sx={{ textDecoration: 'line-through' }}
+          ) : diffs.length === 0 ? (
+            <Box flex={1} display="flex" justifyContent="center" alignItems="center">
+              <Typography color="text.secondary">No audit history found for this tender.</Typography>
+            </Box>
+          ) : (
+            <>
+              {/* Left Panel: Timeline */}
+              <Box sx={{ width: '350px', borderRight: '1px solid #eee', overflowY: 'auto', p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>History</Typography>
+                {diffs.map(item => (
+                  <Box 
+                    key={item.history_id} 
+                    onClick={() => setSelectedHistory(item)}
+                    sx={{
+                      p: 1.5,
+                      mb: 1,
+                      borderRadius: 2,
+                      cursor: 'pointer',
+                      border: `1px solid ${selectedHistory?.history_id === item.history_id ? '#6c5ffc' : 'transparent'}`,
+                      backgroundColor: selectedHistory?.history_id === item.history_id ? '#f4f2ff' : 'transparent',
+                      '&:hover': { backgroundColor: '#f9f8ff' }
+                    }}
                   >
-                    {change.oldValue || 'Empty'}
-                  </Typography>
-                </Box>
+                    <Box display="flex" alignItems="center">
+                      <Tooltip title={item.history_type === '+' ? 'Created' : item.history_type === '~' ? 'Updated' : 'Deleted'}>
+                        <Box mr={1.5}>{getHistoryIcon(item.history_type)}</Box>
+                      </Tooltip>
+                      <Box>
+                        <Typography variant="body2" fontWeight="bold">{item.history_user.full_name}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(item.history_date).toLocaleString()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
 
-                <Box display="flex" justifyContent="center" alignItems="center">
-                  <ChevronRight color="action" />
-                </Box>
-
-                <Box 
-                  p={2}
-                  borderRadius={1}
-                  bgcolor="#f9f9f9"
-                  sx={{ wordBreak: 'break-word' }}
-                >
-                  <Typography color="textSecondary" variant="caption">
-                    {change.field}
-                  </Typography>
-                  <Typography color="success.main">
-                    {change.newValue || 'Empty'}
-                  </Typography>
-                  {viewMode === 'all' && (
-                    <Typography variant="caption" color="textSecondary" mt={1}>
-                      Updated: {new Date(change.timestamp).toLocaleString()}
-                    </Typography>
-                  )}
-                </Box>
-
-                {i < getComparisonData().length - 1 && (
+              {/* Right Panel: Details */}
+              <Box sx={{ flex: 1, p: 3, overflowY: 'auto' }}>
+                {selectedHistory ? (
                   <>
-                    <Divider sx={{ gridColumn: '1 / span 3', my: 1 }} />
+                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                      <Box>
+                        <Typography variant="h5" fontWeight="bold">Version {selectedHistory.history_id}</Typography>
+                        <Box display="flex" alignItems="center" color="text.secondary" mt={1}>
+                          <User size={16} />
+                          <Typography variant="body2" ml={1}>{selectedHistory.history_user.full_name} ({selectedHistory.history_user.user_id})</Typography>
+                          <Clock size={16} style={{ marginLeft: '16px' }} />
+                          <Typography variant="body2" ml={1}>{new Date(selectedHistory.history_date).toLocaleString()}</Typography>
+                        </Box>
+                      </Box>
+                      <Tabs value={viewMode} onChange={(e, newValue) => setViewMode(newValue)}>
+                        <Tab label="Changes" value="changes" />
+                        <Tab label="Snapshot" value="snapshots" />
+                        <Tab label="Compare" value="compare" />
+                      </Tabs>
+                    </Box>
+                    
+                    {viewMode === 'changes' ? (
+                      renderChanges(selectedHistory.changes)
+                    ) : viewMode === 'snapshots' ? (
+                      renderSnapshot()
+                    ) : (
+                      <>
+                        <Box display="flex" justifyContent="flex-end">
+                          <Tabs value={compareLayout} onChange={(e, v) => setCompareLayout(v)} size="small">
+                            <Tab label="Cards" value="cards" />
+                            <Tab label="Matrix (Changes)" value="matrix" />
+                            <Tab label="Snapshots Table" value="snapshots" />
+                          </Tabs>
+                        </Box>
+                        {compareLayout === 'cards' ? renderCompare() : compareLayout === 'matrix' ? renderCompareMatrix() : renderCompareSnapshotsTable()}
+                      </>
+                    )}
                   </>
+                ) : (
+                  <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                    <Typography color="text.secondary">Select a version from the history to view details.</Typography>
+                  </Box>
                 )}
-              </React.Fragment>
-            ))}
-          </Box>
+              </Box>
+            </>
+          )}
         </DialogContent>
-
-        <DialogActions sx={{ borderTop: '1px solid #eee' }}>
-          <Button 
-            onClick={() => setChangesDialogOpen(false)}
-            variant="contained"
-            sx={{ backgroundColor: '#7267ef', '&:hover': { backgroundColor: '#5d55c7' } }}
-          >
-            Back to Audit Log
-          </Button>
+        <DialogActions sx={{ borderTop: '1px solid #eee', p: 2 }}>
+          <Button onClick={handleClose} variant="outlined">Close</Button>
         </DialogActions>
       </Dialog>
     </>

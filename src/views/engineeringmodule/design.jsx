@@ -19,7 +19,7 @@ import {
   Paper,
 } from "@mui/material";
 import {getProjectsAccept, createDesignPlan, getDesignPlans,updateDesignPlan, deleteDesignPlan } from '../../allapi/engineering';
-import { AddCircle, Edit, Delete , ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
+import { AddCircle, Edit, Delete , ArrowBackIos, ArrowForwardIos, Visibility, Download } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
@@ -27,6 +27,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import autoTable from "jspdf-autotable";
+import { formatDateDDMMYYYY } from '../../utils/date';
+
 
 
 
@@ -450,6 +452,7 @@ const toggleModalSize = () => {
               <TableCell sx={{color:'#7267ef'}}><strong>Resources</strong></TableCell>
               <TableCell sx={{color:'#7267ef'}}><strong>Completion Date</strong></TableCell>
               <TableCell sx={{color:'#7267ef'}}><strong>Status</strong></TableCell>
+              <TableCell sx={{color:'#7267ef'}}><strong>Blueprint</strong></TableCell>
               <TableCell sx={{color:'#660000'}}><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
@@ -464,13 +467,27 @@ const toggleModalSize = () => {
       <TableCell>{d.prepared_by}</TableCell>
       <TableCell>{d.reviewed_by}</TableCell>
       <TableCell>{d.approval_status}</TableCell>
-      <TableCell>{d.approval_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(d.approval_date)}</TableCell>
       <TableCell>{d.compliance_standard}</TableCell>
       <TableCell>{d.design_constraints}</TableCell>
       <TableCell>{d.estimated_budget}</TableCell>
       <TableCell>{d.resource_requirements}</TableCell>
-      <TableCell>{d.design_completion_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(d.design_completion_date)}</TableCell>
       <TableCell>{d.status}</TableCell>
+      <TableCell>
+        {d.blueprint ? (
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <IconButton component="a" href={d.blueprint} target="_blank" rel="noopener noreferrer" title="View">
+              <Visibility />
+            </IconButton>
+            {/* <IconButton component="a" href={d.blueprint} download target="_blank" rel="noopener noreferrer" title="Download">
+              <Download />
+            </IconButton> */}
+          </Box>
+        ) : (
+          '-'
+        )}
+      </TableCell>
       <TableCell>
         <DisableIfCannot slug={MODULE_SLUG} action="can_update">
         <IconButton color="warning" onClick={() => handleEdit(d)}>
@@ -592,11 +609,11 @@ const toggleModalSize = () => {
         <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
         <Grid container spacing={2}>
           <Grid item xs={6}>
-            <label htmlFor="designName">Design Name</label>
+            <label htmlFor="designName">Design Name <span style={{ color: 'red' }}>*</span></label>
             <input id="designName" name="designName" className="input" value={formData.designName || ''} onChange={handleChange} />
           </Grid>
           <Grid item xs={6}>
-            <label htmlFor="designType">Design Type</label>
+            <label htmlFor="designType">Design Type <span style={{ color: 'red' }}>*</span></label>
             <select id="designType" name="designType" className="input" value={formData.designType || ''} onChange={handleChange}>
               <option value="">Select Type</option>
               {['Architectural', 'Structural', 'Electrical', 'Mechanical', 'Civil'].map(type => (
@@ -604,10 +621,10 @@ const toggleModalSize = () => {
               ))}
             </select>
           </Grid>
-          <Grid item xs={6}>
-            <label htmlFor="versionNumber">Version Number</label>
-            <input id="versionNumber" name="versionNumber" className="input" value={formData.versionNumber || ''} onChange={handleChange} />
-          </Grid>
+          {/* <Grid item xs={6}>
+            <label htmlFor="versionNumber">Version Number (optional)</label>
+            <input id="versionNumber" name="versionNumber" className="input" placeholder="Optional" value={formData.versionNumber || ''} onChange={handleChange} />
+          </Grid> */}
         </Grid>
       </Grid>
 
@@ -617,7 +634,7 @@ const toggleModalSize = () => {
         <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
         <Grid container spacing={2}>
           <Grid item xs={6}>
-            <label htmlFor="preparedBy">Prepared By</label>
+            <label htmlFor="preparedBy">Prepared By <span style={{ color: 'red' }}>*</span></label>
             <input id="preparedBy" name="preparedBy" className="input" value={formData.preparedBy || ''} onChange={handleChange} />
           </Grid>
           <Grid item xs={6}>
@@ -647,19 +664,19 @@ const toggleModalSize = () => {
         <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
         <Grid container spacing={2}>
           <Grid item xs={6}>
-            <label htmlFor="complianceStandard">Compliance Standard</label>
+            <label htmlFor="complianceStandard">Compliance Standard <span style={{ color: 'red' }}>*</span></label>
             <input id="complianceStandard" name="complianceStandard" className="input" value={formData.complianceStandard || ''} onChange={handleChange} />
           </Grid>
           <Grid item xs={6}>
-            <label htmlFor="designConstraints">Design Constraints</label>
+            <label htmlFor="designConstraints">Design Constraints <span style={{ color: 'red' }}>*</span></label>
             <textarea id="designConstraints" name="designConstraints" className="input" rows={3} value={formData.designConstraints || ''} onChange={handleChange} />
           </Grid>
           <Grid item xs={6}>
-            <label htmlFor="estimatedBudget">Estimated Budget</label>
+            <label htmlFor="estimatedBudget">Estimated Budget <span style={{ color: 'red' }}>*</span></label>
             <input type="number" id="estimatedBudget" name="estimatedBudget" className="input" value={formData.estimatedBudget || ''} onChange={handleChange} />
           </Grid>
           <Grid item xs={6}>
-            <label htmlFor="resourceRequirements">Resource Requirements</label>
+            <label htmlFor="resourceRequirements">Resource Requirements <span style={{ color: 'red' }}>*</span></label>
             <textarea id="resourceRequirements" name="resourceRequirements" className="input" rows={3} value={formData.resourceRequirements || ''} onChange={handleChange} />
           </Grid>
         </Grid>
@@ -671,10 +688,10 @@ const toggleModalSize = () => {
         <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
         <Grid container spacing={2}>
           <Grid item xs={6}>
-            <label htmlFor="designCompletionDate">Design Completion Date</label>
+            <label htmlFor="designCompletionDate">Design Completion Date <span style={{ color: 'red' }}>*</span></label>
             <input type="date" id="designCompletionDate" name="designCompletionDate" className="input" value={formData.designCompletionDate || ''} onChange={handleChange} />
           </Grid>
-          
+          <label htmlFor="status">Status <span style={{ color: 'red' }}>*</span></label>
           <select
   id="status"
   name="status"
@@ -695,7 +712,7 @@ const toggleModalSize = () => {
       {/* Attachments */}
      
       <Button variant="contained" component="label">
-  Upload Blueprints/Documents
+  Upload Blueprints/Documents {mode !== 'edit' && <span style={{ color: 'red' }}>*</span>}
   <input
     type="file"
     hidden

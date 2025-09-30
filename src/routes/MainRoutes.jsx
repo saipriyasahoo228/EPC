@@ -89,6 +89,9 @@ const SiteExecution = lazy(()=>import('../views/constructionmodule/siteexecution
 const SiteExecutionSupervisor = lazy(()=>import('../views/constructionmodule/siteexecutionsupervisor.jsx'));
 const QualityControl = lazy(()=>import('../views/constructionmodule/qualitycontrol.jsx'));
 const SafetyManagement = lazy(() =>import('../views/constructionmodule/safetymanagement.jsx'));
+const SafetyExpense = lazy(() =>import('../views/constructionmodule/safetyexpense.jsx'));
+const OtherExpense = lazy(() =>import('../views/constructionmodule/otherexpense.jsx'));
+const LabourManagement = lazy(() =>import('../views/constructionmodule/labourmanagement.jsx'));
 const InventoryManagement = lazy(()=>import('../views/constructionmodule/inventorymanagement.jsx'));
 const Testing = lazy(()=>import('../views/commisioningmodule/testing.jsx'));
 const HandoverProcess = lazy(()=>import('../views/commisioningmodule/handoverprocess.jsx'));
@@ -284,10 +287,34 @@ const MainRoutes = {
           )
         },
         {
+          path: '/safetyexpense',
+          element:(
+            <RequirePermission slug="construction" action="can_read">
+              <SafetyExpense/>
+            </RequirePermission>
+          )
+        },
+        {
+          path: '/otherexpense',
+          element:(
+            <RequirePermission slug="construction" action="can_read">
+              <OtherExpense/>
+            </RequirePermission>
+          )
+        },
+        {
           path: '/materials & inventorymanagement',
           element:(
             <RequirePermission slug="construction" action="can_read">
               <InventoryManagement/>
+            </RequirePermission>
+          )
+        },
+        {
+          path: '/labourmanagement',
+          element:(
+            <RequirePermission slug="construction" action="can_read">
+              <LabourManagement/>
             </RequirePermission>
           )
         },

@@ -23,7 +23,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { getPurchaseOrders } from "../../allapi/procurement"; 
 import { createAsset ,getAssets,deleteAsset,updateAsset} from "../../allapi/maintenance";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
-
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 const AssetManagement = () => {
   const MODULE_SLUG = 'maintenance';
@@ -304,8 +304,8 @@ const handleSubmit = async () => {
       <TableCell>{t.model_number}</TableCell>
       <TableCell>{t.serial_number}</TableCell>
       <TableCell>{t.location}</TableCell>
-      <TableCell>{t.purchase_date}</TableCell>
-      <TableCell>{t.warranty_expiry_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(t.purchase_date)}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(t.warranty_expiry_date)}</TableCell>
       <TableCell>{t.maintenance_requirement}</TableCell>
       <TableCell>{t.current_condition}</TableCell>
       <TableCell>{t.useful_life_years}</TableCell>

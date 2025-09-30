@@ -22,7 +22,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { getVendors } from "../../allapi/procurement";
 import { createPayable,getPayables,deletePayable,updatePayable } from "../../allapi/account";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
-
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const Acoountpayble = () => {
@@ -269,8 +269,8 @@ const handleSubmit = async () => {
     >
       <TableCell>{item.invoice_id}</TableCell>
       <TableCell>{item.vendor}</TableCell>
-      <TableCell>{item.invoice_date}</TableCell>
-      <TableCell>{item.due_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(item.invoice_date)}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(item.due_date)}</TableCell>
       <TableCell>{item.total_amount}</TableCell>
       <TableCell>{item.amount_paid}</TableCell>
       <TableCell>{item.outstanding_balance}</TableCell>

@@ -28,6 +28,7 @@ import { getInventoryItems } from "../../allapi/inventory";
 import { createMaterialInventory,getMaterialInventory,updateMaterialInventory,deleteMaterialInventory } from "../../allapi/construction";
 import {getVendors} from "../../allapi/procurement";
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const InventoryManagement = () => {
@@ -342,7 +343,7 @@ const filteredInventory = inventory.filter((m) =>
               <TableCell sx={{color:'#7267ef'}}><strong>Quantity Used</strong></TableCell>
               <TableCell sx={{color:'#7267ef'}}><strong>Reorder Level</strong></TableCell>
               <TableCell sx={{color:'#7267ef'}}><strong>Supplier ID</strong></TableCell>
-              <TableCell sx={{color:'#7267ef'}}><strong>Dalivery Date</strong></TableCell>
+              <TableCell sx={{color:'#7267ef'}}><strong>Delivery Date</strong></TableCell>
               <TableCell sx={{color:'#660000'}}><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
@@ -355,7 +356,7 @@ const filteredInventory = inventory.filter((m) =>
       <TableCell>{m.quantity_used}</TableCell>
       <TableCell>{m.reorder_level}</TableCell>
       <TableCell>{m.supplier}</TableCell>
-      <TableCell>{m.delivery_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(m.delivery_date)}</TableCell>
 
       <TableCell>
       <DisableIfCannot slug={MODULE_SLUG} action="can_update">

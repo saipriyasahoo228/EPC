@@ -26,7 +26,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering"; // adjust path
 import { createTesting , getTestingRecords,updateTesting,deleteTesting} from "../../allapi/commision";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
-
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 
 const Testing = () => {
@@ -297,13 +297,13 @@ const filteredTesting = testingmanagement.filter((t) =>
       <TableCell>{t.project_id}</TableCell>
       <TableCell>{t.testing_id}</TableCell>
       <TableCell>{t.system_equipment_name}</TableCell>
-      <TableCell>{t.testing_date}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(t.testing_date)}</TableCell>
       <TableCell>{t.test_conducted_by}</TableCell>
       <TableCell>{t.test_procedure}</TableCell>
       <TableCell>{t.performance_parameters}</TableCell>
       <TableCell>{t.defects_identified}</TableCell>
       <TableCell>{t.correction_measures}</TableCell>
-      <TableCell>{t.retest_date || "-"}</TableCell>
+      <TableCell>{formatDateDDMMYYYY(t.retest_date) || "-"}</TableCell>
       <TableCell>{t.testing_status}</TableCell>
       <TableCell>
       <DisableIfCannot slug={MODULE_SLUG} action="can_update">

@@ -42,7 +42,7 @@ import {
 import { AddCircle, Edit, Delete, ReportProblem, ShoppingCart } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
 import { getProjectsAccept } from "../../allapi/engineering"; 
-import {createSiteExecution,getSiteExecutions,deleteSiteExecution ,updateSiteExecution} from "../../allapi/construction";
+import {createSiteExecution,getSiteExecutions,deleteSiteExecution ,updateSiteExecution, getLabourResources} from "../../allapi/construction";
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 
 
@@ -61,6 +61,11 @@ const SiteExecution = () => {
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  // Labour usage (for POST labour_usage_input)
+  const [labourUsage, setLabourUsage] = useState([
+    { labour_resource: '', number_of_workers: '', work_hours: '', date: '' },
+  ]);
+  const [labourResources, setLabourResources] = useState([]);
   // Quick actions state
   const [qaSite, setQaSite] = useState(null); // currently selected site for quick action
   const [issueOpen, setIssueOpen] = useState(false);
@@ -108,6 +113,19 @@ useEffect(() => {
   fetchSiteExecutions();
 }, []);
 
+// Fetch labour resources for dropdowns
+useEffect(() => {
+  (async () => {
+    try {
+      const data = await getLabourResources();
+      setLabourResources(Array.isArray(data) ? data : []);
+      console.log('DEBUG labour resources sample:', (Array.isArray(data) && data[0]) || data);
+    } catch (e) {
+      console.error('Failed to load labour resources', e);
+    }
+  })();
+}, []);
+
 
 
 const handleOpenForm = (projectId) => {
@@ -136,10 +154,16 @@ const handleOpenForm = (projectId) => {
     siteId: `SIT-${currentYear}-${paddedNumber}`,
     project: projectId,
   });
+  // reset labour usage rows
+  setLabourUsage([{ labour_resource: '', number_of_workers: '', work_hours: '', date: '' }]);
 
   setOpen(true);
 };
-const handleClose = () => setOpen(false);
+const handleClose = () => {
+  setOpen(false);
+  // Optional reset when closing without submit
+  setLabourUsage([{ labour_resource: '', number_of_workers: '', work_hours: '', date: '' }]);
+};
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -147,43 +171,6 @@ const handleClose = () => setOpen(false);
   };
 
 
-// const handleSubmit = async () => {
-//   try {
-//     const payload = {
-//       project: selectedProjectId,
-//       site_supervisor_id: formData.siteSupervisorID,
-//       daily_progress_report_id: formData.dailyProgressReportID,
-//       work_completed: formData.workCompleted,
-//       manpower_utilized: formData.manpowerUtilize,
-//       equipment_used: formData.equipmentUsed,
-//       weather_conditions: formData.wetherCondition,
-//       safety_compliance_report: formData.safetyCompliance,
-//       material_consumption: formData.materialConsumption,
-//       site_issues: formData.siteIssues,
-//       site_execution_status: formData.siteStatus || "on track",
-//     };
-
-//     if (editingId) {
-//       // 🔹 PATCH (edit mode)
-//       await updateSiteExecution(editingId, payload);
-//       alert("✅ Site Execution updated successfully!");
-//     } else {
-//       // 🔹 POST (create mode)
-//       const data = await createSiteExecution(payload);
-//       alert(`✅ Site Execution saved!\nSite ID: ${data.site_id}`);
-//     }
-
-//     // Reset form & close dialog
-//     setFormData({});
-//     setEditingId(null);
-//     handleClose();
-
-//     // 🔹 Refresh table
-//     fetchSiteExecutions();
-//   } catch (err) {
-//     console.error("❌ Failed to save site execution:", err);
-//   }
-// };
 const handleSubmit = async () => {
   try {
     const payload = {
@@ -191,14 +178,31 @@ const handleSubmit = async () => {
       site_supervisor_id: formData.siteSupervisorID,
       daily_progress_report_id: formData.dailyProgressReportID,
       work_completed: formData.workCompleted,
-      manpower_utilized: formData.manpowerUtilize,
       equipment_used: formData.equipmentUsed,
       weather_conditions: formData.wetherCondition,
       safety_compliance_report: formData.safetyCompliance,
       material_consumption: formData.materialConsumption,
       site_issues: formData.siteIssues,
       site_execution_status: formData.siteStatus || "on track",
+      labour_usage_input: (labourUsage || [])
+        .filter(r => r && r.labour_resource && r.number_of_workers && r.work_hours && r.date)
+        .map(r => {
+          // Normalize datetime-local (YYYY-MM-DDTHH:MM) to ISO with seconds and Z
+          const d = String(r.date);
+          let isoZ = d;
+          if (!d.endsWith('Z')) {
+            isoZ = d.length === 16 ? `${d}:00Z` : `${d}Z`;
+          }
+          return {
+            labour_resource: Number(r.labour_resource),
+            number_of_workers: Number(r.number_of_workers),
+            work_hours: Number(r.work_hours),
+            date: isoZ,
+          };
+        }),
     };
+
+    console.log('DEBUG SiteExecution payload:', payload);
 
     if (editingId) {
       // 🔹 PATCH (edit mode)
@@ -212,6 +216,7 @@ const handleSubmit = async () => {
 
     // Reset form & close dialog
     setFormData({});
+    setLabourUsage([{ labour_resource: '', number_of_workers: '', work_hours: '', date: '' }]);
     setEditingId(null);
     handleClose();
 
@@ -254,7 +259,6 @@ const handleEdit = (s) => {
     siteSupervisorID: s.site_supervisor_id,
     dailyProgressReportID: s.daily_progress_report_id,
     workCompleted: s.work_completed,
-    manpowerUtilize: s.manpower_utilized,
     equipmentUsed: s.equipment_used,
     wetherCondition: s.weather_conditions,
     safetyCompliance: s.safety_compliance_report,
@@ -262,6 +266,25 @@ const handleEdit = (s) => {
     siteIssues: s.site_issues,
     siteStatus: s.site_execution_status,
   });
+  // Prefill labour usage (optional): flatten if present
+  try {
+    const rows = Array.isArray(s.labour_usage) ? s.labour_usage.map(u => {
+      // Convert API ISO (e.g., 2025-09-22T09:00:00Z) to datetime-local value (YYYY-MM-DDTHH:MM)
+      const raw = u.date || '';
+      let dtLocal = raw;
+      if (typeof raw === 'string' && raw) {
+        // Remove trailing Z and seconds for datetime-local input
+        dtLocal = raw.replace('Z', '').slice(0, 16);
+      }
+      return {
+        labour_resource: u.labour_resource || '',
+        number_of_workers: u.number_of_workers || '',
+        work_hours: u.work_hours || '',
+        date: dtLocal,
+      };
+    }) : [];
+    setLabourUsage(rows.length ? rows : [{ labour_resource: '', number_of_workers: '', work_hours: '', date: '' }]);
+  } catch { setLabourUsage([{ labour_resource: '', number_of_workers: '', work_hours: '', date: '' }]); }
 
   setSelectedProjectId(s.project);
   setEditingId(s.site_id);   // ✅ use `s.id` instead of `s.project` for PATCH
@@ -310,6 +333,22 @@ const quickUpdateStatus = async (s, newStatus) => {
       halted: byStatus['halted'] || 0,
     };
   }, [siteExecutions]);
+
+  // Helpers to render labels
+  const toTitle = (s) => (typeof s === 'string' ? s.replace(/\w\S*/g, (t) => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()) : s);
+  const categoryLabel = (cat) => {
+    if (!cat) return '-';
+    const cObj = (typeof cat === 'object' && cat !== null) ? cat : { category: String(cat) };
+    const main = toTitle(cObj.category || '');
+    const sub = cObj.subcategory ? ` — ${toTitle(cObj.subcategory)}` : '';
+    return `${main}${sub}`;
+  };
+  const resourceLabel = (r) => {
+    if (!r) return '-';
+    const catText = r.category ? categoryLabel(r.category) : '(No Category)';
+    const vendorText = r.vendor ? ` — ${r.vendor}` : '';
+    return `${catText}${vendorText}`;
+  };
 
   // Visible sites with filters & search
   const visibleSites = useMemo(() => {
@@ -441,6 +480,59 @@ const quickUpdateStatus = async (s, newStatus) => {
         </Grid>
       </Grid>
 
+      {/* Labour Usage */}
+      {/* <Grid item xs={12}>
+        <h3 style={{ color: '#7267ef' }}>Labour Usage</h3>
+        <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+        <Grid container spacing={1}>
+          {(labourUsage || []).map((row, idx) => (
+            <React.Fragment key={idx}>
+              <Grid item xs={12} sm={3}>
+                <TextField
+                  fullWidth size="small" type="number"
+                  label="Labour Resource ID"
+                  value={row.labour_resource}
+                  onChange={(e) => setLabourUsage(list => list.map((r,i)=> i===idx? { ...r, labour_resource: e.target.value }: r))}
+                />
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <TextField
+                  fullWidth size="small" type="number"
+                  label="# Workers"
+                  value={row.number_of_workers}
+                  onChange={(e) => setLabourUsage(list => list.map((r,i)=> i===idx? { ...r, number_of_workers: e.target.value }: r))}
+                />
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <TextField
+                  fullWidth size="small" type="number"
+                  label="Work Hours"
+                  value={row.work_hours}
+                  onChange={(e) => setLabourUsage(list => list.map((r,i)=> i===idx? { ...r, work_hours: e.target.value }: r))}
+                />
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <TextField
+                  fullWidth size="small" type="datetime-local"
+                  label="Date/Time"
+                  InputLabelProps={{ shrink: true }}
+                  value={row.date}
+                  onChange={(e) => setLabourUsage(list => list.map((r,i)=> i===idx? { ...r, date: e.target.value }: r))}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Box display="flex" justifyContent="flex-end" gap={1}>
+                  <Button size="small" variant="outlined" onClick={() => setLabourUsage(list => [...list, { labour_resource: '', number_of_workers: '', work_hours: '', date: '' }])}>Add Row</Button>
+                  {labourUsage.length > 1 && (
+                    <Button size="small" color="error" variant="outlined" onClick={() => setLabourUsage(list => list.filter((_,i)=> i!==idx))}>Remove</Button>
+                  )}
+                </Box>
+              </Grid>
+            </React.Fragment>
+          ))}
+        </Grid>
+      </Grid> */}
+
       {/* Sites list with filters */}
       <Grid container spacing={2}>
         <Grid item xs={12}>
@@ -516,7 +608,7 @@ const quickUpdateStatus = async (s, newStatus) => {
                       <TableCell sx={{color:'#7267ef'}}><strong>Supervisor</strong></TableCell>
                       <TableCell sx={{color:'#7267ef'}}><strong>DPR ID</strong></TableCell>
                       <TableCell sx={{color:'#7267ef'}}><strong>Work Completed</strong></TableCell>
-                      <TableCell sx={{color:'#7267ef'}}><strong>Manpower</strong></TableCell>
+                      <TableCell sx={{color:'#7267ef'}}><strong>Labour Usage</strong></TableCell>
                       <TableCell sx={{color:'#7267ef'}}><strong>Equipment</strong></TableCell>
                       <TableCell sx={{color:'#7267ef'}}><strong>Weather</strong></TableCell>
                       <TableCell sx={{color:'#7267ef'}}><strong>Safety</strong></TableCell>
@@ -538,7 +630,13 @@ const quickUpdateStatus = async (s, newStatus) => {
                             <span>{(s.work_completed || '').slice(0, 24)}{(s.work_completed || '').length > 24 ? '…' : ''}</span>
                           </Tooltip>
                         </TableCell>
-                        <TableCell>{s.manpower_utilized}</TableCell>
+                        <TableCell>
+                          {(() => {
+                            const list = Array.isArray(s.labour_usage) ? s.labour_usage : [];
+                            const totalWorkers = list.reduce((acc, it) => acc + (Number(it.number_of_workers) || 0), 0);
+                            return `${list.length} entries${totalWorkers ? ` • ${totalWorkers} workers` : ''}`;
+                          })()}
+                        </TableCell>
                         <TableCell>
                           <Tooltip title={s.equipment_used || ''}>
                             <span>{(s.equipment_used || '').slice(0, 16)}{(s.equipment_used || '').length > 16 ? '…' : ''}</span>
@@ -680,7 +778,6 @@ const quickUpdateStatus = async (s, newStatus) => {
         </Grid>
       </Grid>
 
-
       <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
   <DialogTitle sx={{ backgroundColor: '#f7f7fb', color: '#2f2a8d' }}>Enter Site Execution Details</DialogTitle>
   <DialogContent sx={{ position: 'relative' }}>
@@ -728,9 +825,6 @@ const quickUpdateStatus = async (s, newStatus) => {
           <Grid item xs={6}>
             <TextField fullWidth size="small" label="Work Completed" id="workCompleted" name="workCompleted" value={formData.workCompleted || ''} onChange={handleChange} />
           </Grid>
-          <Grid item xs={6}>
-            <TextField fullWidth size="small" type='number' label="Manpower Utilized" id="manpowerUtilize" name="manpowerUtilize" value={formData.manpowerUtilize || ''} onChange={handleChange} />
-          </Grid>
         </Grid>
       </Grid>
 
@@ -743,7 +837,7 @@ const quickUpdateStatus = async (s, newStatus) => {
             <TextField fullWidth size="small" label="Equipment Used" id="equipmentUsed" name="equipmentUsed" value={formData.equipmentUsed || ''} onChange={handleChange} />
           </Grid>
           <Grid item xs={6}>
-            <TextField fullWidth size="small" label="Weather Condition" id="wetherCondition" name="wetherCondition" value={formData.wetherCondition || ''} onChange={handleChange} />
+            <TextField fullWidth size="small" label="Weather Conditions" id="wetherCondition" name="wetherCondition" value={formData.wetherCondition || ''} onChange={handleChange} />
           </Grid>
           
           <Grid item xs={6}>
@@ -785,8 +879,70 @@ const quickUpdateStatus = async (s, newStatus) => {
         </Grid>
       </Grid>
       
+      {/* Labour Usage */}
+      <Grid item xs={12}>
+        <h3 style={{ color: '#7267ef' }}>Labour Usage</h3>
+        <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
+        <Grid container spacing={1}>
+          {(labourUsage || []).map((row, idx) => (
+            <Grid key={idx} item xs={12}>
+              <Grid container spacing={1} alignItems="center">
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    select
+                    fullWidth
+                    size="small"
+                    label="Labour Resource"
+                    SelectProps={{ native: true }}
+                    value={row.labour_resource || ''}
+                    onChange={(e) => setLabourUsage(list => list.map((r,i)=> i===idx? { ...r, labour_resource: e.target.value }: r))}
+                  >
+                    <option value="">Select Labour Resource</option>
+                    {(labourResources || []).map((lr) => (
+                      <option key={lr.id} value={lr.id}>{resourceLabel(lr)}</option>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={2}>
+                  <TextField
+                    fullWidth size="small" type="number"
+                    label="# Workers"
+                    value={row.number_of_workers}
+                    onChange={(e) => setLabourUsage(list => list.map((r,i)=> i===idx? { ...r, number_of_workers: e.target.value }: r))}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={2}>
+                  <TextField
+                    fullWidth size="small" type="number"
+                    label="Work Hours"
+                    value={row.work_hours}
+                    onChange={(e) => setLabourUsage(list => list.map((r,i)=> i===idx? { ...r, work_hours: e.target.value }: r))}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth size="small" type="datetime-local"
+                    label="Date/Time"
+                    InputLabelProps={{ shrink: true }}
+                    value={row.date}
+                    onChange={(e) => setLabourUsage(list => list.map((r,i)=> i===idx? { ...r, date: e.target.value }: r))}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Box display="flex" justifyContent="flex-end" gap={1}>
+                    <Button size="small" variant="outlined" onClick={() => setLabourUsage(list => [...list, { labour_resource: '', number_of_workers: '', work_hours: '', date: '' }])}>Add Row</Button>
+                    {labourUsage.length > 1 && (
+                      <Button size="small" color="error" variant="outlined" onClick={() => setLabourUsage(list => list.filter((_,i)=> i!==idx))}>Remove</Button>
+                    )}
+                  </Box>
+                </Grid>
+              </Grid>
+            </Grid>
+          ))}
+        </Grid>
+      </Grid>
 
-      
+
     </Grid>
   </Box>
 </DialogContent>

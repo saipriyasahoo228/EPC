@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Pencil, Trash, Download, Maximize2, Minimize2 } from "lucide-react";
-import { jsPDF } from "jspdf";
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 import autoTable from "jspdf-autotable";
 import { Button, Badge } from '@mui/material';
 import AuditTrail from './tenderaudit';
 import { createTender, getTenders, updateTender, deleteTender } from '../../allapi/tenderAllocation'
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 const TenderDetailsEntry = () => {
   const MODULE_SLUG = 'tender_allocation';
@@ -26,6 +28,8 @@ const TenderDetailsEntry = () => {
     emdAmount: '',
     emdValidity: '',
     emdConditions: '',
+    emdRefundDate: '',
+    emdIsRefunded: '',
     authority: '',
     contact: '',
     personnel: '',
@@ -44,6 +48,8 @@ const TenderDetailsEntry = () => {
       emdAmount: '',
       emdValidity: '',
       emdConditions: '',
+      emdRefundDate: '',
+      emdIsRefunded: '',
       authority: '',
       contact: '',
       personnel: '',
@@ -191,13 +197,13 @@ const validateForm = () => {
   if (!formData.status) newErrors.status = "This field is required.";
 
   setErrors(newErrors);
-  return Object.keys(newErrors).length === 0; // ✅ No errors = valid
+  return Object.keys(newErrors).length === 0; // No errors = valid
 };
 
 // Form Submit Logic
 const handleSubmit = async () => {
   try {
-    // ✅ Run validation before API call
+    // Run validation before API call
     if (!validateForm()) {
       return; // stop if validation fails
     }
@@ -211,6 +217,8 @@ const handleSubmit = async () => {
         amount: parseFloat(formData.emdAmount),
         validity: formData.emdValidity,
         conditions: formData.emdConditions,
+        refund_date: formData.emdRefundDate || null,
+        is_refunded: formData.emdIsRefunded === '' ? null : formData.emdIsRefunded === 'Yes',
       },
       authority: formData.authority,
       contact: formData.contact,
@@ -233,7 +241,7 @@ const handleSubmit = async () => {
       alert("Tender Details Saved Successfully");
     }
 
-    // ✅ Reset form and UI
+    // Reset form and UI
     setFormData({
       refNo: "",
       location: "",
@@ -242,6 +250,8 @@ const handleSubmit = async () => {
       emdAmount: "",
       emdValidity: "",
       emdConditions: "",
+      emdRefundDate: "",
+      emdIsRefunded: "",
       authority: "",
       contact: "",
       personnel: "",
@@ -271,6 +281,8 @@ const handleSubmit = async () => {
         emdAmount: tenderToEdit.emd_details?.amount || '',
         emdValidity: tenderToEdit.emd_details?.validity || '',
         emdConditions: tenderToEdit.emd_details?.conditions || '',
+        emdRefundDate: tenderToEdit.emd_details?.refund_date || '',
+        emdIsRefunded: (tenderToEdit.emd_details?.is_refunded === true ? 'Yes' : tenderToEdit.emd_details?.is_refunded === false ? 'No' : ''),
         authority: tenderToEdit.authority || '',
         contact: tenderToEdit.contact || '',
         personnel: tenderToEdit.authorized_personnel || '',
@@ -279,8 +291,9 @@ const handleSubmit = async () => {
         description: tenderToEdit.tender_description || '',
         status: tenderToEdit.status || ''
       });
+
       setIsEditing(true);
-      setEditTenderId(tenderToEdit.tender_id); // ✅
+      setEditTenderId(tenderToEdit.tender_id); // 
       setShowModal(true);
     }
   };
@@ -367,6 +380,8 @@ const handleSubmit = async () => {
       d.emd_details?.amount,
       d.emd_details?.validity,
       d.emd_details?.conditions,
+      d.emd_details?.refund_date,
+      typeof d.emd_details?.is_refunded === 'boolean' ? (d.emd_details.is_refunded ? 'Yes' : 'No') : '',
       d.authority,
       d.contact,
       d.authorized_personnel,
@@ -410,14 +425,7 @@ const handleSubmit = async () => {
             Add Tender Details
           </button>
         </ShowIfCan>
-        <Badge 
-          badgeContent={auditTrail.length} 
-          color="primary" 
-          overlap="circular"
-          style={{ marginLeft: '1rem' }}
-        >
-          <AuditTrail auditTrail={auditTrail} />
-        </Badge>
+        {/* Row-level AuditTrail buttons are rendered in the table under Actions */}
       </div>
 
       {showModal && (
@@ -492,7 +500,7 @@ const handleSubmit = async () => {
             {/* Grid layout for form fields */}
             <div style={modalGridStyle}>
               <div>
-                <label>Tender Ref. No.</label>
+                <label>Tender Ref. No. <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   ref={(el) => inputRefs.current[0] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[1]?.focus()}
@@ -505,7 +513,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Location</label>
+                <label>Location <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   ref={(el) => inputRefs.current[1] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[2]?.focus()}
@@ -517,7 +525,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Release Date</label>
+                <label>Release Date <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   type="date" 
                   ref={(el) => inputRefs.current[2] = el}
@@ -530,7 +538,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Tender Value</label>
+                <label>Tender Value <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   type="number" 
                   ref={(el) => (inputRefs.current[3] = el)}
@@ -547,7 +555,7 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Amount</label>
+                <label>Amount <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   ref={(el) => inputRefs.current[4] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[5]?.focus()}
@@ -560,7 +568,7 @@ const handleSubmit = async () => {
               </div>
 
               <div>
-                <label>Validity Period</label>
+                <label>Validity Period <span style={{ color: 'red' }}>*</span></label>
                 <input 
                   ref={(el) => inputRefs.current[5] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[6]?.focus()}
@@ -573,7 +581,7 @@ const handleSubmit = async () => {
               </div>
               
               <div style={fullWidthFieldStyle}>
-                <label>Conditions</label>
+                <label>Conditions <span style={{ color: 'red' }}>*</span></label>
                 <textarea 
                   ref={(el) => inputRefs.current[6] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[7]?.focus()}
@@ -584,12 +592,39 @@ const handleSubmit = async () => {
                   rows={3}
                 ></textarea>
               </div>
-              
               <div>
-                <label>Authority</label>
-                <input 
+                <label>EMD Refund Date</label>
+                <input
+                  type="date"
                   ref={(el) => inputRefs.current[7] = el}
                   onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[8]?.focus()}
+                  name="emdRefundDate"
+                  value={formData.emdRefundDate}
+                  onChange={handleChange}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label>EMD Is Refunded</label>
+                <select
+                  ref={(el) => inputRefs.current[8] = el}
+                  onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[9]?.focus()}
+                  name="emdIsRefunded"
+                  value={formData.emdIsRefunded}
+                  onChange={handleChange}
+                  className="input"
+                >
+                  <option value="">Select</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              
+              <div>
+                <label>Authority <span style={{ color: 'red' }}>*</span></label>
+                <input 
+                  ref={(el) => inputRefs.current[9] = el}
+                  onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[10]?.focus()}
                   name="authority" 
                   value={formData.authority} 
                   onChange={handleChange} 
@@ -598,10 +633,10 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Contact</label>
+                <label>Contact <span style={{ color: 'red' }}>*</span></label>
                 <input 
-                  ref={(el) => inputRefs.current[8] = el}
-                  onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[9]?.focus()}
+                  ref={(el) => inputRefs.current[10] = el}
+                  onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[11]?.focus()}
                   name="contact" 
                   value={formData.contact} 
                   onChange={handleChange} 
@@ -610,10 +645,10 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Authorized Personnel</label>
+                <label>Authorized Personnel <span style={{ color: 'red' }}>*</span></label>
                 <input
-                  ref={(el) => inputRefs.current[9] = el}
-                  onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[10]?.focus()} 
+                  ref={(el) => inputRefs.current[11] = el}
+                  onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[12]?.focus()} 
                   name="personnel" 
                   value={formData.personnel} 
                   onChange={handleChange} 
@@ -622,10 +657,10 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Start Date</label>
+                <label>Start Date <span style={{ color: 'red' }}>*</span></label>
                 <input 
-                  ref={(el) => inputRefs.current[10] = el}
-                  onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[11]?.focus()}
+                  ref={(el) => inputRefs.current[12] = el}
+                  onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[13]?.focus()}
                   type="date" 
                   name="startDate" 
                   value={formData.startDate} 
@@ -635,10 +670,10 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>End Date</label>
+                <label>End Date <span style={{ color: 'red' }}>*</span></label>
                 <input 
-                  ref={(el) => inputRefs.current[11] = el}
-                  onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[12]?.focus()}
+                  ref={(el) => inputRefs.current[13] = el}
+                  onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[14]?.focus()}
                   type="date" 
                   name="endDate" 
                   value={formData.endDate} 
@@ -648,10 +683,10 @@ const handleSubmit = async () => {
               </div>
               
               <div style={fullWidthFieldStyle}>
-                <label>Tender Description</label>
+                <label>Tender Description <span style={{ color: 'red' }}>*</span></label>
                 <textarea 
-                  ref={(el) => inputRefs.current[12] = el}
-                  onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[13]?.focus()}
+                  ref={(el) => inputRefs.current[14] = el}
+                  onKeyDown={(e) => e.key === 'Enter' && inputRefs.current[15]?.focus()}
                   name="description" 
                   value={formData.description} 
                   onChange={handleChange} 
@@ -661,9 +696,9 @@ const handleSubmit = async () => {
               </div>
               
               <div>
-                <label>Status</label>
+                <label>Status <span style={{ color: 'red' }}>*</span></label>
                 <select 
-                  ref={(el) => inputRefs.current[13] = el}
+                  ref={(el) => inputRefs.current[15] = el}
                   name="status" 
                   value={formData.status} 
                   onChange={handleChange} 
@@ -787,6 +822,8 @@ const handleSubmit = async () => {
                 <th style={tableHeaderStyle}>EMD Amount</th>
                 <th style={tableHeaderStyle}>EMD Validity</th>
                 <th style={tableHeaderStyle}>EMD Conditions</th>
+                <th style={tableHeaderStyle}>EMD Refund Date</th>
+                <th style={tableHeaderStyle}>Is Refunded</th>
                 <th style={tableHeaderStyle}>Authority</th>
                 <th style={tableHeaderStyle}>Contact</th>
                 <th style={tableHeaderStyle}>Authorized Personnel</th>
@@ -803,16 +840,18 @@ const handleSubmit = async () => {
                   <td style={tableCellStyle}>{tender.tender_id}</td>
                   <td style={tableCellStyle}>{tender.tender_ref_no}</td>
                   <td style={tableCellStyle}>{tender.location}</td>
-                  <td style={tableCellStyle}>{tender.release_date}</td>
+                  <td style={tableCellStyle}>{formatDateDDMMYYYY(tender.release_date)}</td>
                   <td style={tableCellStyle}>{tender.tender_value}</td>
                   <td style={tableCellStyle}>{tender.emd_details?.amount}</td>
-                  <td style={tableCellStyle}>{tender.emd_details?.validity}</td>
+                  <td style={tableCellStyle}>{formatDateDDMMYYYY(tender.emd_details?.validity)}</td>
                   <td style={tableCellStyle}>{tender.emd_details?.conditions}</td>
+                  <td style={tableCellStyle}>{formatDateDDMMYYYY(tender.emd_details?.refund_date)}</td>
+                  <td style={tableCellStyle}>{typeof tender.emd_details?.is_refunded === 'boolean' ? (tender.emd_details.is_refunded ? 'Yes' : 'No') : ''}</td>
                   <td style={tableCellStyle}>{tender.authority}</td>
                   <td style={tableCellStyle}>{tender.contact}</td>
                   <td style={tableCellStyle}>{tender.authorized_personnel}</td>
-                  <td style={tableCellStyle}>{tender.start_date}</td>
-                  <td style={tableCellStyle}>{tender.end_date}</td>
+                  <td style={tableCellStyle}>{formatDateDDMMYYYY(tender.start_date)}</td>
+                  <td style={tableCellStyle}>{formatDateDDMMYYYY(tender.end_date)}</td>
                   <td style={tableCellStyle}>{tender.tender_description}</td>
                   <td style={tableCellStyle}>{tender.status}</td>
                   <td style={tableCellStyle}>
@@ -820,6 +859,7 @@ const handleSubmit = async () => {
                       <button
                         onClick={() => handleEdit(tender.tender_id)}
                         style={actionBtnStyleBlue}
+                        title="Edit Tender"
                       >
                         <Pencil size={18} color="#7267ef" />
                       </button>
@@ -828,10 +868,15 @@ const handleSubmit = async () => {
                       <button
                         onClick={() => handleDelete(tender.tender_id)}
                         style={actionBtnStyleRed}
+                        title="Delete Tender"
                       >
                         <Trash size={18} color="#800000" />
                       </button>
                     </ShowIfCan>
+                    {/* View Audit Trail for this tender */}
+                    <div style={{ display: 'inline-block', marginLeft: '4px' }}>
+                      <AuditTrail tenderId={tender.tender_id} triggerVariant="icon" />
+                    </div>
                   </td>
                 </tr>
               ))}
