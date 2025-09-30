@@ -25,6 +25,10 @@ import { createProject,fetchConstructionProjects,deleteConstructionProject ,upda
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { formatDateDDMMYYYY } from '../../utils/date';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+import DownloadIcon from '@mui/icons-material/Download';
 
 
 
@@ -248,6 +252,54 @@ const handleDelete = async (projectId) => {
   );
   
 
+  // Download PDF for Submitted Projects
+  const downloadPDF = (rows) => {
+    const doc = new jsPDF('l', 'mm', 'a4');
+    doc.setFontSize(16);
+    doc.text('Construction Projects Report', 14, 15);
+
+    const head = [[
+      'Project ID',
+      'Project Name',
+      'Type',
+      'Client',
+      'Location',
+      'Start Date',
+      'End Date',
+      'Manager ID',
+      'Manager Name',
+      'Status',
+      'Budget',
+      'Resource Allocation',
+    ]];
+
+    const body = (rows || []).map((p) => [
+      p.project,
+      p.project_name,
+      p.project_type,
+      p.client_name,
+      p.project_location,
+      formatDateDDMMYYYY(p.start_date),
+      formatDateDDMMYYYY(p.end_date),
+      p.project_manager_id,
+      p.project_manager_name,
+      p.project_status,
+      p.project_budget,
+      p.resource_allocation,
+    ]);
+
+    autoTable(doc, {
+      head,
+      body,
+      startY: 25,
+      styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: 'auto',
+    });
+
+    doc.save('construction_projects_report.pdf');
+  };
+
   return (
     <>
       <Typography variant="h5"  gutterBottom sx={{ mt: 5 }} >Project Management</Typography>
@@ -304,6 +356,12 @@ const handleDelete = async (projectId) => {
       <Grid container spacing={2}>
   <Grid item xs={12}>
     <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+      <Button
+        startIcon={<DownloadIcon />}
+        onClick={() => downloadPDF(constructionProjects)}
+        sx={{ mr: 1 }}
+      >
+      </Button>
       <Typography variant="h6" gutterBottom>SUBMITTED PROJECTS</Typography>
       <input
         type="text"

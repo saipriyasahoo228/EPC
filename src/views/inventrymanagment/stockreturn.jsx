@@ -25,6 +25,10 @@ import { getInventoryItems,createStockReturn,getStockReturns,deleteStockReturn,u
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { formatDateDDMMYYYY } from '../../utils/date';
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 
 const StockReturn = () => {
@@ -135,6 +139,53 @@ const handleDelete = async (returnId) => {
     )
   );
 
+  // Download PDF function
+  const downloadPDF = (returns) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("Stock Returns Report", 14, 15);
+
+    const tableColumn = [
+      "Item ID",
+      "Return ID",
+      "Quantity",
+      "Reason",
+      "Returned By",
+      "Return Date",
+      "Adjustment ID",
+      "Adjustment Type",
+      "Wastage Reason"
+    ];
+
+    const tableRows = returns.map((item) => [
+      item.item || '',
+      item.return_id || '',
+      item.return_quantity || '0',
+      item.return_reason || '',
+      item.returned_by || '',
+      item.return_date ? formatDateDDMMYYYY(item.return_date) : '',
+      item.stock_adjustment_id || '',
+      item.adjustment_type || '',
+      item.wastage_reason || ''
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,
+        cellPadding: 2,
+        cellWidth: "auto",
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",
+    });
+
+    doc.save("stock_returns_report.pdf");
+  };
+
 
  
 
@@ -192,10 +243,7 @@ const handleEdit = (item) => {
     adjustmentType: item.adjustment_type,
     wastageReason: item.wastage_reason || "",
   });
-  setOpen(true);
 };
-
-
 
 // 🔹 Submit form handler (Add + Edit)
 const handleSubmit = async () => {
@@ -331,9 +379,22 @@ const handleSubmit = async () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: "#fff", border: "1px solid #ccc" }}>
-            <Typography variant="h6" gutterBottom>
-              SUBMITTED STOCK RETURNS
-            </Typography>
+            <Grid container justifyContent="space-between" alignItems="center">
+              <Grid item>
+                <Typography variant="h6" gutterBottom sx={{ color: '#7267ef' }}>
+                  SUBMITTED STOCK RETURNS
+                </Typography>
+              </Grid>
+              <Grid item>
+                <IconButton 
+                  onClick={() => downloadPDF(filteredStockReturn)} 
+                  sx={{ color: '#7267ef' }}
+                  title="Download Report"
+                >
+                  <DownloadIcon />
+                </IconButton>
+              </Grid>
+            </Grid>
             <input
               type="text"
               placeholder="Search Stock Returns"

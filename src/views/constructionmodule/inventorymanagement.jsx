@@ -23,6 +23,10 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { getProjectsAccept } from "../../allapi/engineering"; 
 import { getInventoryItems } from "../../allapi/inventory";
 import { createMaterialInventory,getMaterialInventory,updateMaterialInventory,deleteMaterialInventory } from "../../allapi/construction";
@@ -261,6 +265,47 @@ const filteredInventory = inventory.filter((m) =>
   )
 );
 
+  const downloadPDF = (records) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All Material & Inventory Report", 14, 15);
+
+    const tableColumn = [
+      "Project ID",
+      "Material ID",
+      "Material Name",
+      "Quantity Used",
+      "Reorder Level",
+      "Supplier ID",
+      "Delivery Date",
+    ];
+
+    const tableRows = (records || []).map((m) => [
+      m.project,
+      m.material,
+      m.material_name,
+      m.quantity_used,
+      m.reorder_level,
+      m.supplier,
+      formatDateDDMMYYYY(m.delivery_date),
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,
+        cellPadding: 2,
+        cellWidth: "auto",
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",
+    });
+
+    doc.save("all_inventory_report.pdf");
+  };
 
 
   return (
@@ -324,6 +369,12 @@ const filteredInventory = inventory.filter((m) =>
       <Grid container spacing={2}>
   <Grid item xs={12}>
     <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+      <Button
+        startIcon={<DownloadIcon />}
+        onClick={() => downloadPDF(filteredInventory)}
+      >
+        Download PDF
+      </Button>
       <Typography variant="h6" gutterBottom>SUBMITTED MATERIALS & INVENTORIES</Typography>
       <input
         type="text"

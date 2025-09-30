@@ -20,11 +20,14 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { getProjectsAccept } from "../../allapi/engineering";
 import { createCompliance, updateCompliance, getComplianceList,deleteCompliance} from "../../allapi/commision";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 import { formatDateDDMMYYYY } from '../../utils/date';
-
 const ComplianceForm = () => {
   const MODULE_SLUG = 'commissioning';
   const [isModalMaximized, setIsModalMaximized] = useState(false);
@@ -219,6 +222,56 @@ const handleSubmit = async (e) => {
         val.toString().toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
+
+  const downloadPDF = (complianceList) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All Compliance & Certification Report", 14, 15);
+
+    const tableColumn = [
+      "Project ID",
+      "Compliance ID",
+      "Regulatory Body",
+      "Inspection Date",
+      "Inspector Name",
+      "Checklist ID",
+      "Status",
+      "Non-Compliance Issues",
+      "Corrective Action Plan",
+      "Certification ID",
+      "Certification Expiry Date",
+    ];
+
+    const tableRows = complianceList.map((c) => [
+      c.project,
+      c.compliance_id,
+      c.regulatory_body,
+      formatDateDDMMYYYY(c.inspection_date),
+      c.inspector_name,
+      c.compliance_checklist_id,
+      c.compliance_status,
+      c.non_compliance_issues,
+      c.corrective_action_plan,
+      c.certification_id,
+      formatDateDDMMYYYY(c.certification_expiry_date),
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
+    });
+
+    doc.save("all_compliance_certification_report.pdf");
+  };
   
   return (
     <>
@@ -279,6 +332,12 @@ const handleSubmit = async (e) => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => downloadPDF(complianceList)}
+            >
+              Download PDF
+            </Button>
             <Typography variant="h6" gutterBottom>COMPLIANCE & CERTIFICATION DETAILS</Typography>
             <input
               type="text"

@@ -19,7 +19,9 @@ import {
 import { Edit, Delete } from '@mui/icons-material';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import autoTable from "jspdf-autotable";
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from '@mui/icons-material/Download';
 import { createLedger, getLedgers, updateLedger, deleteLedger } from '../../allapi/account';
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 import { formatDateDDMMYYYY } from '../../utils/date';
@@ -184,10 +186,25 @@ const AccountLedger = () => {
   };
 
   const handleExportPDF = () => {
-    const doc = new jsPDF();
-    const tableData = filteredItems.map((item) => [
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All Account Ledger Report", 14, 15);
+
+    const tableColumn = [
+      "Ledger ID",
+      "Transaction Date",
+      "Account Name",
+      "Account Type",
+      "Debit Amount",
+      "Credit Amount",
+      "Balance",
+      "Reference Number",
+      "Approval Status",
+    ];
+
+    const tableRows = filteredItems.map((item) => [
       item.ledger_id,
-      item.transaction_date,
+      formatDateDDMMYYYY(item.transaction_date),
       item.account_name,
       item.account_type,
       item.debit_amount,
@@ -197,12 +214,21 @@ const AccountLedger = () => {
       item.approval_status,
     ]);
 
-    doc.autoTable({
-      head: [['Ledger ID', 'Date', 'Account', 'Type', 'Debit', 'Credit', 'Balance', 'Ref No', 'Status']],
-      body: tableData,
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
     });
 
-    doc.save('ledger_report.pdf');
+    doc.save("all_account_ledger_report.pdf");
   };
 
   return (
@@ -273,7 +299,13 @@ const AccountLedger = () => {
       <Paper sx={{ mt: 4, p: 2, border: '1px solid #ccc' }}>
         <Grid container justifyContent="space-between" alignItems="center">
           <Grid item><Typography variant="h6" gutterBottom sx={{ color: '#7267ef' }}>Account Ledger Report</Typography></Grid>
-          <Grid item><Button onClick={handleExportPDF} sx={{ backgroundColor: '#7267ef', color: '#fff', mt: 2, mb: 2 }}>Export PDF</Button></Grid>
+          <Grid item><Button
+            startIcon={<DownloadIcon />}
+            onClick={handleExportPDF}
+            sx={{ backgroundColor: '#7267ef', color: '#fff', mt: 2, mb: 2 }}
+          >
+            Export PDF
+          </Button></Grid>
         </Grid>
         <input type="text" placeholder="Search Ledger Entries..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="input" />
         <Table>

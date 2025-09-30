@@ -19,6 +19,8 @@ import {
 import { Edit, Delete } from '@mui/icons-material';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+import DownloadIcon from '@mui/icons-material/Download';
 import CloseIcon from '@mui/icons-material/Close';
 import { createInventoryItem, getInventoryItems,deleteInventoryItem, updateInventoryItem } from '../../allapi/inventory';
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
@@ -210,21 +212,24 @@ const handleSubmit = async () => {
 
   // PDF Export function
   const handleExportPDF = () => {
-    const doc = new jsPDF();
+    const doc = new jsPDF('l', 'mm', 'a4');
+    doc.setFontSize(16);
+    doc.text('Inventory Items Report', 14, 15);
+
     const tableData = filteredItems.map((item) => [
-      item.itemId,
-      item.itemName,
+      item.item_id,
+      item.item_name,
       item.category,
-      item.netWeight,
-      item.unitOfMeasure,
-      item.minStockLevel,
-      item.maxStockLevel,
-      item.reorderLevel,
-      item.storageLocation,
-      item.itemStatus,
+      item.net_weight,
+      item.unit_of_measure,
+      item.minimum_stock_level,
+      item.maximum_stock_level,
+      item.reorder_level,
+      item.storage_location,
+      item.item_status,
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       head: [
         [
           'Item ID',
@@ -240,9 +245,17 @@ const handleSubmit = async () => {
         ],
       ],
       body: tableData,
+      startY: 25,
+      styles: {
+        fontSize: 7,
+        cellPadding: 2,
+        overflow: 'linebreak',
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: 'auto',
     });
 
-    doc.save('inventory_report.pdf');
+    doc.save('inventory_items_report.pdf');
   };
 
   return (
@@ -427,8 +440,8 @@ const handleSubmit = async () => {
       </Typography>
     </Grid>
     <Grid item>
-      <Button onClick={handleExportPDF} sx={{ backgroundColor: '#7267ef', color: '#fff', mt: 2 ,mb:2}}>
-        Export PDF
+      <Button startIcon={<DownloadIcon />} onClick={handleExportPDF} sx={{ backgroundColor: '#7267ef', color: '#fff', mt: 2 ,mb:2}}>
+        Download
       </Button>
     </Grid>
   </Grid>

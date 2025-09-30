@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Row, Col, Card, Modal, Badge, ProgressBar } from 'react-bootstrap';
 import Chart from 'react-apexcharts';
 import ApexCharts from 'apexcharts';
-
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { formatDateDDMMYYYY } from '../../utils/date';
 // APIs
 import { fetchConstructionProjects, getMilestonesByProject } from '../../allapi/construction';
 import { projectCost } from '../../allapi/tenderAllocation';
@@ -187,6 +189,16 @@ export default function EpcDashboard() {
     };
     run();
   }, [selectedProjectForGantt]);
+
+  // Nudge charts to render immediately once data is loaded (ApexCharts sometimes waits for a resize)
+  useEffect(() => {
+    if (!loading && projects.length > 0) {
+      const t = setTimeout(() => {
+        try { window.dispatchEvent(new Event('resize')); } catch {}
+      }, 120);
+      return () => clearTimeout(t);
+    }
+  }, [loading, projects.length]);
 
   // Index costs by project code
   const costByProject = useMemo(() => {
@@ -466,6 +478,135 @@ export default function EpcDashboard() {
     return <span key={`${user}-${idx}`} className={`chip ${cls}`}>{user}</span>;
   };
 
+  // Generate a PDF report for a project using jsPDF + autoTable
+  const downloadProjectPdf = (p) => {
+    try {
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const marginX = 40;
+      const marginY = 40;
+      const lineGap = 18;
+      let y = marginY;
+
+      const c = costByProject.get(p.project) || {};
+      const vlist = vendorsByProject.get(p.project) || [];
+      const budget = toNumber(p.project_budget);
+      const spent = toNumber(c.total_cost);
+      const utilization = budget > 0 ? Math.min(100, (spent / budget) * 100).toFixed(1) : '0.0';
+
+      // Header
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text(`Project Report — ${p.project || '-'}`, marginX, y);
+      y += lineGap;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`${p.project_name || '-'}`, marginX, y);
+      y += lineGap;
+      doc.text(`Generated: ${new Date().toLocaleString()}`, marginX, y);
+      y += lineGap;
+
+      // Status (title case) and Progress bar
+      const statusText = titleCase(p.project_status || '-');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(`Status: ${statusText}`, marginX, y);
+      y += lineGap;
+      const progress = toNumber(p.overall_progress || 0);
+      const clamped = Math.max(0, Math.min(100, progress));
+      const barW = 400;
+      const barH = 10;
+      const barX = marginX;
+      const barY = y;
+      // Outline
+      doc.setDrawColor(200);
+      doc.rect(barX, barY, barW, barH);
+      // Fill
+      doc.setFillColor(34, 197, 94); // green-ish
+      doc.rect(barX, barY, (barW * clamped) / 100, barH, 'F');
+      // Percent text
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`${clamped}%`, barX + barW + 8, barY + barH - 1);
+      y += barH + 12;
+
+      // Overview table
+      autoTable(doc, {
+        startY: y,
+        head: [['Field', 'Value']],
+        body: [
+          ['Project Type', p.project_type || '-'],
+          ['Client', p.client_name || '-'],
+          ['Location', p.project_location || '-'],
+          ['Status', titleCase(p.project_status) || '-'],
+          ['Start Date', formatDateDDMMYYYY(p.start_date) || '-'],
+          ['End Date', formatDateDDMMYYYY(p.end_date) || '-'],
+          ['Project Manager', `${p.project_manager_name || '-'} ${p.project_manager_id ? `(${p.project_manager_id})` : ''}`],
+        ],
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [246, 247, 251], textColor: 20 },
+        margin: { left: marginX, right: marginX },
+      });
+      y = doc.lastAutoTable.finalY + 14;
+
+      // Financials KPI table
+      autoTable(doc, {
+        startY: y,
+        head: [['Budget (Rs.)', 'Spent (Rs.)', 'Utilization %']],
+        body: [[budget.toLocaleString('en-IN'), spent.toLocaleString('en-IN'), utilization]],
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [246, 247, 251], textColor: 20 },
+        margin: { left: marginX, right: marginX },
+      });
+      y = doc.lastAutoTable.finalY + 10;
+
+      // Cost breakdown
+      autoTable(doc, {
+        startY: y,
+        head: [['Cost Head', 'Amount (Rs.)']],
+        body: [
+          ['Material', toNumber(c.material_cost).toLocaleString('en-IN')],
+          ['Labor', toNumber(c.labor_cost).toLocaleString('en-IN')],
+          ['Transport', toNumber(c.transport_cost).toLocaleString('en-IN')],
+          ['Safety', toNumber(c.safety_cost).toLocaleString('en-IN')],
+          ['Maintenance', toNumber(c.maintenance_cost).toLocaleString('en-IN')],
+          ['Other', toNumber(c.other_cost).toLocaleString('en-IN')],
+        ],
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [246, 247, 251], textColor: 20 },
+        margin: { left: marginX, right: marginX },
+      });
+      y = doc.lastAutoTable.finalY + 10;
+
+      // Vendors table (if any)
+      if (vlist.length) {
+        autoTable(doc, {
+          startY: y,
+          head: [['Vendor', 'Contact', 'Phone', 'Email', 'Rating', 'Compliance', 'Payment Terms', 'Contract Expiry']],
+          body: vlist.map(v => [
+            v.vendor_name || '-',
+            v.contact_person || '-',
+            v.phone_number || '-',
+            v.email || '-',
+            v.vendor_rating || '-',
+            v.compliance_status || '-',
+            v.payment_terms || '-',
+            formatDateDDMMYYYY(v.contract_expiry_date) || '-',
+          ]),
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [246, 247, 251], textColor: 20 },
+          margin: { left: marginX, right: marginX },
+        });
+        y = doc.lastAutoTable.finalY + 10;
+      }
+
+      const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+      const safeName = (p.project || 'project').replace(/[^a-z0-9\-_.]+/gi, '_');
+      doc.save(`${safeName}_Project_Report-${ts}.pdf`);
+    } catch (e) {
+      console.error('Failed to generate PDF', e);
+    }
+  };
+
   return (
     <div>
       {/* Alerts banner: Material minimal */}
@@ -703,7 +844,7 @@ export default function EpcDashboard() {
               <h6 className="mb-0">Project Overall Progress</h6>
             </Card.Header>
             <Card.Body>
-              <Chart {...progressChart} />
+              <Chart {...progressChart} height={320} key={`progress-${progressSeries.join(',')}`} />
             </Card.Body>
           </Card>
         </Col>
@@ -762,7 +903,7 @@ export default function EpcDashboard() {
                       <tr key={p.id}>
                         <td>{p.project}</td>
                         <td>{p.project_name}</td>
-                        <td>{p.end_date}</td>
+                        <td>{formatDateDDMMYYYY(p.end_date)}</td>
                         <td>{titleCase(p.project_status)}</td>
                       </tr>
                     ))}
@@ -872,7 +1013,20 @@ export default function EpcDashboard() {
       {/* Project Detail Modal */}
       <Modal show={detailOpen} onHide={closeDetails} size="lg" centered>
         <Modal.Header closeButton>
-          <Modal.Title>{detailProject?.project} — {detailProject?.project_name}</Modal.Title>
+          <div className="d-flex w-100 justify-content-between align-items-center">
+            <Modal.Title className="mb-0">{detailProject?.project} — {detailProject?.project_name}</Modal.Title>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              title="Download project report"
+              onClick={() => { if (detailProject) downloadProjectPdf(detailProject); }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5V13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V10.4a.5.5 0 0 1 1 0V13a3 3 0 0 1-3 3H3a3 3 0 0 1-3-3V10.4a.5.5 0 0 1 .5-.5z"/>
+                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 1 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+              </svg>
+            </button>
+          </div>
         </Modal.Header>
         <Modal.Body>
           {detailProject && (
@@ -893,8 +1047,10 @@ export default function EpcDashboard() {
                   <div>{detailProject.project_location || '-'}</div>
                 </Col>
                 <Col md={6}>
-                  <div style={{ fontSize: 12, color: '#64748b' }}>Dates</div>
-                  <div>{detailProject.start_date} — {detailProject.end_date}</div>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>Start Date</div>
+                  <div>{formatDateDDMMYYYY(detailProject.start_date) || '-'}</div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>End Date</div>
+                  <div>{formatDateDDMMYYYY(detailProject.end_date) || '-'}</div>
                 </Col>
               </Row>
               <Row className="mb-3">
@@ -987,7 +1143,7 @@ export default function EpcDashboard() {
                                 <td>{v.vendor_rating || '-'}</td>
                                 <td>{v.compliance_status || '-'}</td>
                                 <td>{v.payment_terms || '-'}</td>
-                                <td>{v.contract_expiry_date || '-'}</td>
+                                <td>{formatDateDDMMYYYY(v.contract_expiry_date) || '-'}</td>
                               </tr>
                             ))}
                           </tbody>

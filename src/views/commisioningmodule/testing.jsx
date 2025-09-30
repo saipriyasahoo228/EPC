@@ -23,11 +23,14 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { getProjectsAccept } from "../../allapi/engineering"; // adjust path
 import { createTesting , getTestingRecords,updateTesting,deleteTesting} from "../../allapi/commision";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 import { formatDateDDMMYYYY } from '../../utils/date';
-
 
 const Testing = () => {
   const MODULE_SLUG = 'commissioning';
@@ -204,7 +207,57 @@ const filteredTesting = testingmanagement.filter((t) =>
   )
 );
 
-  return (
+const downloadPDF = (testingmanagement) => {
+  const doc = new jsPDF("l", "mm", "a4"); // landscape
+  doc.setFontSize(16);
+  doc.text("All Testing & Inspection Report", 14, 15);
+
+  const tableColumn = [
+    "Project ID",
+    "Testing ID",
+    "Equipment Name",
+    "Testing Date",
+    "Conducted By",
+    "Test Procedure",
+    "Performance Parameters",
+    "Defects Identified",
+    "Correction Measures",
+    "Retest Date",
+    "Testing Status",
+  ];
+
+  const tableRows = testingmanagement.map((t) => [
+    t.project_id,
+    t.testing_id,
+    t.system_equipment_name,
+    formatDateDDMMYYYY(t.testing_date),
+    t.test_conducted_by,
+    t.test_procedure,
+    t.performance_parameters,
+    t.defects_identified,
+    t.correction_measures,
+    formatDateDDMMYYYY(t.retest_date) || "-",
+    t.testing_status,
+  ]);
+
+  autoTable(doc, {
+    head: [tableColumn],
+    body: tableRows,
+    startY: 25,
+    styles: {
+      fontSize: 6,        // shrink font a bit
+      cellPadding: 2,
+      cellWidth: "auto",  // auto-adjust column width
+      overflow: "linebreak",
+    },
+    headStyles: { fillColor: [114, 103, 239] },
+    tableWidth: "auto",   // fit entire table to page
+  });
+
+  doc.save("all_testing_inspection_report.pdf");
+};
+
+return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Testing & Inspection</Typography>
       
@@ -263,6 +316,12 @@ const filteredTesting = testingmanagement.filter((t) =>
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => downloadPDF(testingmanagement)}
+            >
+              Download PDF
+            </Button>
             <Typography variant="h6" gutterBottom>TESTING MANAGEMENT DETAILS</Typography>
             <input
               type="text"

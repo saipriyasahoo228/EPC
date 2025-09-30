@@ -21,11 +21,13 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { getProjectsAccept } from "../../allapi/engineering"; // adjust path as needed
 import { getSystemIntegrations,createSystemIntegration,deleteSystemIntegration,updateSystemIntegration } from "../../allapi/commision";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
-
-
 
 
 const SystemIntegration = () => {
@@ -191,7 +193,48 @@ const handleSubmit = async (e) => {
         val.toString().toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
-  
+
+  const downloadPDF = (systemmanagement) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All System Integration & Certification Report", 14, 15);
+
+    const tableColumn = [
+      "Project ID",
+      "Final Report ID",
+      "Testing & Inspection",
+      "Defect Rectification Report",
+      "Handover Confirmation",
+      "Compliance Confirmation",
+      "Archival Document Link",
+    ];
+
+    const tableRows = systemmanagement.map((t) => [
+      t.project_id,
+      t.final_report_id,
+      t.summary_of_testing,
+      t.defect_rectification_report,
+      t.handover_confirmation ? "✅" : "❌",
+      t.compliance_confirmation ? "✅" : "❌",
+      t.archival_document_link ? t.archival_document_link : "-",
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
+    });
+
+    doc.save("all_system_integration_certification_report.pdf");
+  };
 
   return (
     <>
@@ -253,6 +296,12 @@ const handleSubmit = async (e) => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => downloadPDF(systemmanagement)}
+            >
+              Download PDF
+            </Button>
             <Typography variant="h6" gutterBottom>SYSTEM INTEGRATION & CERTIFICATION DETAILS</Typography>
             <input
               type="text"

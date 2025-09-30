@@ -20,11 +20,14 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { getProjectsAccept } from "../../allapi/engineering";
 import { createHandover,getHandovers,updateHandover,deleteHandover } from "../../allapi/commision";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 import { formatDateDDMMYYYY } from '../../utils/date';
-
 
 const HandoverProcess = () => {
   const MODULE_SLUG = 'commissioning';
@@ -212,8 +215,55 @@ const filteredHandover = handoverprocess.filter((h) =>
   )
 );
 
-  
-  return (
+const downloadPDF = (handoverprocess) => {
+  const doc = new jsPDF("l", "mm", "a4"); // landscape
+  doc.setFontSize(16);
+  doc.text("All Handover Process Report", 14, 15);
+
+  const tableColumn = [
+    "Project ID",
+    "Handover ID",
+    "Handover Date",
+    "Receiving Department",
+    "Document ID",
+    "Component List",
+    "Training Provided",
+    "Training Documentation",
+    "Pending Issues",
+    "Final Approval",
+  ];
+
+  const tableRows = handoverprocess.map((h) => [
+    h.project_id,
+    h.handover_id,
+    formatDateDDMMYYYY(h.handover_date),
+    h.receiving_department,
+    h.handover_document_id,
+    h.system_component_list,
+    h.training_provided === true ? "YES" : h.training_provided === false ? "NO" : "-",
+    h.training_documentation,
+    h.pending_issues,
+    h.final_approval_status,
+  ]);
+
+  autoTable(doc, {
+    head: [tableColumn],
+    body: tableRows,
+    startY: 25,
+    styles: {
+      fontSize: 6,        // shrink font a bit
+      cellPadding: 2,
+      cellWidth: "auto",  // auto-adjust column width
+      overflow: "linebreak",
+    },
+    headStyles: { fillColor: [114, 103, 239] },
+    tableWidth: "auto",   // fit entire table to page
+  });
+
+  doc.save("all_handover_process_report.pdf");
+};
+
+return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Handover Process</Typography>
       
@@ -273,6 +323,12 @@ const filteredHandover = handoverprocess.filter((h) =>
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => downloadPDF(handoverprocess)}
+            >
+              Download PDF
+            </Button>
             <Typography variant="h6" gutterBottom>HANDOVER PROCESS DETAILS</Typography>
             <input
               type="text"

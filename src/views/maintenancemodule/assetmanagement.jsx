@@ -20,11 +20,14 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { getPurchaseOrders } from "../../allapi/procurement"; 
 import { createAsset ,getAssets,deleteAsset,updateAsset} from "../../allapi/maintenance";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 import { formatDateDDMMYYYY } from '../../utils/date';
-
 const AssetManagement = () => {
   const MODULE_SLUG = 'maintenance';
   const [editingId, setEditingId] = useState(null);
@@ -196,6 +199,62 @@ const handleSubmit = async () => {
         val.toString().toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
+
+  const downloadPDF = (assetmanagement) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All Assets Management Report", 14, 15);
+
+    const tableColumn = [
+      "Purchase Order",
+      "Procurement ID",
+      "Asset ID",
+      "Asset Name",
+      "Asset Type",
+      "Model Number",
+      "Serial Number",
+      "Location",
+      "Purchase Date",
+      "Warranty Expiry Date",
+      "Maintenance Requirement",
+      "Current Condition",
+      "Useful Life",
+      "Depreciation Value",
+    ];
+
+    const tableRows = assetmanagement.map((t) => [
+      t.purchase_order,
+      t.procurement_id,
+      t.asset_id,
+      t.asset_name,
+      t.asset_type,
+      t.model_number,
+      t.serial_number,
+      t.location,
+      formatDateDDMMYYYY(t.purchase_date),
+      formatDateDDMMYYYY(t.warranty_expiry_date),
+      t.maintenance_requirement,
+      t.current_condition,
+      t.useful_life_years,
+      t.depreciation_value,
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
+    });
+
+    doc.save("all_assets_management_report.pdf");
+  };
   
   return (
     <>
@@ -260,6 +319,12 @@ const handleSubmit = async () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => downloadPDF(assetmanagement)}
+            >
+              Download PDF
+            </Button>
             <Typography variant="h6" gutterBottom>Assets Details</Typography>
             <input
               type="text"

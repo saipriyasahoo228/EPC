@@ -20,7 +20,9 @@ import {
 import { Edit, Delete } from '@mui/icons-material';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import autoTable from "jspdf-autotable";
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from '@mui/icons-material/Download';
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 import { createFinancialReport,getFinancialReports,deleteFinancialReport,updateFinancialReport } from "../../allapi/account";
 import { formatDateDDMMYYYY } from '../../utils/date';
@@ -160,20 +162,43 @@ useEffect(() => {
   );
 
   const handleExportPDF = () => {
-    const doc = new jsPDF();
-    const data = filteredReports.map((item) => [
-      item.reportId,
-      item.reportType,
-      item.generatedDate,
-      item.preparedBy,
-      item.approvalStatus,
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All Financial Reports", 14, 15);
+
+    const tableColumn = [
+      "Report ID",
+      "Report Type",
+      "Generated Date",
+      "Prepared By",
+      "Approval Status",
+      "Comments",
+    ];
+
+    const tableRows = filteredReports.map((item) => [
+      item.report_id,
+      item.report_type,
+      formatDateDDMMYYYY(item.generated_date),
+      item.prepared_by,
+      item.approval_status,
       item.comments,
     ]);
-    doc.autoTable({
-      head: [['ID', 'Type', 'Date', 'Prepared By', 'Status', 'Comments']],
-      body: data,
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
     });
-    doc.save('financial_reports.pdf');
+
+    doc.save("all_financial_reports.pdf");
   };
 
   return (
@@ -252,7 +277,11 @@ useEffect(() => {
             </Typography>
           </Grid>
           <Grid item>
-            <Button onClick={handleExportPDF} sx={{ backgroundColor: '#7267ef', color: '#fff', mt: 2, mb: 2 }}>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={handleExportPDF}
+              sx={{ backgroundColor: '#7267ef', color: '#fff', mt: 2, mb: 2 }}
+            >
               Export PDF
             </Button>
           </Grid>

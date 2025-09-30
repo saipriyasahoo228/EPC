@@ -5,7 +5,11 @@ import {
   Table, TableHead, TableRow, TableCell, TableBody, Paper
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
-import CloseIcon from "@mui/icons-material/Close"; 
+import CloseIcon from "@mui/icons-material/Close";
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable"; 
 import { getGuests ,createReceivable,getReceivables,deleteReceivable,updateReceivable} from "../../allapi/account";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 import { formatDateDDMMYYYY } from '../../utils/date';
@@ -235,10 +239,57 @@ const resetForm = () => {
 };
 
 
+  const downloadPDF = (records) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All Accounts Receivable Report", 14, 15);
+
+    const tableColumn = [
+      "Invoice ID",
+      "Guest ID",
+      "Invoice Date",
+      "Due Date",
+      "Total Amount",
+      "Amount Received",
+      "Outstanding Balance",
+      "Payment Status",
+      "Payment Method",
+      "Approval Status",
+    ];
+
+    const tableRows = records.map((r) => [
+      r.invoice_id,
+      r.guest_id,
+      formatDateDDMMYYYY(r.invoice_date),
+      formatDateDDMMYYYY(r.due_date),
+      r.total_amount,
+      r.amount_received,
+      r.outstanding_balance,
+      r.payment_status,
+      r.payment_method,
+      r.approval_status,
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
+    });
+
+    doc.save("all_accounts_receivable_report.pdf");
+  };
+
   return (
     <>
       <Typography variant="h5" sx={{ mt: 4 }}>Accounts Receivable</Typography>
-
       <Grid container spacing={2} sx={{ mt: 2 }} direction="column">
         <Grid item xs={12}>
           <Paper sx={{ p: 2 }}>
@@ -274,6 +325,12 @@ const resetForm = () => {
 
         <Grid item xs={12}>
           <Paper sx={{ p: 2 }}>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => downloadPDF(records)}
+            >
+              Download PDF
+            </Button>
             <Typography variant="h6">Receivable Records</Typography>
             <Table>
               <TableHead>

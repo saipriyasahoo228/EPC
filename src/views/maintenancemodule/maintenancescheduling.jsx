@@ -20,11 +20,13 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { getAssets ,createMaintenanceSchedule,getMaintenanceSchedules,deleteMaintenanceSchedule,updateMaintenanceSchedule} from "../../allapi/maintenance";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
 import { formatDateDDMMYYYY } from '../../utils/date';
-
-
 const AssetScheduling = () => {
   const MODULE_SLUG = 'maintenance';
   const [searchTerm, setSearchTerm] = useState('');
@@ -221,7 +223,53 @@ const handleSubmit = async () => {
         val.toString().toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
-  
+  const downloadPDF = (maintenance) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All Maintenance Scheduling Report", 14, 15);
+
+    const tableColumn = [
+      "Asset ID",
+      "Maintenance ID",
+      "Maintenance Type",
+      "Scheduled Date",
+      "Frequency",
+      "Assigned Technician ID",
+      "Task Description",
+      "Spare Parts Required",
+      "Estimated Downtime",
+      "Approval Status",
+    ];
+
+    const tableRows = maintenance.map((t) => [
+      t.asset_id,
+      t.maintenance_id,
+      t.maintenance_type,
+      formatDateDDMMYYYY(t.scheduled_date),
+      t.frequency,
+      t.assigned_technician_id,
+      t.task_description,
+      t.spare_parts_required,
+      t.estimated_downtime,
+      t.approval_status,
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
+    });
+
+    doc.save("all_maintenance_scheduling_report.pdf");
+  };
   return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>Maintenance Scheduling Details</Typography>
@@ -284,6 +332,12 @@ const handleSubmit = async () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => downloadPDF(filteredMaintenance)}
+            >
+              Download PDF
+            </Button>
             <Typography variant="h6" gutterBottom>Maintenance Scheduling Details</Typography>
             <input
               type="text"

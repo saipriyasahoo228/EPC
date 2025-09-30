@@ -19,6 +19,10 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { Maximize2, Minimize2 } from "lucide-react";
 
 import {
@@ -202,6 +206,48 @@ const SafetyExpense = () => {
     return p?.project_name || code;
   };
 
+  const downloadPDF = (expenses) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All Safety Expenses Report", 14, 15);
+
+    const tableColumn = [
+      "Project",
+      "Project Name",
+      "Expense Type",
+      "Amount",
+      "Safety Management",
+      "Date Incurred",
+      "Description",
+    ];
+
+    const tableRows = expenses.map((e) => [
+      e.project,
+      projectCodeToName(e.project),
+      e.expense_type,
+      `₹ ${Number(e.amount || 0).toLocaleString("en-IN")}`,
+      e.safety_management || "-",
+      formatDateDDMMYYYY(e.date_incurred),
+      e.description || "-",
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
+    });
+
+    doc.save("all_safety_expenses_report.pdf");
+  };
+
   return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>
@@ -265,6 +311,12 @@ const SafetyExpense = () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: "#fff", border: "1px solid #ccc" }}>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => downloadPDF(expenses)}
+            >
+              Download PDF
+            </Button>
             <Typography variant="h6" gutterBottom>
               SAFETY EXPENSES
             </Typography>

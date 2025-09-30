@@ -19,6 +19,10 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { getVendors } from "../../allapi/procurement";
 import { createPayable,getPayables,deletePayable,updatePayable } from "../../allapi/account";
 import {DisableIfCannot,ShowIfCan} from "../../components/auth/RequirePermission";
@@ -187,6 +191,54 @@ const handleSubmit = async () => {
     )
   );
 
+  const downloadPDF = (records) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All Accounts Payable Report", 14, 15);
+
+    const tableColumn = [
+      "Invoice ID",
+      "Vendor ID",
+      "Invoice Date",
+      "Due Date",
+      "Total Amount",
+      "Amount Paid",
+      "Outstanding Balance",
+      "Payment Status",
+      "Payment Method",
+      "Approval Status",
+    ];
+
+    const tableRows = records.map((item) => [
+      item.invoice_id,
+      item.vendor,
+      formatDateDDMMYYYY(item.invoice_date),
+      formatDateDDMMYYYY(item.due_date),
+      item.total_amount,
+      item.amount_paid,
+      item.outstanding_balance,
+      item.payment_status,
+      item.payment_method,
+      item.approval_status,
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
+    });
+
+    doc.save("all_accounts_payable_report.pdf");
+  };
+
   return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>
@@ -243,6 +295,12 @@ const handleSubmit = async () => {
 
         <Grid item xs={12}>
           <Paper sx={{ p: 2, mt: 2 }}>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => downloadPDF(records)}
+            >
+              Download PDF
+            </Button>
             <Typography variant="h6">Payable Records</Typography>
             <TableContainer>
               <Table stickyHeader>

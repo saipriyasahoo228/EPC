@@ -23,11 +23,14 @@ import {
 } from "@mui/material";
 import { AddCircle, Edit, Delete } from "@mui/icons-material";
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { getProjectsAccept } from "../../allapi/engineering";
 import { createSafetyManagement,getSafetyManagements,deleteSafetyManagement,updateSafetyManagement } from "../../allapi/construction";
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 import { formatDateDDMMYYYY } from '../../utils/date';
-
 const SafetyManagement = () => {
   const MODULE_SLUG = 'construction';
   const [isModalMaximized, setIsModalMaximized] = useState(false);
@@ -218,6 +221,50 @@ const handleSubmit = async () => {
         val.toString().toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
+
+  const downloadPDF = (safetyRecords) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("All Safety Management Report", 14, 15);
+
+    const tableColumn = [
+      "Project ID",
+      "Safety Report ID",
+      "Incident Date",
+      "Incident Description",
+      "Affected Personnel ID",
+      "Injury Severity",
+      "Corrective Measures",
+      "Safety Training Conducted",
+    ];
+
+    const tableRows = safetyRecords.map((s) => [
+      s.project,
+      s.safety_report_id,
+      formatDateDDMMYYYY(s.incident_date),
+      s.incident_description,
+      s.affected_personnel_id,
+      s.injury_severity,
+      s.corrective_measure,
+      s.safety_training_conducted ? "Yes" : "No",
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
+    });
+
+    doc.save("all_safety_management_report.pdf");
+  };
   
   return (
     <>
@@ -276,6 +323,12 @@ const handleSubmit = async () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
+            <Button
+              startIcon={<DownloadIcon />}
+              onClick={() => downloadPDF(safetyRecords)}
+            >
+              Download PDF
+            </Button>
             <Typography variant="h6" gutterBottom>SAFETY MANAGEMENT DETAILS</Typography>
             <input
               type="text"

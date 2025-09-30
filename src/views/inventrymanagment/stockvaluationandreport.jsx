@@ -18,6 +18,10 @@ import {
   IconButton,
 } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+import DownloadIcon from '@mui/icons-material/Download';
 import { getStockManagement ,submitValuationReport,getValuationReports,deleteValuationReport } from "../../allapi/inventory";
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
@@ -186,6 +190,50 @@ useEffect(() => {
     alert('Something Went Wrong!!!')
   }
 };
+
+  // Download PDF of Inventory Reports
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF('l', 'mm', 'a4');
+    doc.setFontSize(16);
+    doc.text('Inventory Valuation Reports', 14, 15);
+
+    const head = [
+      [
+        'Stock ID',
+        'Valuation Method',
+        'Stock Value',
+        'Turnover Ratio',
+        'Low Alert',
+        'Excess Alert',
+        'Monthly Report',
+      ],
+    ];
+
+    const body = reportData.map((row) => [
+      row.stock,
+      row.valuation_method,
+      row.stock_value,
+      row.stock_turnover_ratio,
+      row.low_stock_alert ? 'Yes' : 'No',
+      row.excess_stock_alert ? 'Yes' : 'No',
+      row.monthly_stock_report || '—',
+    ]);
+
+    autoTable(doc, {
+      head,
+      body,
+      startY: 25,
+      styles: {
+        fontSize: 7,
+        cellPadding: 2,
+        overflow: 'linebreak',
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: 'auto',
+    });
+
+    doc.save('inventory_valuation_reports.pdf');
+  };
 
   return (
     <>
@@ -392,9 +440,14 @@ useEffect(() => {
 
       {/* Table Always Visible */}
       <Box mt={4} sx={{ backgroundColor: '#fff', p: 2, borderRadius: 2, boxShadow: 1 }}>
-        <Typography variant="h6" gutterBottom>
-          Inventory Reports
-        </Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+          <Typography variant="h6" gutterBottom>
+            Inventory Reports
+          </Typography>
+          <Button startIcon={<DownloadIcon />} onClick={handleDownloadPDF} sx={{ backgroundColor: '#7267ef', color: '#fff' }}>
+            Download
+          </Button>
+        </Box>
         <Table>
           <TableHead>
             <TableRow>

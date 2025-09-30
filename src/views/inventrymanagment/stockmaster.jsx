@@ -26,6 +26,10 @@ import { getInventoryItems,createStock,getStockManagement ,deleteStock,updateSto
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
 import { Maximize2, Minimize2 } from "lucide-react";
 import { formatDateDDMMYYYY } from '../../utils/date';
+import DownloadIcon from "@mui/icons-material/Download";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 
 
@@ -253,6 +257,50 @@ const handleDelete = async (stockManagementId) => {
     )
   );
 
+  const downloadPDF = (stocks) => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+    doc.setFontSize(16);
+    doc.text("Stock Management Report", 14, 15);
+
+    const tableColumn = [
+      "Item ID",
+      "Stock ID",
+      "Opening Stock",
+      "Stock Issued",
+      "Stock Issued By",
+      "Stock Balance",
+      "Stock Valuation",
+      "Last Updated"
+    ];
+
+    const tableRows = stocks.map((stock) => [
+      stock.item || '',
+      stock.stock_id || '',
+      stock.opening_stock || '0',
+      stock.stock_issued || '0',
+      stock.stock_issued_by || '',
+      stock.stock_balance || '0',
+      stock.stock_valuation || '0',
+      stock.last_updated ? formatDateDDMMYYYY(stock.last_updated) : ''
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: {
+        fontSize: 6,        // shrink font a bit
+        cellPadding: 2,
+        cellWidth: "auto",  // auto-adjust column width
+        overflow: "linebreak",
+      },
+      headStyles: { fillColor: [114, 103, 239] },
+      tableWidth: "auto",   // fit entire table to page
+    });
+
+    doc.save("stock_management_report.pdf");
+  };
+
   return (
     <>
       <Typography variant="h5" gutterBottom sx={{ mt: 5 }}>
@@ -329,9 +377,22 @@ const handleDelete = async (stockManagementId) => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: "#fff", border: "1px solid #ccc" }}>
-            <Typography variant="h6" gutterBottom>
-              SUBMITTED STOCKS
-            </Typography>
+            <Grid container justifyContent="space-between" alignItems="center">
+              <Grid item>
+                <Typography variant="h6" gutterBottom sx={{ color: '#7267ef' }}>
+                  SUBMITTED STOCKS
+                </Typography>
+              </Grid>
+              <Grid item>
+                <IconButton 
+                  onClick={() => downloadPDF(filteredStockManagement)} 
+                  sx={{ color: '#7267ef' }}
+                  title="Download Report"
+                >
+                  <DownloadIcon />
+                </IconButton>
+              </Grid>
+            </Grid>
             <input
               type="text"
               placeholder="Search Stock Management"

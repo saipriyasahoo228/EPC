@@ -26,6 +26,40 @@ import { getProjectsAccept } from "../../allapi/engineering";
 import {createQualityControl,getQualityControls,updateQualityControl,deleteQualityControl} from "../../allapi/construction";
 import { DisableIfCannot, ShowIfCan } from "../../components/auth/RequirePermission";
 import { formatDateDDMMYYYY } from '../../utils/date';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+import DownloadIcon from '@mui/icons-material/Download';
+
+const downloadPDF = (rows) => {
+  const doc = new jsPDF('l', 'mm', 'a4');
+  doc.setFontSize(16);
+  doc.text('Quality Control Report', 14, 15);
+
+  autoTable(doc, { 
+    head: [
+      ['Project ID', 'QC ID', 'Inspection Date', 'Inspection Type', 'Inspector ID', 'Test Results', 'Compliance Standard', 'Defects Identified', 'Corrective Actions', 'Approval Status', 'Next Inspection Date'],
+    ],
+    body: (rows || []).map((q) => [
+      q.project,
+      q.qc_id,
+      formatDateDDMMYYYY(q.inspection_date),
+      q.inspection_type,
+      q.inspector_id,
+      q.test_results,
+      q.compliance_standard,
+      q.defects_identified,
+      q.corrective_actions,
+      q.approval_status,
+      q.next_inspection_date ? formatDateDDMMYYYY(q.next_inspection_date) : '—',
+    ]),
+    startY: 25,
+    styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+    headStyles: { fillColor: [114, 103, 239] },
+    tableWidth: 'auto',
+  });
+  doc.save('quality_control_report.pdf');
+};
 
 const QualityControl = () => {
   const MODULE_SLUG = 'construction';
@@ -276,7 +310,12 @@ useEffect(() => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, backgroundColor: '#fff', border: '1px solid #ccc' }}>
-            <Typography variant="h6" gutterBottom>QUALITY CONTROL & ASSUARANCE DETAILS</Typography>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Typography variant="h6" gutterBottom>QUALITY CONTROL & ASSUARANCE DETAILS</Typography>
+              <Button startIcon={<DownloadIcon />} onClick={() => downloadPDF(filteredQuality)} sx={{ backgroundColor: '#7267ef', color: '#fff' }}>
+                Download
+              </Button>
+            </Box>
             <input
               type="text"
               placeholder="Search Quality Control"
@@ -285,7 +324,6 @@ useEffect(() => {
               className="input"
               style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4, marginBottom: '16px' }}
             />
-
             <TableContainer sx={{ maxHeight: 400, overflow: 'auto', border: '1px solid #ddd' }}>
               <Table stickyHeader>
                 <TableHead>
@@ -319,17 +357,15 @@ useEffect(() => {
                       <TableCell>{q.approval_status}</TableCell>
                       <TableCell>{formatDateDDMMYYYY(q.next_inspection_date)}</TableCell>
                       <TableCell>
-
-                      <DisableIfCannot slug={MODULE_SLUG} action="can_update">
-
-                        <IconButton onClick={() => handleEdit(q)} color="warning">
-                          <Edit sx={{ color: "orange" }} />
-                        </IconButton>
+                        <DisableIfCannot slug={MODULE_SLUG} action="can_update">
+                          <IconButton onClick={() => handleEdit(q)} color="warning">
+                            <Edit sx={{ color: "orange" }} />
+                          </IconButton>
                         </DisableIfCannot>
                         <ShowIfCan slug={MODULE_SLUG} action="can_delete">
-                        <IconButton onClick={() => handleDelete(q.qc_id)} color="error">
-                          <Delete sx={{ color: "red" }} />
-                        </IconButton>
+                          <IconButton onClick={() => handleDelete(q.qc_id)} color="error">
+                            <Delete sx={{ color: "red" }} />
+                          </IconButton>
                         </ShowIfCan>
                       </TableCell>
                     </TableRow>
