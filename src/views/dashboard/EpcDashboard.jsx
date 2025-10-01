@@ -251,15 +251,21 @@ export default function EpcDashboard() {
   const bvsCategories = projects.map((p) => p.project);
   const bvsBudget = projects.map((p) => toNumber(p.project_budget));
   const bvsSpend = projects.map((p) => toNumber(costByProject.get(p.project)?.total_cost));
+  // Apply a visual floor so very small bars remain visible without altering tooltips/labels
+  const bvsMax = Math.max(0, ...(bvsBudget.length ? bvsBudget : [0]), ...(bvsSpend.length ? bvsSpend : [0]));
+  const bvsFloor = bvsMax > 0 ? Math.max(1, Math.round(bvsMax * 0.04)) : 0; // ~4% of max or at least 1
+  const adjustBar = (v) => (v === 0 ? 0 : Math.max(v, bvsFloor));
+  const bvsBudgetAdj = bvsBudget.map(adjustBar);
+  const bvsSpendAdj = bvsSpend.map(adjustBar);
   const budgetVsSpendChart = useMemo(() => ({
     type: 'bar',
     series: [
-      { name: 'Budget', data: bvsBudget },
-      { name: 'Spent', data: bvsSpend },
+      { name: 'Budget', data: bvsBudgetAdj },
+      { name: 'Spent', data: bvsSpendAdj },
     ],
     options: {
       chart: { stacked: false, toolbar: { show: false } },
-      plotOptions: { bar: { horizontal: false, columnWidth: '40%', borderRadius: 6 } },
+      plotOptions: { bar: { horizontal: false, columnWidth: '50%', borderRadius: 6 } },
       xaxis: { categories: bvsCategories, labels: { style: { colors: pastel.subtext } } },
       yaxis: { labels: { style: { colors: pastel.subtext } } },
       stroke: { show: true, width: 2, colors: ['transparent'] },
@@ -267,8 +273,16 @@ export default function EpcDashboard() {
       grid: { strokeDashArray: 4, borderColor: pastel.border },
       colors: [pastel.lavender, pastel.teal],
       legend: { position: 'top', labels: { colors: pastel.subtext } },
+      tooltip: {
+        y: {
+          formatter: (val, { seriesIndex, dataPointIndex }) => {
+            const raw = seriesIndex === 0 ? bvsBudget[dataPointIndex] : bvsSpend[dataPointIndex];
+            try { return raw.toLocaleString('en-IN'); } catch { return String(raw); }
+          }
+        }
+      }
     }
-  }), [bvsCategories.join(','), bvsBudget.join(','), bvsSpend.join(',')]);
+  }), [bvsCategories.join(','), bvsBudget.join(','), bvsSpend.join(','), bvsBudgetAdj.join(','), bvsSpendAdj.join(','), bvsFloor]);
 
   // Cost breakdown stacked bar per project
   const cbCategories = projects.map((p) => p.project);
@@ -801,13 +815,15 @@ export default function EpcDashboard() {
             </Card.Body>
           </Card>
         </Col> */}
-        <Col md={12} xl={6}>
+        <Col md={12} xl={12}>
           <Card className="mb-3">
             <Card.Header>
               <h6 className="mb-0">Budget vs Spent</h6>
             </Card.Header>
-            <Card.Body>
-              <Chart {...budgetVsSpendChart} />
+            {/* <Card.Body>
+              <Chart {...budgetVsSpendChart} /> */}
+              <Card.Body style={{ padding: '12px 16px' }}>
+              <Chart {...budgetVsSpendChart} height={360} />
             </Card.Body>
           </Card>
         </Col>

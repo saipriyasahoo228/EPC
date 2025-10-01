@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -49,6 +50,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import LogoutRounded from '@mui/icons-material/LogoutRounded';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 import { logout } from 'auth';
 
 import { getProjectsAccept } from '../../allapi/engineering';
@@ -58,6 +60,7 @@ import { getInventoryItems } from '../../allapi/inventory';
 import { createMaterialProcurement, getMaterialProcurements } from '../../allapi/procurement';
 
 import { DisableIfCannot, ShowIfCan } from '../../components/auth/RequirePermission';
+import { usePermissions } from '../../contexts/PermissionsContext';
 import { wrap } from 'lodash-es';
 
 const MODULE_SLUG = 'construction';
@@ -70,6 +73,8 @@ const statusOptions = [
 ];
 
 const SiteExecutionSupervisor = () => {
+  const navigate = useNavigate();
+  const { user } = usePermissions();
   const isMobile = useMediaQuery('(max-width:600px)');
   const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
@@ -142,6 +147,23 @@ const SiteExecutionSupervisor = () => {
   });
   // Logout confirm dialog
   const [logoutOpen, setLogoutOpen] = useState(false);
+  
+  // Check if user can access admin view
+  const canAccessAdminView = useMemo(() => {
+    if (!user) return false;
+    const isAdmin = Boolean(user?.is_admin);
+    const role = (user?.role || '').toString().toLowerCase();
+    const rawGroups = Array.isArray(user?.groups) ? user.groups : [];
+    const groupNames = rawGroups
+      .map(g => (typeof g === 'string' ? g : (g?.name || g?.title || g?.slug || '')))
+      .filter(Boolean)
+      .map(s => s.toString().toLowerCase());
+    const hasOtherGroup = groupNames.some(n => n && n !== 'site supervisor');
+    const onlySiteSupOrNone = groupNames.length === 0 || !hasOtherGroup;
+    const isSiteSupervisorOnly = role === 'site supervisor' && onlySiteSupOrNone;
+    // Can access admin if: admin OR has other groups besides site supervisor
+    return isAdmin || !isSiteSupervisorOnly;
+  }, [user]);
   // Material consumption (selection from inventory with quantities)
   const [consumptionOpen, setConsumptionOpen] = useState(false);
   const [consumptionItems, setConsumptionItems] = useState([]); // [{ item, quantity }]
@@ -886,7 +908,23 @@ const SiteExecutionSupervisor = () => {
         boxShadow: 'none',
         borderBottom: theme => `1px solid ${theme.palette.divider}`,
       }}>
-        <Toolbar sx={{ minHeight: 56, alignItems: 'center', gap: 1 }}>
+        {/* <Toolbar sx={{ minHeight: 56, alignItems: 'center', gap: 1 }}>
+          <Typography variant="h6" sx={{ flex: 1, color: 'text.primary', fontWeight: 600 }}>
+            Site Execution Supervisor
+          </Typography> */}
+                  <Toolbar sx={{ minHeight: 56, alignItems: 'center', gap: 1 }}>
+          {canAccessAdminView && (
+            <Tooltip title="Back to Admin Dashboard">
+              <IconButton 
+                color="primary" 
+                size="small" 
+                onClick={() => navigate('/dashboard')}
+                sx={{ mr: 1 }}
+              >
+                <DashboardIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
           <Typography variant="h6" sx={{ flex: 1, color: 'text.primary', fontWeight: 600 }}>
             Site Execution Supervisor
           </Typography>
@@ -928,7 +966,7 @@ const SiteExecutionSupervisor = () => {
             px: 2,
             pt: 2,
             pb: 6,
-            background: 'linear-gradient(135deg, rgba(87,183,157,0.12) 0%, rgba(255,182,114,0.12) 100%)',
+            background: 'linear-gradient(135deg, rgba(87,183,157,0.18) 0%, rgba(255,182,114,0.12) 100%)',
             color: 'text.primary',
             borderBottomLeftRadius: 28,
             borderBottom: theme => `1px solid ${theme.palette.divider}`,
@@ -939,10 +977,18 @@ const SiteExecutionSupervisor = () => {
 
             <Stack direction="row" alignItems="center" spacing={1}>
               <Typography variant="h6" sx={{ flex: 1 }}>Today</Typography>
-              <Chip size="small" color="primary" variant="outlined" label={new Date().toLocaleDateString()} />
+              {/* <Chip size="small" color="primary" variant="outlined" label={new Date().toLocaleDateString()} /> */}
+              <Chip
+                size="small"
+                color="primary"
+                variant="filled"
+                label={new Date().toLocaleDateString()}
+                sx={{ bgcolor: 'primary.main', color: (theme) => theme.palette.getContrastText(theme.palette.primary.main), '& .MuiChip-label': { fontWeight: 700 } }}/>
             </Stack>
-            <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>Log your daily progress, capture a photo and location.</Typography>
-
+            {/* <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>Log your daily progress, capture a photo and location.</Typography> */}
+            <Typography variant="body2" sx={{ mt: 0.5, color: 'text.primary', fontWeight: 500 }}>
+  Log your daily progress, capture a photo and location.
+</Typography>
             {/* Bottom wave */}
             <Box component="svg" viewBox="0 0 1440 80" preserveAspectRatio="none" sx={{ position: 'absolute', left: 0, right: 0, bottom: -1, height: 40, width: '100%' }}>
               <path fill="currentColor" fillOpacity="0.06" d="M0,64L60,53.3C120,43,240,21,360,21.3C480,21,600,43,720,58.7C840,75,960,85,1080,69.3C1200,53,1320,11,1380,-5.3L1440,-21L1440,81L1380,81C1320,81,1200,81,1080,81C960,81,840,81,720,81C600,81,480,81,360,81C240,81,120,81,60,81L0,81Z" />
