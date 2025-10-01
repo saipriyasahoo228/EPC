@@ -1,0 +1,1 @@
+function o(t){if(!t)return"";try{const n=t instanceof Date?t:new Date(t);if(isNaN(n.getTime()))return"";const r=String(n.getDate()).padStart(2,"0"),e=String(n.getMonth()+1).padStart(2,"0"),a=n.getFullYear();return`${r}/${e}/${a}`}catch{return""}}export{o as f};
