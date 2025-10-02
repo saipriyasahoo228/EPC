@@ -45,6 +45,7 @@ const ProjectManagement = () => {
   const [constructionProjects, setConstructionProjects] = useState([]);
   const [isEditing, setIsEditing] = useState(false); 
   const [isModalMaximized, setIsModalMaximized] = useState(false);
+  const [errors, setErrors] = useState({});
 
 
   const [formData, setFormData] = useState({
@@ -151,11 +152,46 @@ const handleEdit = (project) => {
     ...prevData,
     [name]: value,
   }));
+  if (errors[name]) {
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+  }
 };
 
 
 
+const validateForm = () => {
+  const reqErr = {};
+  // Ensure a project is selected (projectId)
+  if (!String(selectedProjectId || '').trim()) {
+    reqErr.project = 'This field is required';
+  }
+  const requiredFields = [
+    'projectName',
+    'projectType',
+    'clientName',
+    'projectLocation',
+    'startDate',
+    'endDate',
+    'projectManagerId',
+    'projectManagerName',
+    'projectStatus',
+    'projectBudget',
+    'resourceAllocation',
+  ];
+  requiredFields.forEach((field) => {
+    const v = (formData[field] ?? '').toString().trim();
+    if (v === '') reqErr[field] = 'This field is required';
+  });
+  if (Object.keys(reqErr).length) {
+    setErrors(reqErr);
+    return false;
+  }
+  setErrors({});
+  return true;
+};
+
 const handleSubmit = async () => {
+  if (!validateForm()) return;
   try {
     const payload = {
       project: selectedProjectId,
@@ -492,34 +528,52 @@ const handleDelete = async (projectId) => {
         <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
         <Grid container spacing={2}>
           <Grid item xs={6}>
-            <label htmlFor="projectId">Project ID</label>
+            <label htmlFor="projectId">Project ID <span style={{ color: 'red' }}>*</span></label>
             <input id="projectId" className="input" value={selectedProjectId} disabled />
+            {!String(selectedProjectId || '').trim() && errors.project && (
+              <div style={{ color: 'red', fontSize: 12 }}>{errors.project}</div>
+            )}
           </Grid>
           <Grid item xs={6}>
-            <label htmlFor="projectName">Project Name</label>
+            <label htmlFor="projectName">Project Name <span style={{ color: 'red' }}>*</span></label>
             <input id="projectName" name="projectName" className="input" value={formData.projectName || ''} onChange={handleChange} />
+            {errors.projectName && (
+              <div style={{ color: 'red', fontSize: 12 }}>{errors.projectName}</div>
+            )}
           </Grid>
           <Grid item xs={6}>
-            <label htmlFor="projectType">Project Type</label>
+            <label htmlFor="projectType">Project Type <span style={{ color: 'red' }}>*</span></label>
             <input id="projectType" name="projectType" className="input" value={formData.projectType || ''} onChange={handleChange} />
+            {errors.projectType && (
+              <div style={{ color: 'red', fontSize: 12 }}>{errors.projectType}</div>
+            )}
           </Grid>
            <Grid item xs={6}>
-            <label htmlFor="clientName">Client Name</label>
+            <label htmlFor="clientName">Client Name <span style={{ color: 'red' }}>*</span></label>
             <input id="clientName" name="clientName" className="input" value={formData.clientName || ''} onChange={handleChange} />
+            {errors.clientName && (
+              <div style={{ color: 'red', fontSize: 12 }}>{errors.clientName}</div>
+            )}
           </Grid>
           
           <Grid item xs={6}>
-            <label htmlFor="projectLocation">Project Location</label>
+            <label htmlFor="projectLocation">Project Location <span style={{ color: 'red' }}>*</span></label>
             <input id="projectLocation" name="projectLocation" className="input" value={formData.projectLocation || ''} onChange={handleChange} />
+            {errors.projectLocation && (
+              <div style={{ color: 'red', fontSize: 12 }}>{errors.projectLocation}</div>
+            )}
           </Grid>
            <Grid item xs={6}>
-            <label htmlFor="projectStatus">Project Status</label>
+            <label htmlFor="projectStatus">Project Status <span style={{ color: 'red' }}>*</span></label>
             <select id="projectStatus" name="projectStatus" className="input" value={formData.projectStatus || ''} onChange={handleChange}>
               <option value="planning">Planning</option>
               <option value="in progress">In Progress</option>
               <option value="delayed">Delayed</option>
               <option value="completed">Completed</option>
             </select>
+            {errors.projectStatus && (
+              <div style={{ color: 'red', fontSize: 12 }}>{errors.projectStatus}</div>
+            )}
           </Grid>
         </Grid>
       </Grid>
@@ -530,7 +584,7 @@ const handleDelete = async (projectId) => {
         <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
         <Grid container spacing={2}>
           <Grid item xs={6}>
-            <label htmlFor="startDate">Start Date</label>
+            <label htmlFor="startDate">Start Date <span style={{ color: 'red' }}>*</span></label>
             <input 
             type="date"
             id="startDate" 
@@ -538,9 +592,12 @@ const handleDelete = async (projectId) => {
             className="input" 
             value={formData.startDate || ''} 
             onChange={handleChange} />
+            {errors.startDate && (
+              <div style={{ color: 'red', fontSize: 12 }}>{errors.startDate}</div>
+            )}
           </Grid>
           <Grid item xs={6}>
-            <label htmlFor="endDate">End Date</label>
+            <label htmlFor="endDate">End Date <span style={{ color: 'red' }}>*</span></label>
             <input 
             type="date"
             id="endDate" 
@@ -548,15 +605,24 @@ const handleDelete = async (projectId) => {
             className="input" 
             value={formData.endDate || ''} 
             onChange={handleChange} />
+            {errors.endDate && (
+              <div style={{ color: 'red', fontSize: 12 }}>{errors.endDate}</div>
+            )}
           </Grid>
           
           <Grid item xs={6}>
-            <label htmlFor="projectManagerId">Project Manager ID</label>
+            <label htmlFor="projectManagerId">Project Manager ID <span style={{ color: 'red' }}>*</span></label>
             <input id="projectManagerId" name="projectManagerId" className="input" value={formData.projectManagerId || ''} onChange={handleChange} />
+            {errors.projectManagerId && (
+              <div style={{ color: 'red', fontSize: 12 }}>{errors.projectManagerId}</div>
+            )}
           </Grid>
           <Grid item xs={6}>
-            <label htmlFor="projectManagerName">Project Manager Name</label>
+            <label htmlFor="projectManagerName">Project Manager Name <span style={{ color: 'red' }}>*</span></label>
             <input id="projectManagerName" name="projectManagerName" className="input" value={formData.projectManagerName || ''} onChange={handleChange} />
+            {errors.projectManagerName && (
+              <div style={{ color: 'red', fontSize: 12 }}>{errors.projectManagerName}</div>
+            )}
           </Grid>
          
         </Grid>
@@ -568,8 +634,11 @@ const handleDelete = async (projectId) => {
         <hr style={{ borderTop: '2px solid #7267ef', width: '80%' }} />
         <Grid container spacing={2}>
           <Grid item xs={6}>
-            <label htmlFor="projectBudget">Project Budget</label>
+            <label htmlFor="projectBudget">Project Budget <span style={{ color: 'red' }}>*</span></label>
             <input id="projectBudget" name="projectBudget" className="input" value={formData.projectBudget || ''} onChange={handleChange} />
+            {errors.projectBudget && (
+              <div style={{ color: 'red', fontSize: 12 }}>{errors.projectBudget}</div>
+            )}
           </Grid>
          
           {/* <Grid item xs={6}>
@@ -577,8 +646,11 @@ const handleDelete = async (projectId) => {
             <input id="projectMilestones" name="projectMilestones" className="input" value={formData.projectMilestones || ''} onChange={handleChange} />
           </Grid> */}
           <Grid item xs={6}>
-            <label htmlFor="resourceAllocation">Resource Allocation</label>
+            <label htmlFor="resourceAllocation">Resource Allocation <span style={{ color: 'red' }}>*</span></label>
             <input id="resourceAllocation" name="resourceAllocation" className="input"  value={formData.resourceAllocation || ''} onChange={handleChange} />
+            {errors.resourceAllocation && (
+              <div style={{ color: 'red', fontSize: 12 }}>{errors.resourceAllocation}</div>
+            )}
           </Grid>
         </Grid>
       </Grid>

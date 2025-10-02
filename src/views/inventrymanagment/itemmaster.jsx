@@ -46,9 +46,58 @@ const ItemMaster = () => {
   itemStatus: 'Active',
 });
 
+  // validation error messages
+  const [errors, setErrors] = useState({});
+
 
 const toggleModalSize = () => {
     setIsModalMaximized(!isModalMaximized);
+  };
+
+  // Validate required fields and numeric ordering
+  const validateForm = () => {
+    const reqErrors = {};
+    const requiredFields = [
+      'itemName',
+      'category',
+      'unitOfMeasure',
+      'minStockLevel',
+      'maxStockLevel',
+      'reorderLevel',
+      'itemStatus',
+    ];
+
+    requiredFields.forEach((field) => {
+      const value = (formData[field] ?? '').toString().trim();
+      if (value === '') {
+        reqErrors[field] = 'This field is required';
+      }
+    });
+
+    // If any required missing, set errors and block
+    if (Object.keys(reqErrors).length > 0) {
+      setErrors(reqErrors);
+      return false;
+    }
+
+    // Numeric validation
+    const min = Number(formData.minStockLevel);
+    const re = Number(formData.reorderLevel);
+    const max = Number(formData.maxStockLevel);
+
+    if (!(min < re && re < max)) {
+      setErrors((prev) => ({
+        ...prev,
+        minStockLevel: 'Ensure: Min < Reorder < Max',
+        reorderLevel: 'Ensure: Min < Reorder < Max',
+        maxStockLevel: 'Ensure: Min < Reorder < Max',
+      }));
+      alert('⚠️ Validation Error\nEnsure that: Minimum Stock Level < Reorder Level < Maximum Stock Level');
+      return false;
+    }
+
+    setErrors({});
+    return true;
   };
 
 
@@ -121,11 +170,9 @@ useEffect(() => {
  
 
 const handleSubmit = async () => {
-  // ✅ Frontend Validation
-  if (!(Number(formData.minStockLevel) < Number(formData.reorderLevel) && Number(formData.reorderLevel) < Number(formData.maxStockLevel))) {
-    alert("⚠️ Validation Error:\nEnsure that: Minimum Stock Level < Reorder Level < Maximum Stock Level");
-    return; // Stop submission
-  }
+  // ✅ Frontend Validation: required fields + numeric order
+  const isValid = validateForm();
+  if (!isValid) return;
 
   const form = new FormData();
   form.append('item_name', formData.itemName);
@@ -323,24 +370,40 @@ const handleSubmit = async () => {
 </Grid>
 
             <Grid item xs={12}>
-              <label>Item Name</label>
+              <label>
+                Item Name <span style={{ color: 'red' }}>*</span>
+              </label>
               <input
                 className="input"
                 name="itemName"
                 value={formData.itemName}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (errors.itemName) setErrors((prev) => ({ ...prev, itemName: '' }));
+                }}
                 placeholder="e.g., Steel Rods"
               />
+              {errors.itemName && (
+                <div style={{ color: 'red', fontSize: 12 }}>{errors.itemName}</div>
+              )}
             </Grid>
             <Grid item xs={12}>
-              <label>Category</label>
+              <label>
+                Category <span style={{ color: 'red' }}>*</span>
+              </label>
               <input
                 className="input"
                 name="category"
                 value={formData.category}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (errors.category) setErrors((prev) => ({ ...prev, category: '' }));
+                }}
                 placeholder="e.g., Raw Materials"
               />
+              {errors.category && (
+                <div style={{ color: 'red', fontSize: 12 }}>{errors.category}</div>
+              )}
             </Grid>
              <Grid item xs={12}>
               <label>Net Weight</label>
@@ -353,47 +416,79 @@ const handleSubmit = async () => {
               />
             </Grid>
             <Grid item xs={12}>
-              <label>Unit of Measure</label>
+              <label>
+                Unit of Measure <span style={{ color: 'red' }}>*</span>
+              </label>
               <input
                 className="input"
                 name="unitOfMeasure"
                 value={formData.unitOfMeasure}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (errors.unitOfMeasure) setErrors((prev) => ({ ...prev, unitOfMeasure: '' }));
+                }}
                 placeholder="e.g., KG"
               />
+              {errors.unitOfMeasure && (
+                <div style={{ color: 'red', fontSize: 12 }}>{errors.unitOfMeasure}</div>
+              )}
             </Grid>
             <Grid item xs={12}>
-              <label>Minimum Stock Level</label>
+              <label>
+                Minimum Stock Level <span style={{ color: 'red' }}>*</span>
+              </label>
               <input
                 className="input"
                 name="minStockLevel"
                 type="number"
                 value={formData.minStockLevel}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (errors.minStockLevel) setErrors((prev) => ({ ...prev, minStockLevel: '' }));
+                }}
               />
+              {errors.minStockLevel && (
+                <div style={{ color: 'red', fontSize: 12 }}>{errors.minStockLevel}</div>
+              )}
             </Grid>
             <Grid item xs={12}>
-              <label>Maximum Stock Level</label>
+              <label>
+                Maximum Stock Level <span style={{ color: 'red' }}>*</span>
+              </label>
               <input
                 className="input"
                 name="maxStockLevel"
                 type="number"
                 value={formData.maxStockLevel}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (errors.maxStockLevel) setErrors((prev) => ({ ...prev, maxStockLevel: '' }));
+                }}
               />
+              {errors.maxStockLevel && (
+                <div style={{ color: 'red', fontSize: 12 }}>{errors.maxStockLevel}</div>
+              )}
             </Grid>
             <Grid item xs={12}>
-              <label>Reorder Level</label>
+              <label>
+                Reorder Level <span style={{ color: 'red' }}>*</span>
+              </label>
               <input
                 className="input"
                 name="reorderLevel"
                 type="number"
                 value={formData.reorderLevel}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (errors.reorderLevel) setErrors((prev) => ({ ...prev, reorderLevel: '' }));
+                }}
               />
+              {errors.reorderLevel && (
+                <div style={{ color: 'red', fontSize: 12 }}>{errors.reorderLevel}</div>
+              )}
             </Grid>
             <Grid item xs={12}>
-              <label>Storage Location</label>
+              <label>Storage Location <span style={{ color: 'red' }}>*</span></label>
               <input
                 className="input"
                 name="storageLocation"
@@ -403,18 +498,26 @@ const handleSubmit = async () => {
               />
             </Grid>
             <Grid item xs={12}>
-              <label>Item Status</label>
+              <label>
+                Item Status <span style={{ color: 'red' }}>*</span>
+              </label>
               <select
                 className="input"
                 name="itemStatus"
                 value={formData.itemStatus}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (errors.itemStatus) setErrors((prev) => ({ ...prev, itemStatus: '' }));
+                }}
               >
                 <option value="">Select Status</option>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
                 <option value="Discontinued">Discontinued</option>
               </select>
+              {errors.itemStatus && (
+                <div style={{ color: 'red', fontSize: 12 }}>{errors.itemStatus}</div>
+              )}
             </Grid>
           </Grid>
         </DialogContent>

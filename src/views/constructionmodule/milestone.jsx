@@ -50,6 +50,7 @@ const Milestone = () => {
   const [isModalMaximized, setIsModalMaximized] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingMilestone, setEditingMilestone] = useState(null);
+  const [errors, setErrors] = useState({});
 
   const [searchProjects, setSearchProjects] = useState("");
   const [searchMilestones, setSearchMilestones] = useState("");
@@ -184,9 +185,28 @@ const Milestone = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateForm = () => {
+    const reqErr = {};
+    const required = ['project', 'name', 'start_date', 'end_date', 'status'];
+    required.forEach((field) => {
+      const v = (formData[field] ?? '').toString().trim();
+      if (v === '') reqErr[field] = 'This field is required';
+    });
+    if (Object.keys(reqErr).length) {
+      setErrors(reqErr);
+      return false;
+    }
+    setErrors({});
+    return true;
   };
 
   const handleSubmit = async () => {
+    if (!validateForm()) return;
     try {
       const payload = {
         project: formData.project,
@@ -391,7 +411,7 @@ const Milestone = () => {
                 <hr style={{ borderTop: "2px solid #7267ef", width: "80%" }} />
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
-                    <label htmlFor="project">Project</label>
+                    <label htmlFor="project">Project <span style={{ color: 'red' }}>*</span></label>
                     <select
                       id="project"
                       name="project"
@@ -406,10 +426,16 @@ const Milestone = () => {
                         </option>
                       ))}
                     </select>
+                    {errors.project && (
+                      <div style={{ color: 'red', fontSize: 12 }}>{errors.project}</div>
+                    )}
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="name">Name</label>
+                    <label htmlFor="name">Name <span style={{ color: 'red' }}>*</span></label>
                     <input id="name" name="name" className="input" value={formData.name} onChange={handleChange} />
+                    {errors.name && (
+                      <div style={{ color: 'red', fontSize: 12 }}>{errors.name}</div>
+                    )}
                   </Grid>
                   <Grid item xs={12}>
                     <label htmlFor="description">Description</label>
@@ -423,7 +449,7 @@ const Milestone = () => {
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="start_date">Start Date</label>
+                    <label htmlFor="start_date">Start Date <span style={{ color: 'red' }}>*</span></label>
                     <input
                       type="date"
                       id="start_date"
@@ -432,9 +458,12 @@ const Milestone = () => {
                       value={formData.start_date}
                       onChange={handleChange}
                     />
+                    {errors.start_date && (
+                      <div style={{ color: 'red', fontSize: 12 }}>{errors.start_date}</div>
+                    )}
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="end_date">End Date</label>
+                    <label htmlFor="end_date">End Date <span style={{ color: 'red' }}>*</span></label>
                     <input
                       type="date"
                       id="end_date"
@@ -443,9 +472,12 @@ const Milestone = () => {
                       value={formData.end_date}
                       onChange={handleChange}
                     />
+                    {errors.end_date && (
+                      <div style={{ color: 'red', fontSize: 12 }}>{errors.end_date}</div>
+                    )}
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="status">Status</label>
+                    <label htmlFor="status">Status <span style={{ color: 'red' }}>*</span></label>
                     <select
                       id="status"
                       name="status"
@@ -458,6 +490,9 @@ const Milestone = () => {
                       <option value="completed">Completed</option>
                       <option value="delayed">Delayed</option>
                     </select>
+                    {errors.status && (
+                      <div style={{ color: 'red', fontSize: 12 }}>{errors.status}</div>
+                    )}
                   </Grid>
                 </Grid>
               </Grid>

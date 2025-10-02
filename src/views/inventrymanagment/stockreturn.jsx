@@ -43,6 +43,7 @@ const StockReturn = () => {
   const rowsPerPage = 2;
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalMaximized, setIsModalMaximized] = useState(false);
+  const [errors, setErrors] = useState({});
 
 
   const [formData, setFormData] = useState({
@@ -212,6 +213,9 @@ const handleDelete = async (returnId) => {
     ...prev,
     [name]: value,
   }));
+  if (errors[name]) {
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+  }
 };
 
 
@@ -240,13 +244,40 @@ const handleEdit = (item) => {
     returnBy: item.returned_by,
     returnDate: item.return_date,
     stockAdjustmentID: item.stock_adjustment_id,
-    adjustmentType: item.adjustment_type,
+    adjustmentType: item.adjustment_type
+      ? item.adjustment_type.charAt(0).toUpperCase() + item.adjustment_type.slice(1).toLowerCase()
+      : "",
     wastageReason: item.wastage_reason || "",
   });
 };
 
+// 🔹 Validate required fields
+const validateForm = () => {
+  const reqErr = {};
+  const required = [
+    'returnQuantity',
+    'returnReason',
+    'returnBy',
+    'returnDate',
+    'adjustmentType',
+  ];
+
+  required.forEach((field) => {
+    const value = (formData[field] ?? '').toString().trim();
+    if (value === '') reqErr[field] = 'This field is required';
+  });
+
+  if (Object.keys(reqErr).length) {
+    setErrors(reqErr);
+    return false;
+  }
+  setErrors({});
+  return true;
+};
+
 // 🔹 Submit form handler (Add + Edit)
 const handleSubmit = async () => {
+  if (!validateForm()) return;
   const payload = {
     item: formData.itemId,
     return_quantity: formData.returnQuantity,
@@ -435,7 +466,7 @@ const handleSubmit = async () => {
       <TableCell>{item.returned_by}</TableCell>
       <TableCell>{formatDateDDMMYYYY(item.return_date)}</TableCell>
       <TableCell>{item.stock_adjustment_id}</TableCell>
-      <TableCell>{item.adjustment_type}</TableCell>
+      <TableCell>{item.adjustment_type ? item.adjustment_type.charAt(0).toUpperCase() + item.adjustment_type.slice(1).toLowerCase() : ''}</TableCell>
       <TableCell>{item.wastage_reason}</TableCell>
       <TableCell>
       <DisableIfCannot slug={MODULE_SLUG} action="can_update">
@@ -553,7 +584,7 @@ const handleSubmit = async () => {
   {/* First Row */}
   <Grid container spacing={2}>
     <Grid item xs={6}>
-      <label htmlFor="returnQuantity">Return Quantity</label>
+      <label htmlFor="returnQuantity">Return Quantity <span style={{ color: 'red' }}>*</span></label>
       <input
         id="returnQuantity"
         name="returnQuantity"
@@ -562,10 +593,13 @@ const handleSubmit = async () => {
         onChange={handleChange}
         type="number"
       />
+      {errors.returnQuantity && (
+        <div style={{ color: 'red', fontSize: 12 }}>{errors.returnQuantity}</div>
+      )}
     </Grid>
 
     <Grid item xs={6}>
-      <label htmlFor="returnReason">Return Reason</label>
+      <label htmlFor="returnReason">Return Reason <span style={{ color: 'red' }}>*</span></label>
       <textarea
         id="returnReason"
         name="returnReason"
@@ -574,13 +608,16 @@ const handleSubmit = async () => {
         value={formData.returnReason || ''}
         onChange={handleChange}
       />
+      {errors.returnReason && (
+        <div style={{ color: 'red', fontSize: 12 }}>{errors.returnReason}</div>
+      )}
     </Grid>
   </Grid>
 
   {/* Second Row */}
   <Grid container spacing={2} sx={{ mt: 1 }}>
     <Grid item xs={6}>
-      <label htmlFor="returnBy">Return By</label>
+      <label htmlFor="returnBy">Return By <span style={{ color: 'red' }}>*</span></label>
       <input
         id="returnBy"
         name="returnBy"
@@ -588,10 +625,13 @@ const handleSubmit = async () => {
         value={formData.returnBy || ''}
         onChange={handleChange}
       />
+      {errors.returnBy && (
+        <div style={{ color: 'red', fontSize: 12 }}>{errors.returnBy}</div>
+      )}
     </Grid>
 
     <Grid item xs={6}>
-      <label htmlFor="returnDate">Return Date</label>
+      <label htmlFor="returnDate">Return Date <span style={{ color: 'red' }}>*</span></label>
       <input
         type="date"
         id="returnDate"
@@ -600,60 +640,65 @@ const handleSubmit = async () => {
         value={formData.returnDate || ''}
         onChange={handleChange}
       />
+      {errors.returnDate && (
+        <div style={{ color: 'red', fontSize: 12 }}>{errors.returnDate}</div>
+      )}
     </Grid>
   </Grid>
 </Grid>
 
-
-
+              {/* Stock Adjustment Info */}
               <Grid item xs={12}>
-  <h3 style={{ color: '#7267ef' }}>Stock Adjustment Info</h3>
-  <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
+                <h3 style={{ color: '#7267ef' }}>Stock Adjustment Info</h3>
+                <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
 
-  {/* First Row */}
-  <Grid container spacing={2}>
-    <Grid item xs={6}>
-      <label htmlFor="stockAdjustmentID">Stock Adjustment ID</label>
-      <input
-        id="stockAdjustmentID"
-        name="stockAdjustmentID"
-        className="input"
-        value={formData.stockAdjustmentID || ''}
-        onChange={handleChange}
-      />
-    </Grid>
+                {/* First Row */}
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <label htmlFor="stockAdjustmentID">Stock Adjustment ID</label>
+                    <input
+                      id="stockAdjustmentID"
+                      name="stockAdjustmentID"
+                      className="input"
+                      value={formData.stockAdjustmentID || ''}
+                      onChange={handleChange}
+                    />
+                  </Grid>
 
-    <Grid item xs={6}>
-      <label htmlFor="adjustmentType">Adjustment Type</label>
-      <select
-        id="adjustmentType"
-        name="adjustmentType"
-        className="input"
-        value={formData.adjustmentType || ''}
-        onChange={handleChange}
-      >
-        <option value="">-- Select Adjustment Type --</option>
-        <option value="Addition">Addition</option>
-        <option value="Deduction">Deduction</option>
-        <option value="Scrap">Scrap</option>
-      </select>
-    </Grid>
-  </Grid>
+                  <Grid item xs={6}>
+                    <label htmlFor="adjustmentType">Adjustment Type <span style={{ color: 'red' }}>*</span></label>
+                    <select
+                      id="adjustmentType"
+                      name="adjustmentType"
+                      className="input"
+                      value={formData.adjustmentType || ''}
+                      onChange={handleChange}
+                    >
+                      <option value="">-- Select Adjustment Type --</option>
+                      <option value="Addition">Addition</option>
+                      <option value="Deduction">Deduction</option>
+                      <option value="Scrap">Scrap</option>
+                    </select>
+                    {errors.adjustmentType && (
+                      <div style={{ color: 'red', fontSize: 12 }}>{errors.adjustmentType}</div>
+                    )}
+                  </Grid>
+                </Grid>
 
-  {/* Second Row */}
-  <Grid container spacing={2} sx={{ mt: 1 }}>
-    <Grid item xs={6}>
-      <label htmlFor="wastageReason">Wastage Reason</label>
-      <input
-        id="wastageReason"
-        name="wastageReason"
-        className="input"
-        value={formData.wastageReason || ''}
-        onChange={handleChange}
-      />
-    </Grid>
-  </Grid>
-</Grid>
+                {/* Second Row */}
+                <Grid container spacing={2} sx={{ mt: 1 }}>
+                  <Grid item xs={6}>
+                    <label htmlFor="wastageReason">Wastage Reason</label>
+                    <input
+                      id="wastageReason"
+                      name="wastageReason"
+                      className="input"
+                      value={formData.wastageReason || ''}
+                      onChange={handleChange}
+                    />
+                  </Grid>
+                </Grid>
+              </Grid>
 
             </Grid>
           </Box>

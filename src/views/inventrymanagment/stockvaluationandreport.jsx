@@ -17,7 +17,7 @@ import {
   Box,
   IconButton,
 } from '@mui/material';
-import { Edit, Delete } from '@mui/icons-material';
+import { Edit, Delete, Visibility } from '@mui/icons-material';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import autoTable from 'jspdf-autotable';
@@ -34,6 +34,8 @@ const InventoryValuationForm = () => {
   const [editIndex, setEditIndex] = useState(null);
   const [stockOptions, setStockOptions] = useState([]);
   const [isModalMaximized, setIsModalMaximized] = useState(false);
+  const [errors, setErrors] = useState({});
+
 
   const [formData, setFormData] = useState({
     valuationMethod: '',
@@ -64,7 +66,12 @@ const InventoryValuationForm = () => {
   const fetchStockIds = async () => {
     try {
       const data = await getStockManagement();
-      setStockOptions(data.map(item => item.stock_id)); // Only stock_id list
+      setStockOptions(
+        (data || []).map((row) => ({
+          id: row.stock_id,
+          label: `${row.stock_id} - ${row.item || ''}`.trim(),
+        }))
+      );
     } catch (err) {
       console.error("Error fetching stock IDs:", err);
     }
@@ -95,9 +102,12 @@ useEffect(() => {
     [name]: type === 'checkbox'
       ? checked
       : type === 'file'
-        ? files[0]?.name || ''
+        ? files && files.length > 0 ? files[0] : null
         : value
   }));
+  if (errors[name]) {
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+  }
 };
 
   const handleKeyDown = (e, nextFieldRef) => {
@@ -128,22 +138,41 @@ useEffect(() => {
       stockTurnoverRatio: '',
       lowStockAlerts: false,
       excessStockAlerts: false,
-      monthlyStockReport: ''
+      monthlyStockReport: null
     });
+    setEditIndex(null);
   }
   setOpen(true);
 };
 
 
 
-  const handleSubmit = async () => {
-  try {
-    const payload = {
-      stock: formData.stockId,
-      valuation_method: formData.valuationMethod
-    };
+  const validateForm = () => {
+  const reqErr = {};
+  const required = ['valuationMethod', 'stockId'];
+  required.forEach((field) => {
+    const v = (formData[field] ?? '').toString().trim();
+    if (v === '') reqErr[field] = 'This field is required';
+  });
+  if (Object.keys(reqErr).length) {
+    setErrors(reqErr);
+    return false;
+  }
+  setErrors({});
+  return true;
+};
 
-    const res = await submitValuationReport(payload);
+  const handleSubmit = async () => {
+  if (!validateForm()) return;
+  try {
+    const data = new FormData();
+    data.append('stock', formData.stockId);
+    data.append('valuation_method', formData.valuationMethod);
+    if (formData.monthlyStockReport) {
+      data.append('monthly_stock_report', formData.monthlyStockReport);
+    }
+
+    const res = await submitValuationReport(data);
 
     // ✅ Refresh report list
     const updatedReports = await getValuationReports();
@@ -160,7 +189,8 @@ useEffect(() => {
       monthlyStockReport: ''
     });
 
-    // ✅ Close dialog
+    // ✅ Close dialog and reset edit mode
+    setEditIndex(null);
     setOpen(false);
 
     alert("✅ Valuation report generated successfully!");
@@ -171,7 +201,16 @@ useEffect(() => {
 };
 
   const handleEdit = (index) => {
-    setFormData(reportData[index]);
+    const row = reportData[index] || {};
+    setFormData({
+      valuationMethod: row.valuation_method || '',
+      stockId: row.stock || '',
+      stockValue: row.stock_value || '',
+      stockTurnoverRatio: row.stock_turnover_ratio || '',
+      lowStockAlerts: !!row.low_stock_alert,
+      excessStockAlerts: !!row.excess_stock_alert,
+      monthlyStockReport: row.monthly_stock_report || ''
+    });
     setEditIndex(index);
     setOpen(true);
   };
@@ -239,7 +278,7 @@ useEffect(() => {
     <>
     <ShowIfCan slug={MODULE_SLUG} action="can_create">
 
-      <Button variant="contained" onClick={() => setOpen(true)} sx={{backgroundColor:'#7267ef',mt:4}}>
+      <Button variant="contained" onClick={() => handleOpen()} sx={{backgroundColor:'#7267ef',mt:4}}>
         Add Inventory Valuation
       </Button>
       </ShowIfCan>
@@ -262,7 +301,7 @@ useEffect(() => {
              }}
            >
 
-        <DialogTitle>Inventory Valuation & Reporting</DialogTitle>
+        <DialogTitle>{editIndex !== null ? 'Edit Inventory Valuation' : 'Inventory Valuation & Reporting'}</DialogTitle>
        <DialogContent
                   sx={{
                     position: "relative",
@@ -283,7 +322,7 @@ useEffect(() => {
                   </IconButton>
           <Grid container spacing={2} direction="column">
             <Grid item>
-              <Typography variant="subtitle2">Valuation Method</Typography>
+              <Typography variant="subtitle2">Valuation Method <span style={{ color: 'red' }}>*</span></Typography>
               <select
                 name="valuationMethod"
                 className="input"
@@ -297,10 +336,13 @@ useEffect(() => {
                 <option value="LIFO">LIFO</option>
                 <option value="Weighted Average">Weighted Average</option>
               </select>
+              {errors.valuationMethod && (
+                <div style={{ color: 'red', fontSize: 12 }}>{errors.valuationMethod}</div>
+              )}
             </Grid>
              
 <Grid item>
-  <Typography variant="subtitle2">Stock ID</Typography>
+  <Typography variant="subtitle2">Stock ID <span style={{ color: 'red' }}>*</span></Typography>
   <input
     list="stockIdOptions" // Link to datalist ID
     name="stockId"
@@ -312,16 +354,19 @@ useEffect(() => {
     ref={stockValueRef}
     placeholder="Search Stock ID"
   />
+  {errors.stockId && (
+    <div style={{ color: 'red', fontSize: 12 }}>{errors.stockId}</div>
+  )}
   <datalist id="stockIdOptions">
-    {stockOptions.map((id, index) => (
-      <option key={index} value={id} />
+    {stockOptions.map((opt, index) => (
+      <option key={index} value={opt.id}>{opt.label}</option>
     ))}
   </datalist>
 </Grid>
 
 
 
-            <Grid item>
+            {/* <Grid item>
               <Typography variant="subtitle2">Stock Value</Typography>
               <input
                 name="stockValue"
@@ -332,9 +377,9 @@ useEffect(() => {
                 onKeyDown={(e) => handleKeyDown(e, stockTurnoverRatioRef)}
                 ref={stockValueRef}
               />
-            </Grid>
+            </Grid> */}
 
-            <Grid item>
+            {/* <Grid item>
               <Typography variant="subtitle2">Stock Turnover Ratio</Typography>
               <input
                 name="stockTurnoverRatio"
@@ -345,7 +390,7 @@ useEffect(() => {
                 onKeyDown={(e) => handleKeyDown(e, lowStockAlertsRef)}
                 ref={stockTurnoverRatioRef}
               />
-            </Grid>
+            </Grid> */}
 
             <Grid item>
               <label>
@@ -394,7 +439,7 @@ useEffect(() => {
               />
               {formData.monthlyStockReport && (
                 <Typography variant="caption" style={{ marginTop: '4px', display: 'block' }}>
-                  {formData.monthlyStockReport}
+                  {formData.monthlyStockReport?.name}
                 </Typography>
               )}
             </Grid>
@@ -468,7 +513,16 @@ useEffect(() => {
         <TableCell>{row.valuation_method}</TableCell>
         <TableCell>{row.stock_value}</TableCell>
         <TableCell>{row.stock_turnover_ratio}</TableCell>
-        <TableCell>{row.monthly_stock_report || '—'}</TableCell>
+        <TableCell>
+          {row.monthly_stock_report ? (
+            <IconButton component="a" href={row.monthly_stock_report} target="_blank" rel="noopener noreferrer" title="View">
+              <Visibility />
+            </IconButton>
+            
+          ) : (
+            '—'
+          )}
+        </TableCell>
         <TableCell>
         <DisableIfCannot slug={MODULE_SLUG} action="can_update">
 

@@ -43,6 +43,7 @@ const StockMaster = () => {
   const [formData, setFormData] = useState({});
   const [stockmanagement, setStockManagement] = useState([]);
   const [isModalMaximized, setIsModalMaximized] = useState(false);
+  const [errors, setErrors] = useState({});
 
   
 
@@ -124,6 +125,10 @@ const handleChange = (e) => {
 
     return updatedData;
   });
+  // clear field-specific error on change
+  if (errors[name]) {
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+  }
 };
 
 
@@ -182,7 +187,35 @@ const handleEdit = (item) => {
 };
 
 
+// Validate required fields
+const validateForm = () => {
+  const reqErr = {};
+  const required = [
+    'openingStock',
+    'stockIssuedBy',
+    'stockValuation',
+    'lastUpdated',
+  ];
+
+  required.forEach((field) => {
+    const value = (formData[field] ?? '').toString().trim();
+    if (value === '') {
+      reqErr[field] = 'This field is required';
+    }
+  });
+
+  if (Object.keys(reqErr).length > 0) {
+    setErrors(reqErr);
+    return false;
+  }
+
+  setErrors({});
+  return true;
+};
+
 const handleSubmit = async () => {
+  const ok = validateForm();
+  if (!ok) return;
   try {
     const stockData = {
       item: formData.itemId,
@@ -547,7 +580,7 @@ const handleDelete = async (stockManagementId) => {
                 <h3 style={{ color: '#7267ef' }}>Stock Information</h3>
                 <hr style={{ borderTop: '2px solid #7267ef', width: '100%' }} />
                <Grid item xs={6}>
-                    <label htmlFor="openingStock">Opening Stock</label>
+                    <label htmlFor="openingStock">Opening Stock <span style={{ color: 'red' }}>*</span></label>
                     <input 
                     id="openingStock" 
                     name="openingStock" 
@@ -556,6 +589,9 @@ const handleDelete = async (stockManagementId) => {
                     onChange={handleChange} 
                     type="number"
                     />
+                    {errors.openingStock && (
+                      <div style={{ color: 'red', fontSize: 12 }}>{errors.openingStock}</div>
+                    )}
                   </Grid>
                   <Grid item xs={6}>
                     <label htmlFor="stockIssued">Stock Issued</label>
@@ -569,7 +605,7 @@ const handleDelete = async (stockManagementId) => {
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="stockIssuedBy">Stock Issued By</label>
+                    <label htmlFor="stockIssuedBy">Stock Issued By <span style={{ color: 'red' }}>*</span></label>
                     <input 
                     id="stockIssuedBy" 
                     name="stockIssuedBy" 
@@ -577,6 +613,9 @@ const handleDelete = async (stockManagementId) => {
                     value={formData.stockIssuedBy || ''} 
                     onChange={handleChange} 
                     />
+                    {errors.stockIssuedBy && (
+                      <div style={{ color: 'red', fontSize: 12 }}>{errors.stockIssuedBy}</div>
+                    )}
                   </Grid>
               </Grid>
 
@@ -596,7 +635,7 @@ const handleDelete = async (stockManagementId) => {
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="stockValuation">Stock Valuation</label>
+                    <label htmlFor="stockValuation">Stock Valuation <span style={{ color: 'red' }}>*</span></label>
                     <input 
                     id="stockValuation" 
                     name="stockValuation" 
@@ -604,9 +643,12 @@ const handleDelete = async (stockManagementId) => {
                     value={formData.stockValuation || ''} 
                     onChange={handleChange} 
                     />
+                    {errors.stockValuation && (
+                      <div style={{ color: 'red', fontSize: 12 }}>{errors.stockValuation}</div>
+                    )}
                   </Grid>
                   <Grid item xs={6}>
-                    <label htmlFor="lastUpdated">Last Updated </label>
+                    <label htmlFor="lastUpdated">Last Updated <span style={{ color: 'red' }}>*</span></label>
                     <input 
                     type="date"
                     id="lastUpdated" 
@@ -615,6 +657,9 @@ const handleDelete = async (stockManagementId) => {
                     value={formData.lastUpdated || ''} 
                     onChange={handleChange} 
                     />
+                    {errors.lastUpdated && (
+                      <div style={{ color: 'red', fontSize: 12 }}>{errors.lastUpdated}</div>
+                    )}
                   </Grid>
               </Grid>
             </Grid>
